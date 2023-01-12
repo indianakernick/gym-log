@@ -5,5 +5,38 @@
 </head>
 <body>
   <h1>Test</h1>
+
+  <div>
+    <button id="get">Get</button>
+    <span>The value is:</span>
+    <output id="output"></output>
+  </div>
+
+  <div>
+    <button id="put">Put</button>
+    <label for="value">New value:</label>
+    <input type="text" id="value" />
+  </div>
+
+  <script>
+    const baseUrl = "https://pa36mmpygd.execute-api.ap-southeast-2.amazonaws.com/";
+    const thing = `${baseUrl}thing`;
+
+    const get = document.getElementById("get");
+    const put = document.getElementById("put");
+    const output = document.getElementById("output")
+    const input = document.getElementById("value");
+
+    get.addEventListener("click", async () => {
+      let res = await fetch(thing, { method: "GET" });
+      if (res.ok) {
+        output.innerText = await res.text();
+      }
+    });
+
+    put.addEventListener("click", async () => {
+      await fetch(thing, { method: "PUT", body: input.value });
+    });
+  </script>
 </body>
 </html>

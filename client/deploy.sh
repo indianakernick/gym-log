@@ -1,3 +1,3 @@
 #!/bin/zsh
 
-aws --profile gym-log s3 sync client/www s3://gymlog.indianakernick.com
+aws --profile gym-log s3 sync www s3://gymlog.indianakernick.com
