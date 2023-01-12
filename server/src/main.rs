@@ -17,6 +17,8 @@ async fn api_thing_get(event: Request) -> Result<Response<Body>, Error> {
 
     Ok(Response::builder()
         .status(200)
+        .header("Access-Control-Allow-Origin", "http://gymlog.indianakernick.com.s3-website-ap-southeast-2.amazonaws.com")
+        .header("Access-Control-Allow-Methods", "OPTIONS,PUT,GET")
         .header("content-type", "text/plain")
         .body(value.as_s().unwrap().as_str().into())
         .map_err(Box::new)?)
@@ -37,12 +39,23 @@ async fn api_thing_put(event: Request) -> Result<Response<Body>, Error> {
         .key("PK", AttributeValue::S("abc".into()))
         .key("SK", AttributeValue::S("xyz".into()))
         .update_expression("SET NotAReservedWord = :newValue")
-        .expression_attribute_values("newValue", AttributeValue::S(new_value))
+        .expression_attribute_values(":newValue", AttributeValue::S(new_value))
         .send()
         .await?;
 
     Ok(Response::builder()
         .status(201)
+        .header("Access-Control-Allow-Origin", "http://gymlog.indianakernick.com.s3-website-ap-southeast-2.amazonaws.com")
+        .header("Access-Control-Allow-Methods", "OPTIONS,PUT,GET")
+        .body(().into())
+        .map_err(Box::new)?)
+}
+
+async fn api_thing_options(event: Request) -> Result<Response<Body>, Error> {
+    Ok(Response::builder()
+        .status(200)
+        .header("Access-Control-Allow-Origin", "http://gymlog.indianakernick.com.s3-website-ap-southeast-2.amazonaws.com")
+        .header("Access-Control-Allow-Methods", "OPTIONS,PUT,GET")
         .body(().into())
         .map_err(Box::new)?)
 }
@@ -53,6 +66,7 @@ async fn function_handler(event: Request) -> Result<Response<Body>, Error> {
     match req_ctx.route_key.as_ref().map(|s| s.as_str()) {
         Some("GET /thing") => api_thing_get(event).await,
         Some("PUT /thing") => api_thing_put(event).await,
+        Some("OPTIONS /thing") => api_thing_options(event).await,
         Some(_) | None => {
             Ok(Response::builder()
                 .status(404)
