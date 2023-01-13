@@ -19,6 +19,7 @@ async fn api_thing_get(event: Request) -> Result<Response<Body>, Error> {
         .status(200)
         .header("Access-Control-Allow-Origin", "http://gymlog.indianakernick.com.s3-website-ap-southeast-2.amazonaws.com")
         .header("Access-Control-Allow-Methods", "OPTIONS,PUT,GET")
+        .header("Access-Control-Allow-Headers", "Authorization")
         .header("content-type", "text/plain")
         .body(value.as_s().unwrap().as_str().into())
         .map_err(Box::new)?)
@@ -47,6 +48,7 @@ async fn api_thing_put(event: Request) -> Result<Response<Body>, Error> {
         .status(201)
         .header("Access-Control-Allow-Origin", "http://gymlog.indianakernick.com.s3-website-ap-southeast-2.amazonaws.com")
         .header("Access-Control-Allow-Methods", "OPTIONS,PUT,GET")
+        .header("Access-Control-Allow-Headers", "Authorization")
         .body(().into())
         .map_err(Box::new)?)
 }
@@ -56,6 +58,7 @@ async fn api_thing_options(event: Request) -> Result<Response<Body>, Error> {
         .status(200)
         .header("Access-Control-Allow-Origin", "http://gymlog.indianakernick.com.s3-website-ap-southeast-2.amazonaws.com")
         .header("Access-Control-Allow-Methods", "OPTIONS,PUT,GET")
+        .header("Access-Control-Allow-Headers", "Authorization")
         .body(().into())
         .map_err(Box::new)?)
 }
