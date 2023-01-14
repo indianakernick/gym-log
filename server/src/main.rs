@@ -1,10 +1,14 @@
 mod common;
 mod user;
+mod user_measurement;
+mod user_workout;
+mod user_workout_exercise;
+mod user_workout_order;
 
 use aws_sdk_dynamodb::model::AttributeValue;
 use lambda_http::{Body, Error, Request, RequestExt, Response, request::RequestContext};
 
-async fn api_thing_get(event: Request) -> Result<Response<Body>, Error> {
+async fn api_thing_get(req: Request) -> Result<Response<Body>, Error> {
     let config = aws_config::load_from_env().await;
     let client = aws_sdk_dynamodb::Client::new(&config);
 
@@ -25,11 +29,11 @@ async fn api_thing_get(event: Request) -> Result<Response<Body>, Error> {
         .map_err(Box::new)?)
 }
 
-async fn api_thing_put(event: Request) -> Result<Response<Body>, Error> {
+async fn api_thing_put(req: Request) -> Result<Response<Body>, Error> {
     let config = aws_config::load_from_env().await;
     let client = aws_sdk_dynamodb::Client::new(&config);
 
-    let new_value = match event.into_body() {
+    let new_value = match req.into_body() {
         Body::Empty => String::new(),
         Body::Text(t) => t,
         Body::Binary(b) => String::from_utf8(b).unwrap_or(String::new()),
@@ -50,15 +54,28 @@ async fn api_thing_put(event: Request) -> Result<Response<Body>, Error> {
         .map_err(Box::new)?)
 }
 
-async fn function_handler(event: Request) -> Result<Response<Body>, Error> {
-    let RequestContext::ApiGatewayV2(req_ctx) = event.request_context();
+async fn function_handler(req: Request) -> Result<Response<Body>, Error> {
+    let RequestContext::ApiGatewayV2(req_ctx) = req.request_context();
 
     match req_ctx.route_key.as_ref().map(|s| s.as_str()) {
-        Some("GET /user") => user::get(event).await,
-        Some("OPTIONS /user") => common::options(event).await,
-        Some("GET /thing") => api_thing_get(event).await,
-        Some("PUT /thing") => api_thing_put(event).await,
-        Some("OPTIONS /thing") => common::options(event).await,
+        Some("GET /user") => user::get(req).await,
+        Some("OPTIONS /user") => common::options(req).await,
+        Some("DELETE /user/measurement/{measurementId}") => user_measurement::delete(req).await,
+        Some("OPTIONS /user/measurement/{measurementId}") => common::options(req).await,
+        Some("PUT /user/measurement/{measurementId}") => user_measurement::put(req).await,
+        Some("DELETE /user/workout/{workoutId}") => user_workout::delete(req).await,
+        Some("OPTIONS /user/workout/{workoutId}") => common::options(req).await,
+        Some("PUT /user/workout/{workoutId}") => user_workout::put(req).await,
+        Some("DELETE /user/workout/{workoutId}/exercise/{exerciseId}") => user_workout_exercise::delete(req).await,
+        Some("OPTIONS /user/workout/{workoutId}/exercise/{exerciseId}") => common::options(req).await,
+        Some("PUT /user/workout/{workoutId}/exercise/{exerciseId}") => user_workout_exercise::put(req).await,
+        Some("OPTIONS /user/workout/{workoutId}/order") => common::options(req).await,
+        Some("PUT /user/workout/{workoutId}/order") => user_workout_order::put(req).await,
+
+        Some("GET /thing") => api_thing_get(req).await,
+        Some("PUT /thing") => api_thing_put(req).await,
+        Some("OPTIONS /thing") => common::options(req).await,
+
         Some(_) | None => {
             Ok(Response::builder()
                 .status(404)

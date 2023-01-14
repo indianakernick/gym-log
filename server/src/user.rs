@@ -1,8 +1,8 @@
-use lambda_http::{Request, Response, Body, Error};
+use lambda_http::{Request, Response};
 use super::common;
 
-pub async fn get(event: Request) -> Result<Response<Body>, Error> {
-    let user_id = common::get_user_id(event);
+pub async fn get(req: Request) -> common::Result {
+    let user_id = common::get_user_id(&req);
 
     Ok(common::with_cors(Response::builder())
         .status(200)
