@@ -1,3 +1,6 @@
+mod common;
+mod user;
+
 use aws_sdk_dynamodb::model::AttributeValue;
 use lambda_http::{Body, Error, Request, RequestExt, Response, request::RequestContext};
 
@@ -15,11 +18,8 @@ async fn api_thing_get(event: Request) -> Result<Response<Body>, Error> {
 
     let value = &item.item().unwrap()["NotAReservedWord"];
 
-    Ok(Response::builder()
+    Ok(common::with_cors(Response::builder())
         .status(200)
-        .header("Access-Control-Allow-Origin", "http://gymlog.indianakernick.com.s3-website-ap-southeast-2.amazonaws.com")
-        .header("Access-Control-Allow-Methods", "OPTIONS,PUT,GET")
-        .header("Access-Control-Allow-Headers", "Authorization")
         .header("content-type", "text/plain")
         .body(value.as_s().unwrap().as_str().into())
         .map_err(Box::new)?)
@@ -44,21 +44,8 @@ async fn api_thing_put(event: Request) -> Result<Response<Body>, Error> {
         .send()
         .await?;
 
-    Ok(Response::builder()
-        .status(201)
-        .header("Access-Control-Allow-Origin", "http://gymlog.indianakernick.com.s3-website-ap-southeast-2.amazonaws.com")
-        .header("Access-Control-Allow-Methods", "OPTIONS,PUT,GET")
-        .header("Access-Control-Allow-Headers", "Authorization")
-        .body(().into())
-        .map_err(Box::new)?)
-}
-
-async fn api_thing_options(event: Request) -> Result<Response<Body>, Error> {
-    Ok(Response::builder()
+    Ok(common::with_cors(Response::builder())
         .status(200)
-        .header("Access-Control-Allow-Origin", "http://gymlog.indianakernick.com.s3-website-ap-southeast-2.amazonaws.com")
-        .header("Access-Control-Allow-Methods", "OPTIONS,PUT,GET")
-        .header("Access-Control-Allow-Headers", "Authorization")
         .body(().into())
         .map_err(Box::new)?)
 }
@@ -67,9 +54,11 @@ async fn function_handler(event: Request) -> Result<Response<Body>, Error> {
     let RequestContext::ApiGatewayV2(req_ctx) = event.request_context();
 
     match req_ctx.route_key.as_ref().map(|s| s.as_str()) {
+        Some("GET /user") => user::get(event).await,
+        Some("OPTIONS /user") => common::options(event).await,
         Some("GET /thing") => api_thing_get(event).await,
         Some("PUT /thing") => api_thing_put(event).await,
-        Some("OPTIONS /thing") => api_thing_options(event).await,
+        Some("OPTIONS /thing") => common::options(event).await,
         Some(_) | None => {
             Ok(Response::builder()
                 .status(404)
