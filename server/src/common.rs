@@ -19,7 +19,7 @@ pub fn get_user_id(req: &Request) -> String {
         sub: String,
     }
 
-    let engine = base64::engine::general_purpose::URL_SAFE_NO_PAD;
+    let engine = base64::engine::general_purpose::URL_SAFE;
 
     let access_token = req.headers()["Authorization"].as_bytes();
     let mut parts = access_token.split(|c| *c == b'.');

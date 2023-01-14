@@ -1,4 +1,5 @@
 mod common;
+mod model;
 mod user;
 mod user_measurement;
 mod user_workout;
