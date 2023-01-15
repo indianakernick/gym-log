@@ -1,5 +1,5 @@
-use lambda_http::{Request, Response, Error, Body};
-use serde::Deserialize;
+use lambda_http::{Request, Response, Error, Body, http::StatusCode};
+use serde::{Deserialize, Serialize};
 use base64::Engine;
 use lambda_http::http::response::Builder;
 
@@ -43,12 +43,69 @@ pub fn with_cors(builder: Builder) -> Builder {
     builder
         .header("Access-Control-Allow-Origin", "http://gymlog.indianakernick.com.s3-website-ap-southeast-2.amazonaws.com")
         .header("Access-Control-Allow-Methods", "OPTIONS,PUT,GET,DELETE")
-        .header("Access-Control-Allow-Headers", "Authorization")
+        .header("Access-Control-Allow-Headers", "Authorization,Content-Type")
 }
 
-pub async fn options(_req: Request) -> Result {
-    Ok(with_cors(Response::builder())
-        .status(200)
+pub fn options() -> Result {
+    empty_response(StatusCode::OK)
+}
+
+pub fn empty_response(status: StatusCode) -> Result {
+    with_cors(Response::builder())
+        .status(status)
         .body(().into())
-        .map_err(Box::new)?)
+        .map_err(|e| e.into())
+}
+
+pub fn error_response(status: StatusCode, message: &str) -> Result {
+    #[derive(Serialize)]
+    struct Error<'a> {
+        message: &'a str,
+    }
+
+    with_cors(Response::builder())
+        .status(status)
+        .header("Content-Type", "application/json")
+        .body(serde_json::to_string(&Error { message }).unwrap().into())
+        .map_err(|e| e.into())
+}
+
+pub fn parse_request_json<'de, T: serde::Deserialize<'de>>(
+    req: &'de Request,
+) -> std::result::Result<T, Result> {
+    match serde_json::from_slice::<T>(req.body().as_ref()) {
+        Ok(t) => Ok(t),
+        Err(e) => Err(error_response(StatusCode::BAD_REQUEST, &e.to_string()))
+    }
+}
+
+fn is_uuid(id: &str) -> bool {
+    if id.len() != 36 {
+        return false;
+    }
+
+    for (i, b) in id.bytes().enumerate() {
+        match i {
+            8 | 13 | 18 | 23 => {
+                if b != b'-' {
+                    return false;
+                }
+            }
+            _ => {
+                if !b.is_ascii_hexdigit() {
+                    return false;
+                }
+            }
+        }
+    }
+
+    return true;
+}
+
+pub fn validate_uuid(id: &str) -> std::result::Result<(), Result> {
+    if is_uuid(id) {
+        Ok(())
+    } else {
+        Err(error_response(StatusCode::BAD_REQUEST, "ID must be UUID"))
+    }
 }

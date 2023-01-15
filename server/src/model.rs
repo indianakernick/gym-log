@@ -11,6 +11,7 @@ pub struct User<'a> {
 #[derive(Serialize, Deserialize)]
 pub struct Measurement<'a> {
     /// UUID of the measurement.
+    #[serde(skip_deserializing)]
     pub measurement_id: &'a str,
     /// Type of measurement. The client defines the meaning of this.
     pub r#type: &'a str,

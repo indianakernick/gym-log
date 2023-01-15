@@ -1,5 +1,5 @@
 use aws_sdk_dynamodb::{model::AttributeValue, output::QueryOutput};
-use lambda_http::{Request, Response};
+use lambda_http::{Request, Response, http::StatusCode};
 use super::{common, model};
 
 pub async fn get(req: Request) -> common::Result {
@@ -30,7 +30,7 @@ pub async fn get(req: Request) -> common::Result {
     };
 
     Ok(common::with_cors(Response::builder())
-        .status(200)
+        .status(StatusCode::OK)
         .header("Content-Type", "application/json")
         .body(serde_json::to_string(&user).unwrap().into())
         .map_err(Box::new)?)
