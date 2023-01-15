@@ -42,6 +42,8 @@ pub struct Workout<'a> {
 pub struct Exercise<'a> {
     /// UUID of the exercise.
     pub exercise_id: &'a str,
+    /// Index of the exercise within the workout.
+    pub order: u32,
     /// The type of exercise which defines the meaning of various properties on
     /// sets.
     pub r#type: &'a str,

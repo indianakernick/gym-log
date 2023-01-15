@@ -3,6 +3,9 @@ use serde::Deserialize;
 use base64::Engine;
 use lambda_http::http::response::Builder;
 
+pub const TABLE_USER_MEASUREMENT: &str = "gym-log.UserMeasurement";
+pub const TABLE_USER_SET: &str = "gym-log.UserSet";
+
 pub type Result = std::result::Result<Response<Body>, Error>;
 
 pub async fn get_db_client() -> aws_sdk_dynamodb::Client {
