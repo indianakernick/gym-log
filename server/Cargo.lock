@@ -625,6 +625,7 @@ dependencies = [
  "chrono",
  "lambda_http",
  "lambda_runtime",
+ "once_cell",
  "serde",
  "serde_json",
  "tokio",

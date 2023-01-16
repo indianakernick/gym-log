@@ -1,5 +1,6 @@
 use aws_sdk_dynamodb::{output::DeleteItemOutput, types::SdkError, error::DeleteItemError};
 use lambda_http::{Request, Response, Error, Body, http::StatusCode};
+use once_cell::sync::OnceCell;
 use serde::{Deserialize, Serialize};
 use base64::Engine;
 use lambda_http::http::response::Builder;
@@ -9,9 +10,15 @@ pub const TABLE_USER_SET: &str = "gym-log.UserSet";
 
 pub type Result = std::result::Result<Response<Body>, Error>;
 
-pub async fn get_db_client() -> aws_sdk_dynamodb::Client {
+static CLIENT: OnceCell<aws_sdk_dynamodb::Client> = OnceCell::new();
+
+pub fn get_db_client() -> &'static aws_sdk_dynamodb::Client {
+    CLIENT.get().unwrap()
+}
+
+pub async fn init_db_client() {
     let config = aws_config::load_from_env().await;
-    aws_sdk_dynamodb::Client::new(&config)
+    CLIENT.set(aws_sdk_dynamodb::Client::new(&config)).unwrap();
 }
 
 pub fn get_user_id(req: &Request) -> String {

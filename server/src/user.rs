@@ -4,7 +4,7 @@ use super::{common, model};
 
 pub async fn get(req: Request) -> common::Result {
     let user_id = common::get_user_id(&req);
-    let db = common::get_db_client().await;
+    let db = common::get_db_client();
 
     let output = db.query()
         .table_name(common::TABLE_USER_MEASUREMENT)

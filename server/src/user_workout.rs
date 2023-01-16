@@ -11,7 +11,7 @@ pub async fn delete(req: Request) -> common::Result {
         return common::empty_response(StatusCode::NOT_FOUND);
     }
 
-    let db = common::get_db_client().await;
+    let db = common::get_db_client();
 
     let result = db.delete_item()
         .table_name(common::TABLE_USER_SET)
@@ -50,7 +50,7 @@ pub async fn put(req: Request) -> common::Result {
         }
     }
 
-    let db = common::get_db_client().await;
+    let db = common::get_db_client();
 
     let mut builder = db.put_item()
         .table_name(common::TABLE_USER_SET)

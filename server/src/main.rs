@@ -96,5 +96,7 @@ async fn main() -> Result<(), Error> {
         .without_time()
         .init();
 
+    common::init_db_client().await;
+
     lambda_http::run(lambda_http::service_fn(function_handler)).await
 }
