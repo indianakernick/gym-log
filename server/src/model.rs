@@ -27,16 +27,18 @@ pub struct Measurement<'a> {
 #[derive(Serialize, Deserialize)]
 pub struct Workout<'a> {
     /// UUID of the exercise.
+    #[serde(skip_deserializing)]
     pub workout_id: &'a str,
     /// The time that the workout started in ISO 8601 precise to the second.
-    pub start_time: &'a str,
+    pub start_time: Option<&'a str>,
     /// The time that the workout finished in ISO 8601 precise to the second.
-    pub finish_time: &'a str,
+    pub finish_time: Option<&'a str>,
     /// Any user provided notes associated with the workout.
     pub notes: &'a str,
     /// The exercises within a workout.
     #[serde(borrow)]
-    pub exercises: Option<Vec<Exercise<'a>>>,
+    #[serde(skip_deserializing)]
+    pub exercises: Vec<Exercise<'a>>,
 }
 
 #[derive(Serialize, Deserialize)]
@@ -52,7 +54,7 @@ pub struct Exercise<'a> {
     pub notes: &'a str,
     /// The sets within the exercise.
     #[serde(borrow)]
-    pub sets: Option<Vec<Set<'a>>>
+    pub sets: Vec<Set<'a>>
 }
 
 #[derive(Serialize, Deserialize)]

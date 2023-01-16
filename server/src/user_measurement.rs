@@ -1,4 +1,4 @@
-use aws_sdk_dynamodb::{model::AttributeValue, types::SdkError};
+use aws_sdk_dynamodb::model::AttributeValue;
 use lambda_http::{Request, RequestExt, http::StatusCode};
 use super::{common, model};
 
@@ -7,8 +7,8 @@ pub async fn delete(req: Request) -> common::Result {
     let params = req.path_parameters();
     let measurement_id = params.first("measurementId").unwrap();
 
-    if let Err(e) = common::validate_uuid(measurement_id) {
-        return e;
+    if !common::is_uuid(measurement_id) {
+        return common::empty_response(StatusCode::NOT_FOUND);
     }
 
     let db = common::get_db_client().await;
@@ -21,16 +21,7 @@ pub async fn delete(req: Request) -> common::Result {
         .send()
         .await;
 
-    if let Err(e) = result {
-        if let SdkError::ServiceError(ref service_err) = e {
-            if service_err.err().is_conditional_check_failed_exception() {
-                return common::empty_response(StatusCode::NOT_FOUND);
-            }
-        }
-        return Err(e.into());
-    }
-
-    common::empty_response(StatusCode::OK)
+    common::delete_response(result)
 }
 
 pub async fn put(req: Request) -> common::Result {
@@ -47,7 +38,7 @@ pub async fn put(req: Request) -> common::Result {
         Err(e) => return e,
     };
 
-    if let Err(e) = chrono::NaiveDate::parse_from_str(measurement.capture_date, "%Y-%m-%d") {
+    if let Err(e) = chrono::NaiveDate::parse_from_str(measurement.capture_date, "%F") {
         return common::error_response(StatusCode::BAD_REQUEST, &format!("Invalid capture_date: {}", e));
     }
 

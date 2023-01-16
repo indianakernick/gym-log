@@ -68,31 +68,37 @@ fn get_all_workouts<'a>(output: &'a QueryOutput) -> Vec<model::Workout<'a>> {
 
         match sk.len() {
             UUID_LEN => {
-                let last = exercises.len() - 1;
-                exercises[last].sets = Some(std::mem::take(&mut sets));
+                if !exercises.is_empty() {
+                    let last = exercises.len() - 1;
+                    exercises[last].sets = std::mem::take(&mut sets);
+                }
 
-                let last = workouts.len() - 1;
-                workouts[last].exercises = Some(std::mem::take(&mut exercises));
+                if !workouts.is_empty() {
+                    let last = workouts.len() - 1;
+                    workouts[last].exercises = std::mem::take(&mut exercises);
+                }
 
                 workouts.push(model::Workout {
                     workout_id: &sk,
-                    start_time: item["StartTime"].as_s().unwrap(),
-                    finish_time: item["FinishTime"].as_s().unwrap(),
-                    notes: item["Notes"].as_s().unwrap(),
-                    exercises: None,
+                    start_time: item.get("StartTime").map(|a| a.as_s().unwrap().as_str()),
+                    finish_time: item.get("FinishTime").map(|a| a.as_s().unwrap().as_str()),
+                    notes: item["WorkoutNotes"].as_s().unwrap(),
+                    exercises: Vec::new(),
                 });
             }
 
             UUID_LEN_2 => {
-                let last = exercises.len() - 1;
-                exercises[last].sets = Some(std::mem::take(&mut sets));
+                if !exercises.is_empty() {
+                    let last = exercises.len() - 1;
+                    exercises[last].sets = std::mem::take(&mut sets);
+                }
 
                 exercises.push(model::Exercise {
                     exercise_id: &sk[UUID_LEN + 1..],
                     order: item["ExerciseOrder"].as_n().unwrap().parse().unwrap(),
                     r#type: item["ExerciseType"].as_s().unwrap(),
                     notes: item["ExerciseNotes"].as_s().unwrap(),
-                    sets: None,
+                    sets: Vec::new(),
                 });
             }
 
@@ -114,12 +120,12 @@ fn get_all_workouts<'a>(output: &'a QueryOutput) -> Vec<model::Workout<'a>> {
 
     if !exercises.is_empty() {
         let last = exercises.len() - 1;
-        exercises[last].sets = Some(std::mem::take(&mut sets));
+        exercises[last].sets = std::mem::take(&mut sets);
     }
 
     if !workouts.is_empty() {
         let last = workouts.len() - 1;
-        workouts[last].exercises = Some(std::mem::take(&mut exercises));
+        workouts[last].exercises = std::mem::take(&mut exercises);
     }
 
     workouts

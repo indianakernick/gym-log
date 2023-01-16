@@ -1,3 +1,4 @@
+use aws_sdk_dynamodb::{output::DeleteItemOutput, types::SdkError, error::DeleteItemError};
 use lambda_http::{Request, Response, Error, Body, http::StatusCode};
 use serde::{Deserialize, Serialize};
 use base64::Engine;
@@ -44,6 +45,7 @@ pub fn with_cors(builder: Builder) -> Builder {
         .header("Access-Control-Allow-Origin", "http://gymlog.indianakernick.com.s3-website-ap-southeast-2.amazonaws.com")
         .header("Access-Control-Allow-Methods", "OPTIONS,PUT,GET,DELETE")
         .header("Access-Control-Allow-Headers", "Authorization,Content-Type")
+        .header("Access-Control-Max-Age", "86400")
 }
 
 pub fn options() -> Result {
@@ -70,6 +72,21 @@ pub fn error_response(status: StatusCode, message: &str) -> Result {
         .map_err(|e| e.into())
 }
 
+pub fn delete_response(
+    result: std::result::Result<DeleteItemOutput, SdkError<DeleteItemError>>
+) -> Result {
+    if let Err(e) = result {
+        if let SdkError::ServiceError(ref service_err) = e {
+            if service_err.err().is_conditional_check_failed_exception() {
+                return empty_response(StatusCode::NOT_FOUND);
+            }
+        }
+        return Err(e.into());
+    }
+
+    empty_response(StatusCode::OK)
+}
+
 pub fn parse_request_json<'de, T: serde::Deserialize<'de>>(
     req: &'de Request,
 ) -> std::result::Result<T, Result> {
@@ -79,7 +96,7 @@ pub fn parse_request_json<'de, T: serde::Deserialize<'de>>(
     }
 }
 
-fn is_uuid(id: &str) -> bool {
+pub fn is_uuid(id: &str) -> bool {
     if id.len() != 36 {
         return false;
     }
