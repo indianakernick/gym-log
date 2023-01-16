@@ -55,7 +55,7 @@ pub struct Exercise<'a> {
     pub notes: &'a str,
     /// The sets within the exercise.
     #[serde(borrow)]
-    pub sets: Vec<Set<'a>>
+    pub sets: Vec<Set<'a>>,
 }
 
 #[derive(Serialize, Deserialize)]
