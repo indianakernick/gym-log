@@ -70,11 +70,13 @@ fn get_all_workouts<'a>(output: &'a QueryOutput) -> Vec<model::Workout<'a>> {
             UUID_LEN => {
                 if !exercises.is_empty() {
                     let last = exercises.len() - 1;
+                    sets.sort_unstable_by_key(|s| s.order);
                     exercises[last].sets = std::mem::take(&mut sets);
                 }
 
                 if !workouts.is_empty() {
                     let last = workouts.len() - 1;
+                    exercises.sort_unstable_by_key(|e| e.order);
                     workouts[last].exercises = std::mem::take(&mut exercises);
                 }
 
@@ -90,6 +92,7 @@ fn get_all_workouts<'a>(output: &'a QueryOutput) -> Vec<model::Workout<'a>> {
             UUID_LEN_2 => {
                 if !exercises.is_empty() {
                     let last = exercises.len() - 1;
+                    exercises.sort_unstable_by_key(|e| e.order);
                     exercises[last].sets = std::mem::take(&mut sets);
                 }
 
@@ -120,13 +123,17 @@ fn get_all_workouts<'a>(output: &'a QueryOutput) -> Vec<model::Workout<'a>> {
 
     if !exercises.is_empty() {
         let last = exercises.len() - 1;
+        sets.sort_unstable_by_key(|s| s.order);
         exercises[last].sets = std::mem::take(&mut sets);
     }
 
     if !workouts.is_empty() {
         let last = workouts.len() - 1;
+        exercises.sort_unstable_by_key(|e| e.order);
         workouts[last].exercises = std::mem::take(&mut exercises);
     }
+
+    workouts.sort_by_key(|w| w.start_time);
 
     workouts
 }

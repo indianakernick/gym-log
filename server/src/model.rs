@@ -44,6 +44,7 @@ pub struct Workout<'a> {
 #[derive(Serialize, Deserialize)]
 pub struct Exercise<'a> {
     /// UUID of the exercise.
+    #[serde(skip_deserializing)]
     pub exercise_id: &'a str,
     /// Index of the exercise within the workout.
     pub order: u32,
@@ -64,14 +65,24 @@ pub struct Set<'a> {
     /// Index of the set within the exercise.
     pub order: u32,
     /// The number of repetitions for an exercise type that requires it.
+    #[serde(default)]
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub repetitions: Option<u32>,
     /// The resistance level which may be unit-less, kilograms or degrees for an
     /// exercise type that requires it.
+    #[serde(default)]
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub resistance: Option<u32>,
     /// The speed in kilometres per hour for an exercise type that requires it.
+    #[serde(default)]
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub speed: Option<u32>,
     /// The distance in meters for an exercise type that requires it.
+    #[serde(default)]
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub distance: Option<u32>,
     /// The duration in seconds for an exercise type that requires it.
+    #[serde(default)]
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub duration: Option<u32>,
 }

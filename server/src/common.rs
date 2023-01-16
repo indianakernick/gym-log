@@ -130,6 +130,6 @@ pub fn validate_uuid(id: &str) -> std::result::Result<(), Result> {
     if is_uuid(id) {
         Ok(())
     } else {
-        Err(error_response(StatusCode::BAD_REQUEST, "ID must be UUID"))
+        Err(error_response(StatusCode::BAD_REQUEST, "Invalid UUID"))
     }
 }
