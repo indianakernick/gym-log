@@ -136,6 +136,17 @@ pub async fn put(req: Request) -> common::Result {
             .build());
     }
 
+    for set in exercise.delete_sets.iter() {
+        let delete = Delete::builder()
+            .table_name(common::TABLE_USER_SET)
+            .key("UserId", AttributeValue::S(user_id.clone()))
+            .key("Id", AttributeValue::S(format!("{}#{}#{}", workout_id, exercise_id, set)));
+
+        builder = builder.transact_items(TransactWriteItem::builder()
+            .delete(delete.build())
+            .build());
+    }
+
     builder.send().await?;
 
     common::empty_response(StatusCode::OK)

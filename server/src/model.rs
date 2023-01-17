@@ -56,6 +56,11 @@ pub struct Exercise<'a> {
     /// The sets within the exercise.
     #[serde(borrow)]
     pub sets: Vec<Set<'a>>,
+    /// A list of sets to delete from the exercise.
+    #[serde(default)]
+    #[serde(skip_serializing)]
+    #[serde(borrow)]
+    pub delete_sets: Vec<&'a str>,
 }
 
 #[derive(Serialize, Deserialize)]

@@ -102,6 +102,7 @@ fn get_all_workouts<'a>(output: &'a QueryOutput) -> Vec<model::Workout<'a>> {
                     r#type: item["ExerciseType"].as_s().unwrap(),
                     notes: item["ExerciseNotes"].as_s().unwrap(),
                     sets: Vec::new(),
+                    delete_sets: Vec::new(),
                 });
             }
 
