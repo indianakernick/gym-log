@@ -2,10 +2,21 @@ use serde::{Serialize, Deserialize};
 
 #[derive(Serialize, Deserialize)]
 pub struct User<'a> {
+    /// The current version of the user's data.
+    #[serde(skip_deserializing)]
+    pub version: u32,
     #[serde(borrow)]
     pub measurements: Vec<Measurement<'a>>,
     #[serde(borrow)]
     pub workouts: Vec<Workout<'a>>,
+    /// A list of measurements that were deleted since the given version.
+    #[serde(borrow)]
+    #[serde(skip_serializing_if = "Vec::is_empty")]
+    pub deleted_measurements: Vec<&'a str>,
+    /// A list of workouts that were deleted since the given version.
+    #[serde(borrow)]
+    #[serde(skip_serializing_if = "Vec::is_empty")]
+    pub deleted_workouts: Vec<&'a str>,
 }
 
 #[derive(Serialize, Deserialize)]
@@ -13,6 +24,9 @@ pub struct Measurement<'a> {
     /// UUID of the measurement.
     #[serde(skip_deserializing)]
     pub measurement_id: &'a str,
+    /// The version that the measurement was last modified.
+    #[serde(skip_deserializing)]
+    pub modified_version: u32,
     /// Type of measurement. The client defines the meaning of this.
     pub r#type: &'a str,
     /// The date that the measurement was captured in ISO 8601 precise to the
@@ -29,6 +43,9 @@ pub struct Workout<'a> {
     /// UUID of the exercise.
     #[serde(skip_deserializing)]
     pub workout_id: &'a str,
+    /// The version that the workout was last modified.
+    #[serde(skip_deserializing)]
+    pub modified_version: u32,
     /// The time that the workout started in ISO 8601 precise to the second.
     pub start_time: Option<&'a str>,
     /// The time that the workout finished in ISO 8601 precise to the second.
