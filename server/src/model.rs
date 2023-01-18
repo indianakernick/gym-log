@@ -4,7 +4,7 @@ use serde::{Serialize, Deserialize};
 pub struct User<'a> {
     /// The current version of the user's data.
     #[serde(skip_deserializing)]
-    pub version: u32,
+    pub max_modified_time: u128,
     #[serde(borrow)]
     pub measurements: Vec<Measurement<'a>>,
     #[serde(borrow)]
@@ -26,7 +26,7 @@ pub struct Measurement<'a> {
     pub measurement_id: &'a str,
     /// The version that the measurement was last modified.
     #[serde(skip_deserializing)]
-    pub modified_version: u32,
+    pub modified_time: u128,
     /// Type of measurement. The client defines the meaning of this.
     pub r#type: &'a str,
     /// The date that the measurement was captured in ISO 8601 precise to the
@@ -45,7 +45,7 @@ pub struct Workout<'a> {
     pub workout_id: &'a str,
     /// The version that the workout was last modified.
     #[serde(skip_deserializing)]
-    pub modified_version: u32,
+    pub modified_time: u128,
     /// The time that the workout started in ISO 8601 precise to the second.
     pub start_time: Option<&'a str>,
     /// The time that the workout finished in ISO 8601 precise to the second.

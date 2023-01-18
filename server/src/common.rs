@@ -1,4 +1,4 @@
-use aws_sdk_dynamodb::{output::DeleteItemOutput, types::SdkError, error::DeleteItemError};
+use aws_sdk_dynamodb::{output::DeleteItemOutput, types::SdkError, error::DeleteItemError, model::AttributeValue};
 use lambda_http::{Request, Response, Error, Body, http::StatusCode};
 use once_cell::sync::OnceCell;
 use serde::{Deserialize, Serialize};
@@ -7,6 +7,8 @@ use lambda_http::http::response::Builder;
 
 pub const TABLE_USER_MEASUREMENT: &str = "gym-log.UserMeasurement";
 pub const TABLE_USER_SET: &str = "gym-log.UserSet";
+pub const TABLE_USER: &str = "gym-log.User";
+pub const INDEX_MODIFIED_TIME: &str = "ModifiedTime-index";
 
 pub type Result = std::result::Result<Response<Body>, Error>;
 
@@ -132,4 +134,17 @@ pub fn validate_uuid(id: &str) -> std::result::Result<(), Result> {
     } else {
         Err(error_response(StatusCode::BAD_REQUEST, "Invalid UUID"))
     }
+}
+
+pub fn get_timestamp() -> u128 {
+    std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .unwrap()
+        .as_millis()
+}
+
+pub fn as_number<N: std::str::FromStr>(attribute: &AttributeValue) -> N
+    where <N as std::str::FromStr>::Err: std::fmt::Debug
+{
+    attribute.as_n().unwrap().parse().unwrap()
 }
