@@ -1,6 +1,7 @@
 use std::collections::HashMap;
 use aws_sdk_dynamodb::{model::{AttributeValue, Select}, Client};
 use lambda_http::{Request, Response, http::StatusCode, Error, RequestExt};
+use tokio_stream::StreamExt;
 use super::{common, model};
 
 pub async fn get(req: Request) -> common::Result {
@@ -31,7 +32,6 @@ pub async fn get(req: Request) -> common::Result {
 }
 
 async fn get_all(db: &Client, user_id: String) -> Result<String, Error> {
-    /*
     let items = db.query()
         .table_name(common::TABLE_USER)
         .key_condition_expression("UserId = :userId")
@@ -42,31 +42,32 @@ async fn get_all(db: &Client, user_id: String) -> Result<String, Error> {
         .send()
         .collect::<Result<Vec<_>, _>>()
         .await?;
-    */
 
-    let max_modified_time = get_max_modified_time(db, user_id.clone()).await?;
+    // M < V < W
 
-    let query_measurements = db.query()
-        .table_name(common::TABLE_USER)
-        .key_condition_expression("UserId = :userId AND begins_with(Id, :prefix)")
-        .expression_attribute_values(":userId", AttributeValue::S(user_id.clone()))
-        .expression_attribute_values(":prefix", AttributeValue::S("MEASUREMENT#".into()))
-        .filter_expression("attribute_not_exists(Deleted)")
-        .send()
-        .await?;
+    let result = items.binary_search_by(|item| {
+        item["Id"].as_s().unwrap().as_str().cmp("VERSION")
+    });
 
-    let measurements = get_all_measurements(query_measurements.items().unwrap().iter());
+    let max_modified_time;
+    let end_measurement;
+    let first_workout;
 
-    let query_workout = db.query()
-        .table_name(common::TABLE_USER)
-        .key_condition_expression("UserId = :userId AND begins_with(Id, :prefix)")
-        .expression_attribute_values(":userId", AttributeValue::S(user_id))
-        .expression_attribute_values(":prefix", AttributeValue::S("WORKOUT#".into()))
-        .filter_expression("attribute_not_exists(Deleted)")
-        .send()
-        .await?;
+    match result {
+        Ok(index) => {
+            max_modified_time = common::as_number(&items[index]["MaxModifiedTime"]);
+            end_measurement = index;
+            first_workout = index + 1;
+        }
+        Err(index) => {
+            max_modified_time = 0;
+            end_measurement = index;
+            first_workout = index;
+        }
+    }
 
-    let workouts = get_all_workouts(query_workout.items().unwrap().iter());
+    let measurements = get_all_measurements(items[..end_measurement].iter());
+    let workouts = get_all_workouts(items[first_workout..].iter());
 
     let user = model::User {
         max_modified_time,
