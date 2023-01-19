@@ -1,7 +1,8 @@
+use std::ops::ControlFlow;
 use aws_sdk_dynamodb::{
     error::{TransactWriteItemsError, TransactWriteItemsErrorKind},
     model::{TransactWriteItem, AttributeValue, Update, ReturnValuesOnConditionCheckFailure, put, Put, CancellationReason},
-    types::SdkError,
+    types::SdkError, client::fluent_builders::TransactWriteItems,
 };
 use lambda_http::{Request, http::StatusCode};
 use serde::{Serialize, Deserialize};
@@ -52,149 +53,145 @@ pub async fn timestamp_delete(
     req: &Request,
     item_id: String,
 ) -> super::Result {
-    let db = super::get_db_client();
-    let user_id = super::get_user_id(req);
     let client_time = match super::parse_request_json::<TimestampDeleteReq>(&req) {
         Ok(b) => b.max_modified_time.to_string(),
         Err(r) => return r,
     };
+
+    return timestamp_apply(
+        req,
+        client_time,
+        |builder, user_id, current_time| {
+            builder.transact_items(TransactWriteItem::builder()
+                .update(Update::builder()
+                    .table_name(super::TABLE_USER)
+                    .key("UserId", AttributeValue::S(user_id))
+                    .key("Id", AttributeValue::S(item_id.clone()))
+                    .expression_attribute_values(":newTime", AttributeValue::N(current_time))
+                    .expression_attribute_values(":deleted", AttributeValue::Bool(true))
+                    .condition_expression("attribute_exists(UserId) AND attribute_not_exists(Deleted)")
+                    .update_expression("SET ModifiedTime = :newTime, Deleted = :deleted")
+                    .return_values_on_condition_check_failure(ReturnValuesOnConditionCheckFailure::AllOld)
+                    .build())
+                .build())
+        },
+        |reasons| {
+            if reasons[1].code() == Some("ConditionalCheckFailed") {
+                if let Some(item) = reasons[1].item() {
+                    if item.contains_key("Deleted") {
+                        return ControlFlow::Break(super::empty_response(StatusCode::NOT_FOUND));
+                    }
+                } else {
+                    return ControlFlow::Break(super::empty_response(StatusCode::NOT_FOUND));
+                }
+            }
+
+            ControlFlow::Continue(())
+        }
+    ).await;
+}
+
+pub async fn timestamp_modify<'r, T, F>(
+    req: &'r Request,
+    patch: F,
+) -> super::Result
+    where
+        T: Deserialize<'r>,
+        F: Fn(TransactWriteItems, &T, String, String) -> TransactWriteItems,
+{
+    let body = match super::parse_request_json::<TimestampModifyReq<T>>(req) {
+        Ok(r) => r,
+        Err(e) => return e,
+    };
+
+    timestamp_apply(
+        req,
+        body.max_modified_time.to_string(),
+        |builder, user_id, current_time| {
+            patch(builder, &body.item, user_id, current_time)
+        },
+        |_| ControlFlow::Continue(())
+    ).await
+}
+
+pub fn timestamp_put_item<T, F>(
+    item_id: String,
+    patch: F,
+) -> impl Fn(TransactWriteItems, &T, String, String) -> TransactWriteItems
+    where F: Fn(put::Builder, &T) -> put::Builder
+{
+    move |builder, item, user_id, current_time| {
+        let put = Put::builder()
+            .table_name(super::TABLE_USER)
+            .item("UserId", AttributeValue::S(user_id))
+            .item("Id", AttributeValue::S(item_id.clone()))
+            .item("ModifiedTime", AttributeValue::N(current_time));
+        builder.transact_items(
+            TransactWriteItem::builder()
+                .put(patch(put, item).build())
+                .build()
+        )
+    }
+}
+
+async fn timestamp_apply<P, C>(
+    req: &Request,
+    client_time: String,
+    patch: P,
+    check: C,
+) -> super::Result
+    where
+        P: Fn(TransactWriteItems, String, String) -> TransactWriteItems,
+        C: Fn(&[CancellationReason]) -> ControlFlow<super::Result, ()>,
+{
+    let db = super::get_db_client();
+    let user_id = super::get_user_id(req);
     let mut current_time = get_timestamp();
 
     loop {
         let current_time_str = current_time.to_string();
 
-        let result = db.transact_write_items()
-            .transact_items(update_max_modified_time(
-                user_id.clone(), current_time_str.clone(), client_time.clone()
-            ))
-            .transact_items(update_delete(
-                user_id.clone(), item_id.clone(), current_time_str
-            ))
-            .send()
-            .await;
+        let builder = db.transact_write_items()
+            .transact_items(TransactWriteItem::builder()
+                .update(Update::builder()
+                    .table_name(super::TABLE_USER)
+                    .key("UserId", AttributeValue::S(user_id.clone()))
+                    .key("Id", AttributeValue::S("VERSION".into()))
+                    .expression_attribute_values(":newTime", AttributeValue::N(current_time_str.clone()))
+                    .expression_attribute_values(":clientTime", AttributeValue::N(client_time.clone()))
+                    .condition_expression("attribute_not_exists(MaxModifiedTime) OR (:newTime > MaxModifiedTime AND :clientTime = MaxModifiedTime)")
+                    .update_expression("SET MaxModifiedTime = :newTime")
+                    .return_values_on_condition_check_failure(ReturnValuesOnConditionCheckFailure::AllOld)
+                    .build())
+                .build());
+        let result = patch(builder, user_id.clone(), current_time_str).send().await;
 
         match result {
             Ok(_) => return super::json_response(StatusCode::OK, TimestampRes {
                 max_modified_time: current_time,
             }),
             Err(e) => {
-                // There are four failure cases that we want to explicitly
-                // handle. Any other kind of failure results in a 500.
-                //
-                //  1. The client's cache has been invalidated.
-                //     - Return a 409.
-                //  2. This Lambda instance's clock is slightly behind the clock
-                //     of the instance that just recently modified some of of
-                //     the user's data.
-                //     - Try again with a later time.
-                //  3. The target doesn't exist and never existed.
-                //     - Return a 404.
-                //  4. The target did exist but has since been deleted.
-                //     - Return a 404.
-
                 if let Some(reasons) = cancellation_reasons(&e) {
                     if reasons[0].code() == Some("ConditionalCheckFailed") {
                         if let Some(item) = reasons[0].item() {
                             let old_time = item["MaxModifiedTime"].as_n().unwrap();
                             if old_time != &client_time {
-                                // Case 1
                                 return super::empty_response(StatusCode::CONFLICT);
                             }
 
-                            // Case 2
                             current_time = old_time.parse::<u128>().unwrap() + 1;
                             continue;
                         }
                     }
 
-                    if reasons[1].code() == Some("ConditionalCheckFailed") {
-                        if let Some(item) = reasons[1].item() {
-                            if item.contains_key("Deleted") {
-                                // Case 4
-                                return super::empty_response(StatusCode::NOT_FOUND);
-                            }
-                        } else {
-                            // Case 3
-                            return super::empty_response(StatusCode::NOT_FOUND);
-                        }
+                    if let ControlFlow::Break(r) = check(reasons) {
+                        return r;
                     }
                 }
 
                 return Err(e.into());
             }
         }
-    }
-}
-
-pub async fn timestamp_modify<'r, T, F>(
-    req: &'r Request,
-    item_id: String,
-    patch: F,
-) -> super::Result
-    where
-        T: Deserialize<'r>,
-        F: Fn(put::Builder, &T) -> put::Builder,
-{
-    let db = super::get_db_client();
-    let user_id = super::get_user_id(req);
-    let req = match super::parse_request_json::<TimestampModifyReq<T>>(req) {
-        Ok(r) => r,
-        Err(e) => return e,
-    };
-    let client_time = req.max_modified_time.to_string();
-    let mut current_time = get_timestamp();
-
-    loop {
-        let current_time_str = current_time.to_string();
-
-        let result = db.transact_write_items()
-            .transact_items(update_max_modified_time(
-                user_id.clone(), current_time_str.clone(), client_time.clone()
-            ))
-            .transact_items(put_item(
-                user_id.clone(),
-                item_id.clone(),
-                current_time_str,
-                &req.item,
-                &patch,
-            ))
-            .send()
-            .await;
-
-            match result {
-                Ok(_) => return super::json_response(StatusCode::OK, TimestampRes {
-                    max_modified_time: current_time,
-                }),
-                Err(e) => {
-                    // There are four failure cases that we want to explicitly
-                    // handle. Any other kind of failure results in a 500.
-                    //
-                    //  1. The client's cache has been invalidated.
-                    //     - Return a 409.
-                    //  2. This Lambda instance's clock is slightly behind the clock
-                    //     of the instance that just recently modified some of of
-                    //     the user's data.
-                    //     - Try again with a later time.
-
-                    if let Some(reasons) = cancellation_reasons(&e) {
-                        if reasons[0].code() == Some("ConditionalCheckFailed") {
-                            if let Some(item) = reasons[0].item() {
-                                let old_time = item["MaxModifiedTime"].as_n().unwrap();
-                                if old_time != &client_time {
-                                    // Case 1
-                                    return super::empty_response(StatusCode::CONFLICT);
-                                }
-
-                                // Case 2
-                                current_time = old_time.parse::<u128>().unwrap() + 1;
-                                continue;
-                            }
-                        }
-                    }
-
-                    return Err(e.into());
-                }
-            }
     }
 }
 
@@ -217,63 +214,6 @@ fn get_timestamp() -> u128 {
         .duration_since(std::time::UNIX_EPOCH)
         .unwrap()
         .as_millis()
-}
-
-fn update_max_modified_time(
-    user_id: String,
-    current_time: String,
-    client_time: String,
-) -> TransactWriteItem {
-    TransactWriteItem::builder()
-        .update(Update::builder()
-            .table_name(super::TABLE_USER)
-            .key("UserId", AttributeValue::S(user_id))
-            .key("Id", AttributeValue::S("VERSION".into()))
-            .expression_attribute_values(":newTime", AttributeValue::N(current_time))
-            .expression_attribute_values(":clientTime", AttributeValue::N(client_time))
-            .condition_expression("attribute_not_exists(MaxModifiedTime) OR (:newTime > MaxModifiedTime AND :clientTime = MaxModifiedTime)")
-            .update_expression("SET MaxModifiedTime = :newTime")
-            .return_values_on_condition_check_failure(ReturnValuesOnConditionCheckFailure::AllOld)
-            .build())
-        .build()
-}
-
-fn update_delete(
-    user_id: String,
-    item_id: String,
-    current_time: String,
-) -> TransactWriteItem {
-    TransactWriteItem::builder()
-        .update(Update::builder()
-            .table_name(super::TABLE_USER)
-            .key("UserId", AttributeValue::S(user_id))
-            .key("Id", AttributeValue::S(item_id))
-            .expression_attribute_values(":newTime", AttributeValue::N(current_time))
-            .expression_attribute_values(":deleted", AttributeValue::Bool(true))
-            .condition_expression("attribute_exists(UserId) AND attribute_not_exists(Deleted)")
-            .update_expression("SET ModifiedTime = :newTime, Deleted = :deleted")
-            .return_values_on_condition_check_failure(ReturnValuesOnConditionCheckFailure::AllOld)
-            .build())
-        .build()
-}
-
-fn put_item<T, F>(
-    user_id: String,
-    item_id: String,
-    current_time: String,
-    item: &T,
-    patch: F
-) -> TransactWriteItem
-    where F: Fn(put::Builder, &T) -> put::Builder
-{
-    let put = Put::builder()
-        .table_name(super::TABLE_USER)
-        .item("UserId", AttributeValue::S(user_id))
-        .item("Id", AttributeValue::S(item_id))
-        .item("ModifiedTime", AttributeValue::N(current_time));
-    TransactWriteItem::builder()
-        .put(patch(put, item).build())
-        .build()
 }
 
 fn cancellation_reasons(error: &SdkError<TransactWriteItemsError>) -> Option<&[CancellationReason]> {
