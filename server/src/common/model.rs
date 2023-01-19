@@ -51,8 +51,10 @@ pub struct Workout<'a> {
     #[serde(skip_deserializing)]
     pub modified_time: u128,
     /// The time that the workout started in ISO 8601 precise to the second.
+    #[serde(deserialize_with = "deserialize_time")]
     pub start_time: Option<&'a str>,
     /// The time that the workout finished in ISO 8601 precise to the second.
+    #[serde(deserialize_with = "deserialize_time")]
     pub finish_time: Option<&'a str>,
     /// Any user provided notes associated with the workout.
     pub notes: &'a str,
@@ -116,9 +118,23 @@ pub struct Set<'a> {
 fn deserialize_date<'de, D>(d: D) -> Result<&'de str, D::Error>
     where D: serde::Deserializer<'de>
 {
-    let s = <&str as Deserialize<'_>>::deserialize(d)?;
+    let s = <&str>::deserialize(d)?;
     match chrono::NaiveDate::parse_from_str(s, "%F") {
         Ok(_) => Ok(s),
         Err(e) => Err(serde::de::Error::custom(e))
+    }
+}
+
+fn deserialize_time<'de, D>(d: D) -> Result<Option<&'de str>, D::Error>
+    where D: serde::Deserializer<'de>
+{
+    let os = Option::<&str>::deserialize(d)?;
+    if let Some(s) = os {
+        match chrono::NaiveDate::parse_from_str(s, "%FT%TZ") {
+            Ok(_) => Ok(os),
+            Err(e) => Err(serde::de::Error::custom(e))
+        }
+    } else {
+        Ok(None)
     }
 }

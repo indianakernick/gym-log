@@ -3,7 +3,6 @@ use lambda_http::{Request, RequestExt, http::StatusCode};
 use crate::common;
 
 pub async fn delete(req: Request) -> common::Result {
-    let user_id = common::get_user_id(&req);
     let params = req.path_parameters();
     let workout_id = params.first("workoutId").unwrap();
 
@@ -11,21 +10,10 @@ pub async fn delete(req: Request) -> common::Result {
         return common::empty_response(StatusCode::NOT_FOUND);
     }
 
-    let db = common::get_db_client();
-
-    let result = db.delete_item()
-        .table_name(common::TABLE_USER_SET)
-        .key("UserId", AttributeValue::S(user_id))
-        .key("Id", AttributeValue::S(workout_id.into()))
-        .condition_expression("attribute_exists(UserId)")
-        .send()
-        .await;
-
-    common::delete_response(result)
+    common::timestamp_delete(&req, format!("WORKOUT#{workout_id}")).await
 }
 
 pub async fn put(req: Request) -> common::Result {
-    let user_id = common::get_user_id(&req);
     let params = req.path_parameters();
     let workout_id = params.first("workoutId").unwrap();
 
@@ -33,40 +21,20 @@ pub async fn put(req: Request) -> common::Result {
         return e;
     }
 
-    let workout = match common::parse_request_json::<common::Workout>(&req) {
-        Ok(w) => w,
-        Err(e) => return e,
-    };
+    common::timestamp_modify(&req, common::timestamp_put_item(
+        format!("WORKOUT#{workout_id}"),
+        |mut builder, item: &common::Workout| {
+            builder = builder.item("Notes", AttributeValue::S(item.notes.into()));
 
-    if let Some(dt) = workout.start_time {
-        if let Err(e) = chrono::NaiveDateTime::parse_from_str(dt, "%FT%TZ") {
-            return common::error_response(StatusCode::BAD_REQUEST, &format!("Invalid start_time: {}", e));
+            if let Some(dt) = item.start_time {
+                builder = builder.item("StartTime", AttributeValue::S(dt.into()));
+            }
+
+            if let Some(dt) = item.finish_time {
+                builder = builder.item("FinishTime", AttributeValue::S(dt.into()));
+            }
+
+            builder
         }
-    }
-
-    if let Some(dt) = workout.finish_time {
-        if let Err(e) = chrono::NaiveDateTime::parse_from_str(dt, "%FT%TZ") {
-            return common::error_response(StatusCode::BAD_REQUEST, &format!("Invalid finish_time: {}", e));
-        }
-    }
-
-    let db = common::get_db_client();
-
-    let mut builder = db.put_item()
-        .table_name(common::TABLE_USER_SET)
-        .item("UserId", AttributeValue::S(user_id))
-        .item("Id", AttributeValue::S(workout_id.into()))
-        .item("WorkoutNotes", AttributeValue::S(workout.notes.into()));
-
-    if let Some(dt) = workout.start_time {
-        builder = builder.item("StartTime", AttributeValue::S(dt.into()));
-    }
-
-    if let Some(dt) = workout.finish_time {
-        builder = builder.item("FinishTime", AttributeValue::S(dt.into()));
-    }
-
-    builder.send().await?;
-
-    common::empty_response(StatusCode::OK)
+    )).await
 }
