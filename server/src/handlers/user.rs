@@ -151,7 +151,8 @@ async fn get_changed(db: &Client, user_id: String, timestamp: u128) -> Result<St
 
     // For workouts, we need to separately query for the nested exercises and
     // sets. We could attach a modification time to these sub-items to get them
-    // in the above query.
+    // in the above query. We might also want to consider storing sets as a list
+    // of maps within the exercise item.
 
     // This isn't very efficient but it works. We're getting there!
 
