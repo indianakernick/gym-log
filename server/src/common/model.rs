@@ -34,6 +34,7 @@ pub struct Measurement<'a> {
     pub r#type: &'a str,
     /// The date that the measurement was captured in ISO 8601 precise to the
     /// day.
+    #[serde(deserialize_with = "deserialize_date")]
     pub capture_date: &'a str,
     /// The value of the measurement whose meaning depends on the type.
     pub value: f64,
@@ -110,4 +111,14 @@ pub struct Set<'a> {
     #[serde(default)]
     #[serde(skip_serializing_if = "Option::is_none")]
     pub duration: Option<u32>,
+}
+
+fn deserialize_date<'de, D>(d: D) -> Result<&'de str, D::Error>
+    where D: serde::Deserializer<'de>
+{
+    let s = <&str as Deserialize<'_>>::deserialize(d)?;
+    match chrono::NaiveDate::parse_from_str(s, "%F") {
+        Ok(_) => Ok(s),
+        Err(e) => Err(serde::de::Error::custom(e))
+    }
 }
