@@ -134,9 +134,9 @@ async fn get_changed(db: &Client, user_id: String, timestamp: u128) -> Result<St
 
         if changed.contains_key("Deleted") {
             if is_measurement {
-                deleted_measurements.push(id.as_str());
+                deleted_measurements.push(&id["MEASUREMENT#".len()..]);
             } else {
-                deleted_workouts.push(id.as_str());
+                deleted_workouts.push(&id["WORKOUT#".len()..]);
             }
         } else {
             if is_measurement {
