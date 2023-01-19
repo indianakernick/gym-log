@@ -68,17 +68,21 @@ pub fn empty_response(status: StatusCode) -> Result {
         .map_err(|e| e.into())
 }
 
+pub fn json_response<T: serde::Serialize>(status: StatusCode, value: T) -> Result {
+    with_cors(Response::builder())
+        .status(status)
+        .header("Content-Type", "application/json")
+        .body(serde_json::to_string(&value).unwrap().into())
+        .map_err(|e| e.into())
+}
+
 pub fn error_response(status: StatusCode, message: &str) -> Result {
     #[derive(Serialize)]
     struct Error<'a> {
         message: &'a str,
     }
 
-    with_cors(Response::builder())
-        .status(status)
-        .header("Content-Type", "application/json")
-        .body(serde_json::to_string(&Error { message }).unwrap().into())
-        .map_err(|e| e.into())
+    json_response(status, Error { message })
 }
 
 pub fn delete_response(
@@ -96,7 +100,7 @@ pub fn delete_response(
     empty_response(StatusCode::OK)
 }
 
-pub fn parse_request_json<'de, T: serde::Deserialize<'de>>(
+pub fn parse_request_json<'de, T: Deserialize<'de>>(
     req: &'de Request,
 ) -> std::result::Result<T, Result> {
     match serde_json::from_slice::<T>(req.body().as_ref()) {
