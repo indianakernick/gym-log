@@ -1,4 +1,8 @@
-use aws_sdk_dynamodb::{model::{AttributeValue, TransactWriteItem, Update, ReturnValuesOnConditionCheckFailure}, types::SdkError, error::TransactWriteItemsErrorKind};
+use aws_sdk_dynamodb::{
+    model::{AttributeValue, TransactWriteItem, Update, ReturnValuesOnConditionCheckFailure, Put},
+    types::SdkError,
+    error::TransactWriteItemsErrorKind
+};
 use lambda_http::{Request, RequestExt, http::StatusCode};
 use serde::{Deserialize, Serialize};
 use super::{common, model};
@@ -114,6 +118,13 @@ pub async fn delete(req: Request) -> common::Result {
     }
 }
 
+#[derive(Deserialize)]
+struct ModifyReq<T> {
+    max_modified_time: u128,
+    // Should we flatten here?
+    item: T,
+}
+
 pub async fn put(req: Request) -> common::Result {
     let user_id = common::get_user_id(&req);
     let params = req.path_parameters();
@@ -123,30 +134,91 @@ pub async fn put(req: Request) -> common::Result {
         return e;
     }
 
-    let measurement = match common::parse_request_json::<model::Measurement>(&req) {
+    let req = match common::parse_request_json::<ModifyReq<model::Measurement>>(&req) {
         Ok(m) => m,
         Err(e) => return e,
     };
+    let client_time = req.max_modified_time.to_string();
 
-    if let Err(e) = chrono::NaiveDate::parse_from_str(measurement.capture_date, "%F") {
+    // Could use a custom deserialization function so that serde generates the
+    // error message.
+    if let Err(e) = chrono::NaiveDate::parse_from_str(req.item.capture_date, "%F") {
         return common::error_response(StatusCode::BAD_REQUEST, &format!("Invalid capture_date: {}", e));
     }
 
     let db = common::get_db_client();
+    let mut current_time = common::get_timestamp();
 
-    db.put_item()
-        .table_name(common::TABLE_USER_MEASUREMENT)
-        .item("UserId", AttributeValue::S(user_id))
-        .item("MeasurementId", AttributeValue::S(measurement_id.into()))
-        .item("MeasurementType", AttributeValue::S(measurement.r#type.into()))
-        .item("CaptureDate", AttributeValue::S(measurement.capture_date.into()))
-        .item("Value", AttributeValue::N(measurement.value.to_string()))
-        .item("Notes", AttributeValue::S(measurement.notes.into()))
-        .send()
-        .await?;
+    loop {
+        let current_time_str = current_time.to_string();
 
-    // Should we return a 201 if an item was created?
-    // Do we care?
+        let result = db.transact_write_items()
+            .transact_items(TransactWriteItem::builder()
+                .update(Update::builder()
+                    .table_name(common::TABLE_USER)
+                    .key("UserId", AttributeValue::S(user_id.clone()))
+                    .key("Id", AttributeValue::S("VERSION".into()))
+                    .expression_attribute_values(":newTime", AttributeValue::N(current_time_str.clone()))
+                    .expression_attribute_values(":clientTime", AttributeValue::N(client_time.clone()))
+                    .condition_expression("attribute_not_exists(MaxModifiedTime) OR (:newTime > MaxModifiedTime AND :clientTime = MaxModifiedTime)")
+                    .update_expression("SET MaxModifiedTime = :newTime")
+                    .return_values_on_condition_check_failure(ReturnValuesOnConditionCheckFailure::AllOld)
+                    .build())
+                .build())
+            .transact_items(TransactWriteItem::builder()
+                .put(Put::builder()
+                    .table_name(common::TABLE_USER)
+                    .item("UserId", AttributeValue::S(user_id.clone()))
+                    .item("Id", AttributeValue::S(format!("MEASUREMENT#{}", measurement_id)))
+                    .item("ModifiedTime", AttributeValue::N(current_time_str))
+                    .item("Type", AttributeValue::S(req.item.r#type.into()))
+                    .item("CaptureDate", AttributeValue::S(req.item.capture_date.into()))
+                    .item("Value", AttributeValue::N(req.item.value.to_string()))
+                    .item("Notes", AttributeValue::S(req.item.notes.into()))
+                    .build())
+                .build())
+            .send()
+            .await;
 
-    common::empty_response(StatusCode::OK)
+        match result {
+            Ok(_) => return common::json_response(StatusCode::OK, MaxModTime {
+                max_modified_time: current_time,
+            }),
+            Err(e) => {
+                // There are four failure cases that we want to explicitly
+                // handle. Any other kind of failure results in a 500.
+                //
+                //  1. The client's cache has been invalidated.
+                //     - Return a 409.
+                //  2. This Lambda instance's clock is slightly behind the clock
+                //     of the instance that just recently modified some of of
+                //     the user's data.
+                //     - Try again with a later time.
+
+                if let SdkError::ServiceError(ref service_err) = e {
+                    if let TransactWriteItemsErrorKind::TransactionCanceledException(except) = &service_err.err().kind {
+                        if let Some(reasons) = except.cancellation_reasons() {
+                            if reasons[0].code() == Some("ConditionalCheckFailed") {
+                                if let Some(item) = reasons[0].item() {
+                                    // If the MaxModifiedTime didn't exist, then
+                                    // the condition would have passed.
+                                    let old_time = item["MaxModifiedTime"].as_n().unwrap();
+                                    if old_time != &client_time {
+                                        // Case 1
+                                        return common::empty_response(StatusCode::CONFLICT);
+                                    }
+
+                                    // Case 2
+                                    current_time = old_time.parse::<u128>().unwrap() + 1;
+                                    continue;
+                                }
+                            }
+                        }
+                    }
+                }
+
+                return Err(e.into());
+            }
+        }
+    }
 }
