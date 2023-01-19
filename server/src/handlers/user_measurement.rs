@@ -5,7 +5,7 @@ use aws_sdk_dynamodb::{
 };
 use lambda_http::{Request, RequestExt, http::StatusCode};
 use serde::{Deserialize, Serialize};
-use super::{common, model};
+use crate::common;
 
 #[derive(Serialize, Deserialize)]
 struct MaxModTime {
@@ -134,7 +134,7 @@ pub async fn put(req: Request) -> common::Result {
         return e;
     }
 
-    let req = match common::parse_request_json::<ModifyReq<model::Measurement>>(&req) {
+    let req = match common::parse_request_json::<ModifyReq<common::Measurement>>(&req) {
         Ok(m) => m,
         Err(e) => return e,
     };

@@ -1,5 +1,8 @@
 use serde::{Serialize, Deserialize};
 
+pub const TABLE_USER: &str = "gym-log.User";
+pub const INDEX_MODIFIED_TIME: &str = "ModifiedTime-index";
+
 #[derive(Serialize, Deserialize)]
 pub struct User<'a> {
     /// The current version of the user's data.

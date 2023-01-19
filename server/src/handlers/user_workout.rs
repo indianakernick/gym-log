@@ -1,6 +1,6 @@
 use aws_sdk_dynamodb::model::AttributeValue;
 use lambda_http::{Request, RequestExt, http::StatusCode};
-use super::{common, model};
+use crate::common;
 
 pub async fn delete(req: Request) -> common::Result {
     let user_id = common::get_user_id(&req);
@@ -33,7 +33,7 @@ pub async fn put(req: Request) -> common::Result {
         return e;
     }
 
-    let workout = match common::parse_request_json::<model::Workout>(&req) {
+    let workout = match common::parse_request_json::<common::Workout>(&req) {
         Ok(w) => w,
         Err(e) => return e,
     };

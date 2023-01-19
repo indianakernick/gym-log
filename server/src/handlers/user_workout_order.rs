@@ -1,6 +1,6 @@
 use aws_sdk_dynamodb::model::{TransactWriteItem, Update, AttributeValue};
 use lambda_http::{Request, RequestExt, http::StatusCode};
-use super::common;
+use crate::common;
 
 pub async fn put(req: Request) -> common::Result {
     let user_id = common::get_user_id(&req);

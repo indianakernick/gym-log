@@ -2,7 +2,7 @@ use std::collections::HashMap;
 use aws_sdk_dynamodb::{model::{AttributeValue, Select}, Client};
 use lambda_http::{Request, Response, http::StatusCode, Error, RequestExt};
 use tokio_stream::StreamExt;
-use super::{common, model};
+use crate::common;
 
 pub async fn get(req: Request) -> common::Result {
     let user_id = common::get_user_id(&req);
@@ -69,7 +69,7 @@ async fn get_all(db: &Client, user_id: String) -> Result<String, Error> {
     let measurements = get_all_measurements(items[..end_measurement].iter());
     let workouts = get_all_workouts(items[first_workout..].iter());
 
-    let user = model::User {
+    let user = common::User {
         max_modified_time,
         measurements,
         workouts,
@@ -98,7 +98,7 @@ async fn get_changed(db: &Client, user_id: String, timestamp: u128) -> Result<St
     // path that will be taken.
 
     if max_modified_time <= timestamp {
-        return Ok(serde_json::to_string(&model::User {
+        return Ok(serde_json::to_string(&common::User {
             max_modified_time,
             measurements: Vec::new(),
             workouts: Vec::new(),
@@ -174,7 +174,7 @@ async fn get_changed(db: &Client, user_id: String, timestamp: u128) -> Result<St
         );
     }
 
-    let user = model::User {
+    let user = common::User {
         max_modified_time,
         measurements,
         workouts,
@@ -200,13 +200,13 @@ async fn get_max_modified_time(db: &Client, user_id: String) -> Result<u128, Err
     }
 }
 
-fn get_all_measurements<'a, I>(items: I) -> Vec<model::Measurement<'a>>
+fn get_all_measurements<'a, I>(items: I) -> Vec<common::Measurement<'a>>
     where I: Iterator<Item=&'a HashMap<String, AttributeValue>>
 {
-    let mut measurements = Vec::<model::Measurement>::new();
+    let mut measurements = Vec::<common::Measurement>::new();
 
     for item in items {
-        measurements.push(model::Measurement {
+        measurements.push(common::Measurement {
             measurement_id: item["Id"].as_s().unwrap(),
             modified_time: item["ModifiedTime"].as_n().unwrap().parse().unwrap(),
             r#type: item["Type"].as_s().unwrap(),
@@ -219,12 +219,12 @@ fn get_all_measurements<'a, I>(items: I) -> Vec<model::Measurement<'a>>
     measurements
 }
 
-fn get_all_workouts<'a, I>(items: I) -> Vec<model::Workout<'a>>
+fn get_all_workouts<'a, I>(items: I) -> Vec<common::Workout<'a>>
     where I: Iterator<Item=&'a HashMap<String, AttributeValue>>
 {
-    let mut workouts = Vec::<model::Workout>::new();
-    let mut exercises = Vec::<model::Exercise>::new();
-    let mut sets = Vec::<model::Set>::new();
+    let mut workouts = Vec::<common::Workout>::new();
+    let mut exercises = Vec::<common::Exercise>::new();
+    let mut sets = Vec::<common::Set>::new();
 
     for item in items {
         const PREFIX_LEN: usize = "WORKOUT#".len();
@@ -249,7 +249,7 @@ fn get_all_workouts<'a, I>(items: I) -> Vec<model::Workout<'a>>
                     workouts[last].exercises = std::mem::take(&mut exercises);
                 }
 
-                workouts.push(model::Workout {
+                workouts.push(common::Workout {
                     workout_id: &sk[PREFIX_LEN..],
                     modified_time: item["ModifiedTime"].as_n().unwrap().parse().unwrap(),
                     start_time: item.get("StartTime").map(|a| a.as_s().unwrap().as_str()),
@@ -266,7 +266,7 @@ fn get_all_workouts<'a, I>(items: I) -> Vec<model::Workout<'a>>
                     exercises[last].sets = std::mem::take(&mut sets);
                 }
 
-                exercises.push(model::Exercise {
+                exercises.push(common::Exercise {
                     exercise_id: &sk[WORKOUT_LEN + 1..],
                     order: item["Order"].as_n().unwrap().parse().unwrap(),
                     r#type: item["Type"].as_s().unwrap(),
@@ -277,7 +277,7 @@ fn get_all_workouts<'a, I>(items: I) -> Vec<model::Workout<'a>>
             }
 
             SET_LEN => {
-                sets.push(model::Set {
+                sets.push(common::Set {
                     set_id: &sk[EXERCISE_LEN + 1..],
                     order: item["Order"].as_n().unwrap().parse().unwrap(),
                     repetitions: item.get("Repetitions").map(|a| a.as_n().unwrap().parse().unwrap()),
