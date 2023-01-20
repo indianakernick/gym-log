@@ -1,13 +1,13 @@
 use serde::{Serialize, Deserialize};
 
 pub const TABLE_USER: &str = "gym-log.User";
-pub const INDEX_MODIFIED_TIME: &str = "ModifiedTime-index";
+pub const INDEX_MODIFIED_VERSION: &str = "LSI-ModifiedVersion";
 
 #[derive(Serialize, Deserialize)]
 pub struct User<'a> {
     /// The current version of the user's data.
     #[serde(skip_deserializing)]
-    pub max_modified_time: u128,
+    pub version: u32,
     #[serde(borrow)]
     pub measurements: Vec<Measurement<'a>>,
     #[serde(borrow)]
@@ -29,7 +29,7 @@ pub struct Measurement<'a> {
     pub measurement_id: &'a str,
     /// The version that the measurement was last modified.
     #[serde(skip_deserializing)]
-    pub modified_time: u128,
+    pub modified_version: u32,
     /// Type of measurement. The client defines the meaning of this.
     pub r#type: &'a str,
     /// The date that the measurement was captured in ISO 8601 precise to the
@@ -49,7 +49,7 @@ pub struct Workout<'a> {
     pub workout_id: &'a str,
     /// The version that the workout was last modified.
     #[serde(skip_deserializing)]
-    pub modified_time: u128,
+    pub modified_version: u32,
     /// The time that the workout started in ISO 8601 precise to the second.
     #[serde(deserialize_with = "deserialize_time")]
     pub start_time: Option<&'a str>,

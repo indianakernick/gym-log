@@ -8,18 +8,14 @@ pub async fn get(req: Request) -> common::Result {
     let user_id = common::get_user_id(&req);
     let db = common::get_db_client();
     let query_map = req.query_string_parameters();
-    // The query string is included in the browser's cache key for the CORS
-    // preflight request. So the browser will do a preflight request every time
-    // the version changes. Perhaps pass this information via the request body
-    // to get around this.
-    let since_timestamp = query_map.first("since");
+    let since_version = query_map.first("since");
 
-    let body = if let Some(timestamp) = since_timestamp {
-        let timestamp = match timestamp.parse() {
-            Ok(t) => t,
+    let body = if let Some(version) = since_version {
+        let version = match version.parse() {
+            Ok(v) => v,
             Err(_) => return common::empty_response(StatusCode::BAD_REQUEST),
         };
-        get_changed(db, user_id, timestamp).await?
+        get_changed(db, user_id, version).await?
     } else {
         get_all(db, user_id).await?
     };
@@ -49,18 +45,18 @@ async fn get_all(db: &Client, user_id: String) -> Result<String, Error> {
         item["Id"].as_s().unwrap().as_str().cmp("VERSION")
     });
 
-    let max_modified_time;
+    let version;
     let end_measurement;
     let first_workout;
 
     match result {
         Ok(index) => {
-            max_modified_time = common::as_number(&items[index]["MaxModifiedTime"]);
+            version = common::as_number(&items[index]["Version"]);
             end_measurement = index;
             first_workout = index + 1;
         }
         Err(index) => {
-            max_modified_time = 0;
+            version = 0;
             end_measurement = index;
             first_workout = index;
         }
@@ -70,7 +66,7 @@ async fn get_all(db: &Client, user_id: String) -> Result<String, Error> {
     let workouts = get_all_workouts(items[first_workout..].iter());
 
     let user = common::User {
-        max_modified_time,
+        version,
         measurements,
         workouts,
         deleted_measurements: Vec::new(),
@@ -80,26 +76,26 @@ async fn get_all(db: &Client, user_id: String) -> Result<String, Error> {
     Ok(serde_json::to_string(&user).unwrap())
 }
 
-async fn get_changed(db: &Client, user_id: String, timestamp: u128) -> Result<String, Error> {
-    // Get the max modified time first. The objects that we return may have been
-    // modified after this time if they were modified while we're querying them
-    // but that's OK. The client knows that it has at least this version and
+async fn get_changed(db: &Client, user_id: String, client_version: u32) -> Result<String, Error> {
+    // Get the version first. The objects that we return may have a greater
+    // modified version than this if they are modified while we're querying
+    // them but that's OK. The client knows that it has at least this version
     // possibly some pieces from a later version. The client could request
-    // changes since this time to pick up the things that were modified at a bad
-    // time. The max modified time and the item modified time are updated in a
-    // transaction so the max modified time will not be later than it should be.
+    // changes since this version to pick up the things that were modified at a
+    // bad time. The version and the modified version are updated in a
+    // transaction so the version will never be greater than it should be.
 
-    let max_modified_time = get_max_modified_time(db, user_id.clone()).await?;
+    let version = get_version(db, user_id.clone()).await?;
 
-    // If the client is requesting changes after the current max modified time,
-    // then we know that there won't be anything so we can skip the extra
-    // queries and return an empty response. If there is only one client making
+    // If the client is requesting changes after the current version, then we
+    // know that there won't be anything so we can skip the extra queries and
+    // return an empty response. If there is only one client making
     // modifications to a particular user's data, then this early-exit is the
     // path that will be taken.
 
-    if max_modified_time <= timestamp {
+    if version <= client_version {
         return Ok(serde_json::to_string(&common::User {
-            max_modified_time,
+            version,
             measurements: Vec::new(),
             workouts: Vec::new(),
             deleted_measurements: Vec::new(),
@@ -107,17 +103,17 @@ async fn get_changed(db: &Client, user_id: String, timestamp: u128) -> Result<St
         }).unwrap());
     }
 
-    // Query for items that were modified after the given timestamp. There's an
-    // LSI on the ModifiedTime but the index only includes the keys as to avoid
-    // slowing down writes too much. This is still better than querying
+    // Query for items that were modified after the given version. There's an
+    // LSI on the ModifiedVersion but the index only includes the keys as to
+    // avoid slowing down writes too much. This is still better than querying
     // everything and then filtering.
 
     let query_changed = db.query()
         .table_name(common::TABLE_USER)
-        .index_name(common::INDEX_MODIFIED_TIME)
-        .key_condition_expression("UserId = :userId AND ModifiedTime > :timestamp")
+        .index_name(common::INDEX_MODIFIED_VERSION)
+        .key_condition_expression("UserId = :userId AND Version > :clientVersion")
         .expression_attribute_values(":userId", AttributeValue::S(user_id.clone()))
-        .expression_attribute_values(":timestamp", AttributeValue::N(timestamp.to_string()))
+        .expression_attribute_values(":clientVersion", AttributeValue::N(client_version.to_string()))
         .select(Select::AllAttributes)
         .send()
         .await?;
@@ -150,7 +146,7 @@ async fn get_changed(db: &Client, user_id: String, timestamp: u128) -> Result<St
     let measurements = get_all_measurements(changed_measurements.iter().copied());
 
     // For workouts, we need to separately query for the nested exercises and
-    // sets. We could attach a modification time to these sub-items to get them
+    // sets. We could attach a modified version to these sub-items to get them
     // in the above query. We might also want to consider storing sets as a list
     // of maps within the exercise item.
 
@@ -176,7 +172,7 @@ async fn get_changed(db: &Client, user_id: String, timestamp: u128) -> Result<St
     }
 
     let user = common::User {
-        max_modified_time,
+        version,
         measurements,
         workouts,
         deleted_measurements,
@@ -186,7 +182,7 @@ async fn get_changed(db: &Client, user_id: String, timestamp: u128) -> Result<St
     Ok(serde_json::to_string(&user).unwrap())
 }
 
-async fn get_max_modified_time(db: &Client, user_id: String) -> Result<u128, Error> {
+async fn get_version(db: &Client, user_id: String) -> Result<u32, Error> {
     let get = db.get_item()
         .table_name(common::TABLE_USER)
         .key("UserId", AttributeValue::S(user_id.clone()))
@@ -195,7 +191,7 @@ async fn get_max_modified_time(db: &Client, user_id: String) -> Result<u128, Err
         .await?;
 
     if let Some(item) = get.item() {
-        Ok(common::as_number(&item["MaxModifiedTime"]))
+        Ok(common::as_number(&item["Version"]))
     } else {
         Ok(0)
     }
@@ -209,7 +205,7 @@ fn get_all_measurements<'a, I>(items: I) -> Vec<common::Measurement<'a>>
     for item in items {
         measurements.push(common::Measurement {
             measurement_id: item["Id"].as_s().unwrap(),
-            modified_time: common::as_number(&item["ModifiedTime"]),
+            modified_version: common::as_number(&item["ModifiedVersion"]),
             r#type: item["Type"].as_s().unwrap(),
             capture_date: item["CaptureDate"].as_s().unwrap(),
             value: common::as_number(&item["Value"]),
@@ -252,7 +248,7 @@ fn get_all_workouts<'a, I>(items: I) -> Vec<common::Workout<'a>>
 
                 workouts.push(common::Workout {
                     workout_id: &sk[PREFIX_LEN..],
-                    modified_time: common::as_number(&item["ModifiedTime"]),
+                    modified_version: common::as_number(&item["ModifiedVersion"]),
                     start_time: item.get("StartTime").map(|a| a.as_s().unwrap().as_str()),
                     finish_time: item.get("FinishTime").map(|a| a.as_s().unwrap().as_str()),
                     notes: item["Notes"].as_s().unwrap(),

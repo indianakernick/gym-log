@@ -10,7 +10,7 @@ pub async fn delete(req: Request) -> common::Result {
         return common::empty_response(StatusCode::NOT_FOUND);
     }
 
-    common::timestamp_delete(&req, format!("WORKOUT#{workout_id}")).await
+    common::version_delete(&req, format!("WORKOUT#{workout_id}")).await
 }
 
 pub async fn put(req: Request) -> common::Result {
@@ -21,7 +21,7 @@ pub async fn put(req: Request) -> common::Result {
         return e;
     }
 
-    common::timestamp_modify(&req, common::timestamp_put_item(
+    common::version_modify(&req, common::version_put_item(
         format!("WORKOUT#{workout_id}"),
         |mut builder, item: &common::Workout| {
             builder = builder.item("Notes", AttributeValue::S(item.notes.into()));
