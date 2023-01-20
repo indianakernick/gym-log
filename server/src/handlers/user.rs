@@ -209,10 +209,10 @@ fn get_all_measurements<'a, I>(items: I) -> Vec<common::Measurement<'a>>
     for item in items {
         measurements.push(common::Measurement {
             measurement_id: item["Id"].as_s().unwrap(),
-            modified_time: item["ModifiedTime"].as_n().unwrap().parse().unwrap(),
+            modified_time: common::as_number(&item["ModifiedTime"]),
             r#type: item["Type"].as_s().unwrap(),
             capture_date: item["CaptureDate"].as_s().unwrap(),
-            value: item["Value"].as_n().unwrap().parse().unwrap(),
+            value: common::as_number(&item["Value"]),
             notes: item["Notes"].as_s().unwrap(),
         });
     }
@@ -252,7 +252,7 @@ fn get_all_workouts<'a, I>(items: I) -> Vec<common::Workout<'a>>
 
                 workouts.push(common::Workout {
                     workout_id: &sk[PREFIX_LEN..],
-                    modified_time: item["ModifiedTime"].as_n().unwrap().parse().unwrap(),
+                    modified_time: common::as_number(&item["ModifiedTime"]),
                     start_time: item.get("StartTime").map(|a| a.as_s().unwrap().as_str()),
                     finish_time: item.get("FinishTime").map(|a| a.as_s().unwrap().as_str()),
                     notes: item["Notes"].as_s().unwrap(),
@@ -269,7 +269,7 @@ fn get_all_workouts<'a, I>(items: I) -> Vec<common::Workout<'a>>
 
                 exercises.push(common::Exercise {
                     exercise_id: &sk[WORKOUT_LEN + 1..],
-                    order: item["Order"].as_n().unwrap().parse().unwrap(),
+                    order: common::as_number(&item["Order"]),
                     r#type: item["Type"].as_s().unwrap(),
                     notes: item["Notes"].as_s().unwrap(),
                     sets: Vec::new(),
@@ -280,12 +280,12 @@ fn get_all_workouts<'a, I>(items: I) -> Vec<common::Workout<'a>>
             SET_LEN => {
                 sets.push(common::Set {
                     set_id: &sk[EXERCISE_LEN + 1..],
-                    order: item["Order"].as_n().unwrap().parse().unwrap(),
-                    repetitions: item.get("Repetitions").map(|a| a.as_n().unwrap().parse().unwrap()),
-                    resistance: item.get("Resistance").map(|a| a.as_n().unwrap().parse().unwrap()),
-                    speed: item.get("Speed").map(|a| a.as_n().unwrap().parse().unwrap()),
-                    distance: item.get("Distance").map(|a| a.as_n().unwrap().parse().unwrap()),
-                    duration: item.get("Duration").map(|a| a.as_n().unwrap().parse().unwrap()),
+                    order: common::as_number(&item["Order"]),
+                    repetitions: item.get("Repetitions").map(common::as_number),
+                    resistance: item.get("Resistance").map(common::as_number),
+                    speed: item.get("Speed").map(common::as_number),
+                    distance: item.get("Distance").map(common::as_number),
+                    duration: item.get("Duration").map(common::as_number),
                 });
             }
 

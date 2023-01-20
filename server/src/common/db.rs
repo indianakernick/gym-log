@@ -12,8 +12,10 @@ pub async fn init_db_client() {
     CLIENT.set(aws_sdk_dynamodb::Client::new(&config)).unwrap();
 }
 
-pub fn as_number<N: std::str::FromStr>(attribute: &AttributeValue) -> N
-    where <N as std::str::FromStr>::Err: std::fmt::Debug
+pub fn as_number<N>(attribute: &AttributeValue) -> N
+    where
+        N: std::str::FromStr,
+        <N as std::str::FromStr>::Err: std::fmt::Debug,
 {
     attribute.as_n().unwrap().parse().unwrap()
 }
