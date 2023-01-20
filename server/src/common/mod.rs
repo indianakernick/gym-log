@@ -4,10 +4,10 @@ mod db;
 mod model;
 mod request;
 mod response;
-mod timestamp;
+mod version;
 
 pub use db::*;
 pub use model::*;
 pub use request::*;
 pub use response::*;
-pub use timestamp::*;
+pub use version::*;
