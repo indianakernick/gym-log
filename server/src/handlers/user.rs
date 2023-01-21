@@ -221,25 +221,17 @@ fn get_all_workouts<'a, I>(items: I) -> Vec<common::Workout<'a>>
 {
     let mut workouts = Vec::<common::Workout>::new();
     let mut exercises = Vec::<common::Exercise>::new();
-    let mut sets = Vec::<common::Set>::new();
 
     for item in items {
         const PREFIX_LEN: usize = "WORKOUT#".len();
         const UUID_LEN: usize = 36;
         const WORKOUT_LEN: usize = PREFIX_LEN + UUID_LEN;
         const EXERCISE_LEN: usize = PREFIX_LEN + 2 * UUID_LEN + 1;
-        const SET_LEN: usize = PREFIX_LEN + 3 * UUID_LEN + 2;
 
         let sk = item["Id"].as_s().unwrap();
 
         match sk.len() {
             WORKOUT_LEN => {
-                if !exercises.is_empty() {
-                    let last = exercises.len() - 1;
-                    sets.sort_unstable_by_key(|s| s.order);
-                    exercises[last].sets = std::mem::take(&mut sets);
-                }
-
                 if !workouts.is_empty() {
                     let last = workouts.len() - 1;
                     exercises.sort_unstable_by_key(|e| e.order);
@@ -257,42 +249,17 @@ fn get_all_workouts<'a, I>(items: I) -> Vec<common::Workout<'a>>
             }
 
             EXERCISE_LEN => {
-                if !exercises.is_empty() {
-                    let last = exercises.len() - 1;
-                    exercises.sort_unstable_by_key(|e| e.order);
-                    exercises[last].sets = std::mem::take(&mut sets);
-                }
-
                 exercises.push(common::Exercise {
                     exercise_id: &sk[WORKOUT_LEN + 1..],
                     order: common::as_number(&item["Order"]),
-                    r#type: item["Type"].as_s().unwrap(),
-                    notes: item["Notes"].as_s().unwrap(),
-                    sets: Vec::new(),
-                    delete_sets: Vec::new(),
-                });
-            }
-
-            SET_LEN => {
-                sets.push(common::Set {
-                    set_id: &sk[EXERCISE_LEN + 1..],
-                    order: common::as_number(&item["Order"]),
-                    repetitions: item.get("Repetitions").map(common::as_number),
-                    resistance: item.get("Resistance").map(common::as_number),
-                    speed: item.get("Speed").map(common::as_number),
-                    distance: item.get("Distance").map(common::as_number),
-                    duration: item.get("Duration").map(common::as_number),
+                    r#type: common::MaxLenStr(item["Type"].as_s().unwrap()),
+                    notes: common::MaxLenStr(item["Notes"].as_s().unwrap()),
+                    sets: common::MaxLenVec(get_sets(item["Sets"].as_l().unwrap())),
                 });
             }
 
             _ => unreachable!(),
         }
-    }
-
-    if !exercises.is_empty() {
-        let last = exercises.len() - 1;
-        sets.sort_unstable_by_key(|s| s.order);
-        exercises[last].sets = std::mem::take(&mut sets);
     }
 
     if !workouts.is_empty() {
@@ -304,4 +271,20 @@ fn get_all_workouts<'a, I>(items: I) -> Vec<common::Workout<'a>>
     workouts.sort_by_key(|w| w.start_time);
 
     workouts
+}
+
+fn get_sets(sets: &Vec<AttributeValue>) -> Vec<common::Set> {
+    sets.iter()
+        .map(|set| {
+            let map = set.as_m().unwrap();
+            common::Set {
+                set_id: common::Uuid(map["SetId"].as_s().unwrap().as_str()),
+                repetitions: map.get("Repetitions").map(common::as_number),
+                resistance: map.get("Resistance").map(common::as_number),
+                speed: map.get("Speed").map(common::as_number),
+                distance: map.get("Distance").map(common::as_number),
+                duration: map.get("Duration").map(common::as_number),
+            }
+        })
+        .collect()
 }

@@ -1,9 +1,9 @@
-use aws_sdk_dynamodb::{model::{AttributeValue, TransactWriteItem, Put, Delete}, types::SdkError, error::TransactWriteItemsErrorKind};
+use std::{ops::ControlFlow, collections::HashMap};
+use aws_sdk_dynamodb::model::{AttributeValue, TransactWriteItem, Put, Delete};
 use lambda_http::{Request, RequestExt, http::StatusCode};
 use crate::common;
 
 pub async fn delete(req: Request) -> common::Result {
-    let user_id = common::get_user_id(&req);
     let params = req.path_parameters();
     let workout_id = params.first("workoutId").unwrap();
     let exercise_id = params.first("exerciseId").unwrap();
@@ -12,61 +12,38 @@ pub async fn delete(req: Request) -> common::Result {
         return common::empty_response(StatusCode::NOT_FOUND);
     }
 
-    let db = common::get_db_client();
+    let client_version = match common::parse_request_json::<common::VersionDeleteReq>(&req) {
+        Ok(b) => b.version,
+        Err(r) => return r,
+    };
 
-    let mut builder = db.transact_write_items()
-        .transact_items(TransactWriteItem::builder()
-            .delete(Delete::builder()
-                .table_name(common::TABLE_USER_SET)
-                .key("UserId", AttributeValue::S(user_id.clone()))
-                .key("Id", AttributeValue::S(format!("{}#{}", workout_id, exercise_id)))
-                .condition_expression("attribute_exists(UserId)")
-                .build()
-            )
-            .build());
-
-    let mut output = db.query()
-        .table_name(common::TABLE_USER_SET)
-        .key_condition_expression("UserId = :userId AND begins_with(Id, :id)")
-        .expression_attribute_values(":userId", AttributeValue::S(user_id.clone()))
-        .expression_attribute_values(":id", AttributeValue::S(format!("{}#{}#", workout_id, exercise_id)))
-        .projection_expression("Id")
-        .send()
-        .await?;
-
-    for mut item in output.items.take().unwrap().into_iter() {
-        builder = builder.transact_items(TransactWriteItem::builder()
-            .delete(Delete::builder()
-                .table_name(common::TABLE_USER_SET)
-                .key("UserId", AttributeValue::S(user_id.clone()))
-                .key("Id", item.remove("Id").unwrap())
-                .build()
-            )
-            .build());
-    }
-
-    let result = builder.send().await;
-
-    // All this to check if the thing we're deleting existed before we tried to
-    // delete it...
-    if let Err(e) = result {
-        if let SdkError::ServiceError(ref service_err) = e {
-            if let TransactWriteItemsErrorKind::TransactionCanceledException(ref canceled) = service_err.err().kind {
-                if let Some(reasons) = canceled.cancellation_reasons() {
-                    if reasons.iter().any(|r| r.code() == Some("ConditionalCheckFailed")) {
-                        return common::empty_response(StatusCode::NOT_FOUND);
-                    }
-                }
+    common::version_apply(
+        &req,
+        client_version,
+        |mut builder, user_id, new_version| {
+            builder = common::version_update_item(
+                builder, user_id.clone(), format!("WORKOUT#{workout_id}"), new_version
+            );
+            builder.transact_items(TransactWriteItem::builder()
+                .delete(Delete::builder()
+                    .table_name(common::TABLE_USER)
+                    .key("UserId", AttributeValue::S(user_id))
+                    .key("Id", AttributeValue::S(format!("WORKOUT#{workout_id}#{exercise_id}")))
+                    .condition_expression("attribute_exists(UserId)")
+                    .build())
+                .build())
+        },
+        |reasons| {
+            if reasons.iter().any(|r| r.code() == Some("ConditionalCheckFailed")) {
+                ControlFlow::Break(common::empty_response(StatusCode::NOT_FOUND))
+            } else {
+                ControlFlow::Continue(())
             }
         }
-        return Err(e.into());
-    }
-
-    common::empty_response(StatusCode::OK)
+    ).await
 }
 
 pub async fn put(req: Request) -> common::Result {
-    let user_id = common::get_user_id(&req);
     let params = req.path_parameters();
     let workout_id = params.first("workoutId").unwrap();
     let exercise_id = params.first("exerciseId").unwrap();
@@ -79,75 +56,61 @@ pub async fn put(req: Request) -> common::Result {
         return e;
     }
 
-    let exercise = match common::parse_request_json::<common::Exercise>(&req) {
-        Ok(w) => w,
-        Err(e) => return e,
-    };
+    common::version_modify_checked(
+        &req,
+        |mut builder, exercise: &common::Exercise, user_id, new_version| {
+            builder = common::version_update_item(
+                builder, user_id.clone(), format!("WORKOUT#{workout_id}"), new_version
+            );
 
-    for set in exercise.sets.iter() {
-        if let Err(e) = common::validate_uuid(set.set_id) {
-            return e;
-        }
-    }
+            let sets = exercise.sets.0.iter()
+                .map(|set| {
+                    let mut map = HashMap::new();
 
-    let db = common::get_db_client();
+                    map.insert("SetId".into(), AttributeValue::S(set.set_id.0.into()));
 
-    let mut builder = db.transact_write_items()
-        .transact_items(TransactWriteItem::builder()
-            .put(Put::builder()
-                .table_name(common::TABLE_USER_SET)
-                .item("UserId", AttributeValue::S(user_id.clone()))
-                .item("Id", AttributeValue::S(format!("{}#{}", workout_id, exercise_id)))
-                .item("ExerciseOrder", AttributeValue::N(exercise.order.to_string()))
-                .item("ExerciseType", AttributeValue::S(exercise.r#type.into()))
-                .item("ExerciseNotes", AttributeValue::S(exercise.notes.into()))
+                    if let Some(a) = set.repetitions {
+                        map.insert("Repetitions".into(), AttributeValue::N(a.to_string()));
+                    }
+
+                    if let Some(a) = set.resistance {
+                        map.insert("Resistance".into(), AttributeValue::N(a.to_string()));
+                    }
+
+                    if let Some(a) = set.speed {
+                        map.insert("Speed".into(), AttributeValue::N(a.to_string()));
+                    }
+
+                    if let Some(a) = set.distance {
+                        map.insert("Distance".into(), AttributeValue::N(a.to_string()));
+                    }
+
+                    if let Some(a) = set.duration {
+                        map.insert("Duration".into(), AttributeValue::N(a.to_string()));
+                    }
+
+                    AttributeValue::M(map)
+                })
+                .collect();
+
+            builder.transact_items(TransactWriteItem::builder()
+                .put(Put::builder()
+                    .table_name(common::TABLE_USER)
+                    .item("UserId", AttributeValue::S(user_id))
+                    .item("Id", AttributeValue::S(format!("WORKOUT#{workout_id}#{exercise_id}")))
+                    .item("Order", AttributeValue::N(exercise.order.to_string()))
+                    .item("Type", AttributeValue::S(exercise.r#type.0.into()))
+                    .item("Notes", AttributeValue::S(exercise.notes.0.into()))
+                    .item("Sets", AttributeValue::L(sets))
+                    .build())
                 .build())
-            .build());
+        },
+        |reasons| {
+            if reasons[0].code() == Some("ConditionalCheckFailed") {
+                return ControlFlow::Break(common::empty_response(StatusCode::NOT_FOUND));
+            }
 
-    for set in exercise.sets.iter() {
-        let mut put = Put::builder()
-            .table_name(common::TABLE_USER_SET)
-            .item("UserId", AttributeValue::S(user_id.clone()))
-            .item("Id", AttributeValue::S(format!("{}#{}#{}", workout_id, exercise_id, set.set_id)))
-            .item("SetOrder", AttributeValue::N(set.order.to_string()));
-
-        if let Some(a) = set.repetitions {
-            put = put.item("Repetitions", AttributeValue::N(a.to_string()));
+            ControlFlow::Continue(())
         }
-
-        if let Some(a) = set.resistance {
-            put = put.item("Resistance", AttributeValue::N(a.to_string()));
-        }
-
-        if let Some(a) = set.speed {
-            put = put.item("Speed", AttributeValue::N(a.to_string()));
-        }
-
-        if let Some(a) = set.distance {
-            put = put.item("Distance", AttributeValue::N(a.to_string()));
-        }
-
-        if let Some(a) = set.duration {
-            put = put.item("Duration", AttributeValue::N(a.to_string()));
-        }
-
-        builder = builder.transact_items(TransactWriteItem::builder()
-            .put(put.build())
-            .build());
-    }
-
-    for set in exercise.delete_sets.iter() {
-        let delete = Delete::builder()
-            .table_name(common::TABLE_USER_SET)
-            .key("UserId", AttributeValue::S(user_id.clone()))
-            .key("Id", AttributeValue::S(format!("{}#{}#{}", workout_id, exercise_id, set)));
-
-        builder = builder.transact_items(TransactWriteItem::builder()
-            .delete(delete.build())
-            .build());
-    }
-
-    builder.send().await?;
-
-    common::empty_response(StatusCode::OK)
+    ).await
 }

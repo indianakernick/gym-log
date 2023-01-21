@@ -119,6 +119,7 @@ async function refresh() {
 
   if (output.AuthenticationResult) {
     auth = output.AuthenticationResult;
+    (window as any).token = auth.AccessToken;
   }
 }
 </script>

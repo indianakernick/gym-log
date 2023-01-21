@@ -1,4 +1,3 @@
-use aws_sdk_dynamodb::{types::SdkError, output::DeleteItemOutput, error::DeleteItemError};
 use lambda_http::{Response, Body, Error, http::{response::Builder, StatusCode}};
 use serde::Serialize;
 
@@ -37,19 +36,4 @@ pub fn error_response(status: StatusCode, message: &str) -> Result {
     }
 
     json_response(status, Error { message })
-}
-
-pub fn delete_response(
-    result: std::result::Result<DeleteItemOutput, SdkError<DeleteItemError>>
-) -> Result {
-    if let Err(e) = result {
-        if let SdkError::ServiceError(ref service_err) = e {
-            if service_err.err().is_conditional_check_failed_exception() {
-                return empty_response(StatusCode::NOT_FOUND);
-            }
-        }
-        return Err(e.into());
-    }
-
-    empty_response(StatusCode::OK)
 }

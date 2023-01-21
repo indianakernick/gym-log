@@ -5,7 +5,7 @@ use aws_sdk_dynamodb::{
     types::SdkError, client::fluent_builders::TransactWriteItems,
 };
 use lambda_http::{Request, http::StatusCode};
-use serde::{Serialize, Deserialize};
+use serde::Deserialize;
 
 // When an item is edited in some way, the modified version of that item is
 // updated and the root version for all of the user's data is also updated. The
@@ -34,6 +34,18 @@ use serde::{Serialize, Deserialize};
 // applies the modification, we know that they're synchronised. The client will
 // not need to download this change when it requests changes.
 
+#[derive(Deserialize)]
+pub struct VersionDeleteReq {
+    pub version: u32,
+}
+
+#[derive(Deserialize)]
+pub struct VersionModifyReq<T> {
+    pub version: u32,
+    // Should we flatten here?
+    pub item: T,
+}
+
 pub async fn version_delete(
     req: &Request,
     item_id: String,
@@ -43,7 +55,7 @@ pub async fn version_delete(
         Err(r) => return r,
     };
 
-    return version_apply(
+    version_apply(
         req,
         client_version,
         |builder, user_id, new_version| {
@@ -66,7 +78,7 @@ pub async fn version_delete(
 
             ControlFlow::Continue(())
         }
-    ).await;
+    ).await
 }
 
 pub async fn version_modify<'r, T, P>(
@@ -91,7 +103,7 @@ pub async fn version_modify_checked<'r, T, P, C>(
         C: FnOnce(&[CancellationReason]) -> ControlFlow<super::Result, ()>,
 {
     let body = match super::parse_request_json::<VersionModifyReq<T>>(req) {
-        Ok(r) => r,
+        Ok(b) => b,
         Err(e) => return e,
     };
 
@@ -125,7 +137,25 @@ pub fn version_put_item<T, P>(
     }
 }
 
-async fn version_apply<P, C>(
+pub fn version_update_item(
+    builder: TransactWriteItems,
+    user_id: String,
+    item_id: String,
+    new_version: String,
+) -> TransactWriteItems {
+    builder.transact_items(TransactWriteItem::builder()
+        .update(Update::builder()
+            .table_name(super::TABLE_USER)
+            .key("UserId", AttributeValue::S(user_id))
+            .key("Id", AttributeValue::S(item_id))
+            .expression_attribute_values(":newVersion", AttributeValue::N(new_version))
+            .condition_expression("attribute_exists(UserId) AND attribute_not_exists(Deleted)")
+            .update_expression("SET ModifiedVersion = :newVersion")
+            .build())
+        .build())
+}
+
+pub async fn version_apply<P, C>(
     req: &Request,
     client_version: u32,
     patch: P,
@@ -176,18 +206,6 @@ async fn version_apply<P, C>(
             return Err(e.into());
         }
     }
-}
-
-#[derive(Serialize, Deserialize)]
-struct VersionDeleteReq {
-    version: u32,
-}
-
-#[derive(Deserialize)]
-struct VersionModifyReq<T> {
-    version: u32,
-    // Should we flatten here?
-    item: T,
 }
 
 fn cancellation_reasons(error: &SdkError<TransactWriteItemsError>) -> Option<&[CancellationReason]> {

@@ -3,6 +3,7 @@ use serde::{Serialize, Deserialize};
 pub const TABLE_USER: &str = "gym-log.User";
 pub const INDEX_MODIFIED_VERSION: &str = "LSI-ModifiedVersion";
 pub const MAX_EXERCISES: usize = 25;
+pub const MAX_SETS: usize = 25;
 pub const MAX_TYPE_LEN: usize = 100;
 pub const MAX_NOTES_LEN: usize = 10000;
 
@@ -78,25 +79,21 @@ pub struct Exercise<'a> {
     pub order: u32,
     /// The type of exercise which defines the meaning of various properties on
     /// sets.
-    pub r#type: &'a str,
+    #[serde(borrow)]
+    pub r#type: MaxLenStr<'a, MAX_TYPE_LEN>,
     /// Any user provided notes associated with the exercise.
-    pub notes: &'a str,
+    #[serde(borrow)]
+    pub notes: MaxLenStr<'a, MAX_NOTES_LEN>,
     /// The sets within the exercise.
     #[serde(borrow)]
-    pub sets: Vec<Set<'a>>,
-    /// A list of sets to delete from the exercise.
-    #[serde(default)]
-    #[serde(skip_serializing)]
-    #[serde(borrow)]
-    pub delete_sets: Vec<&'a str>,
+    pub sets: MaxLenVec<Set<'a>, MAX_SETS>,
 }
 
 #[derive(Serialize, Deserialize)]
 pub struct Set<'a> {
     /// UUID of the set.
-    pub set_id: &'a str,
-    /// Index of the set within the exercise.
-    pub order: u32,
+    #[serde(borrow)]
+    pub set_id: Uuid<'a>,
     /// The number of repetitions for an exercise type that requires it.
     #[serde(default)]
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -120,7 +117,7 @@ pub struct Set<'a> {
     pub duration: Option<u32>,
 }
 
-fn deserialize_date<'de, D>(d: D) -> Result<&'de str, D::Error>
+fn deserialize_date<'de: 'a, 'a, D>(d: D) -> Result<&'a str, D::Error>
     where D: serde::Deserializer<'de>
 {
     let s = <&str>::deserialize(d)?;
@@ -130,7 +127,7 @@ fn deserialize_date<'de, D>(d: D) -> Result<&'de str, D::Error>
     }
 }
 
-fn deserialize_time<'de, D>(d: D) -> Result<Option<&'de str>, D::Error>
+fn deserialize_time<'de: 'a, 'a, D>(d: D) -> Result<Option<&'a str>, D::Error>
     where D: serde::Deserializer<'de>
 {
     let os = Option::<&str>::deserialize(d)?;
@@ -148,7 +145,7 @@ fn deserialize_time<'de, D>(d: D) -> Result<Option<&'de str>, D::Error>
 #[derive(Serialize)]
 pub struct Uuid<'a>(pub &'a str);
 
-impl<'de> Deserialize<'de> for Uuid<'de> {
+impl<'de: 'a, 'a> Deserialize<'de> for Uuid<'a> {
     fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
         where D: serde::Deserializer<'de>
     {

@@ -1,5 +1,3 @@
-pub const TABLE_USER_SET: &str = "gym-log.UserSet";
-
 mod db;
 mod model;
 mod request;
