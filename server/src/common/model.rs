@@ -2,11 +2,13 @@ use serde::{Serialize, Deserialize};
 
 pub const TABLE_USER: &str = "gym-log.User";
 pub const INDEX_MODIFIED_VERSION: &str = "LSI-ModifiedVersion";
+pub const MAX_EXERCISES: usize = 25;
+pub const MAX_TYPE_LEN: usize = 100;
+pub const MAX_NOTES_LEN: usize = 10000;
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize)]
 pub struct User<'a> {
     /// The current version of the user's data.
-    #[serde(skip_deserializing)]
     pub version: u32,
     #[serde(borrow)]
     pub measurements: Vec<Measurement<'a>>,
@@ -31,7 +33,8 @@ pub struct Measurement<'a> {
     #[serde(skip_deserializing)]
     pub modified_version: u32,
     /// Type of measurement. The client defines the meaning of this.
-    pub r#type: &'a str,
+    #[serde(borrow)]
+    pub r#type: MaxLenStr<'a, MAX_TYPE_LEN>,
     /// The date that the measurement was captured in ISO 8601 precise to the
     /// day.
     #[serde(deserialize_with = "deserialize_date")]
@@ -39,7 +42,8 @@ pub struct Measurement<'a> {
     /// The value of the measurement whose meaning depends on the type.
     pub value: f64,
     /// Any user provided notes associated with the measurement.
-    pub notes: &'a str,
+    #[serde(borrow)]
+    pub notes: MaxLenStr<'a, MAX_NOTES_LEN>,
 }
 
 #[derive(Serialize, Deserialize)]
@@ -57,7 +61,8 @@ pub struct Workout<'a> {
     #[serde(deserialize_with = "deserialize_time")]
     pub finish_time: Option<&'a str>,
     /// Any user provided notes associated with the workout.
-    pub notes: &'a str,
+    #[serde(borrow)]
+    pub notes: MaxLenStr<'a, MAX_NOTES_LEN>,
     /// The exercises within a workout.
     #[serde(borrow)]
     #[serde(skip_deserializing)]
@@ -178,7 +183,7 @@ impl<'de, T: Deserialize<'de>, const MAX_LEN: usize> Deserialize<'de> for MaxLen
 #[derive(Serialize)]
 pub struct MaxLenStr<'a, const MAX_LEN: usize>(pub &'a str);
 
-impl<'de, const MAX_LEN: usize> Deserialize<'de> for MaxLenStr<'de, MAX_LEN> {
+impl<'de: 'a, 'a, const MAX_LEN: usize> Deserialize<'de> for MaxLenStr<'a, MAX_LEN> {
     fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
         where D: serde::Deserializer<'de>
     {
@@ -191,5 +196,3 @@ impl<'de, const MAX_LEN: usize> Deserialize<'de> for MaxLenStr<'de, MAX_LEN> {
         }
     }
 }
-
-pub const MAX_EXERCISES: usize = 25;
