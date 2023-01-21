@@ -138,3 +138,58 @@ fn deserialize_time<'de, D>(d: D) -> Result<Option<&'de str>, D::Error>
         Ok(None)
     }
 }
+
+#[repr(transparent)]
+#[derive(Serialize)]
+pub struct Uuid<'a>(pub &'a str);
+
+impl<'de> Deserialize<'de> for Uuid<'de> {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+        where D: serde::Deserializer<'de>
+    {
+        let s = <&str>::deserialize(deserializer)?;
+        if super::is_uuid(s) {
+            Ok(Uuid(s))
+        } else {
+            Err(serde::de::Error::custom("invalid UUID"))
+        }
+    }
+}
+
+#[repr(transparent)]
+#[derive(Serialize)]
+pub struct MaxLenVec<T, const MAX_LEN: usize>(pub Vec<T>);
+
+impl<'de, T: Deserialize<'de>, const MAX_LEN: usize> Deserialize<'de> for MaxLenVec<T, MAX_LEN> {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+        where D: serde::Deserializer<'de>
+    {
+        let v = Vec::<T>::deserialize(deserializer)?;
+        if v.len() <= MAX_LEN {
+            Ok(MaxLenVec(v))
+        } else {
+            let msg = format!("no more than {} items", MAX_LEN);
+            Err(serde::de::Error::invalid_length(v.len(), &msg.as_str()))
+        }
+    }
+}
+
+#[repr(transparent)]
+#[derive(Serialize)]
+pub struct MaxLenStr<'a, const MAX_LEN: usize>(pub &'a str);
+
+impl<'de, const MAX_LEN: usize> Deserialize<'de> for MaxLenStr<'de, MAX_LEN> {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+        where D: serde::Deserializer<'de>
+    {
+        let s = <&str>::deserialize(deserializer)?;
+        if s.len() <= MAX_LEN {
+            Ok(MaxLenStr(s))
+        } else {
+            let msg = format!("no more than {} characters", MAX_LEN);
+            Err(serde::de::Error::invalid_length(s.len(), &msg.as_str()))
+        }
+    }
+}
+
+pub const MAX_EXERCISES: usize = 25;

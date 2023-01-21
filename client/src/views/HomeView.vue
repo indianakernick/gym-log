@@ -96,6 +96,7 @@ async function login() {
 
   if (output.AuthenticationResult) {
     auth = output.AuthenticationResult;
+    (window as any).token = auth.AccessToken;
   }
 }
 

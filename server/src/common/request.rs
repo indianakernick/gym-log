@@ -61,6 +61,6 @@ pub fn validate_uuid(id: &str) -> Result<(), super::Result> {
     if is_uuid(id) {
         Ok(())
     } else {
-        Err(super::error_response(StatusCode::BAD_REQUEST, "Invalid UUID"))
+        Err(super::error_response(StatusCode::BAD_REQUEST, "invalid UUID in path"))
     }
 }

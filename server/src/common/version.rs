@@ -56,19 +56,12 @@ pub async fn version_delete(
                     .expression_attribute_values(":deleted", AttributeValue::Bool(true))
                     .condition_expression("attribute_exists(UserId) AND attribute_not_exists(Deleted)")
                     .update_expression("SET ModifiedVersion = :newVersion, Deleted = :deleted")
-                    .return_values_on_condition_check_failure(ReturnValuesOnConditionCheckFailure::AllOld)
                     .build())
                 .build())
         },
         |reasons| {
             if reasons[0].code() == Some("ConditionalCheckFailed") {
-                if let Some(item) = reasons[0].item() {
-                    if item.contains_key("Deleted") {
-                        return ControlFlow::Break(super::empty_response(StatusCode::NOT_FOUND));
-                    }
-                } else {
-                    return ControlFlow::Break(super::empty_response(StatusCode::NOT_FOUND));
-                }
+                return ControlFlow::Break(super::empty_response(StatusCode::NOT_FOUND));
             }
 
             ControlFlow::Continue(())
@@ -76,13 +69,26 @@ pub async fn version_delete(
     ).await;
 }
 
-pub async fn version_modify<'r, T, F>(
+pub async fn version_modify<'r, T, P>(
     req: &'r Request,
-    patch: F,
+    patch: P,
 ) -> super::Result
     where
         T: Deserialize<'r>,
-        F: FnOnce(TransactWriteItems, &T, String, String) -> TransactWriteItems,
+        P: FnOnce(TransactWriteItems, &T, String, String) -> TransactWriteItems,
+{
+    version_modify_checked(req, patch, |_| ControlFlow::Continue(())).await
+}
+
+pub async fn version_modify_checked<'r, T, P, C>(
+    req: &'r Request,
+    patch: P,
+    check: C,
+) -> super::Result
+    where
+        T: Deserialize<'r>,
+        P: FnOnce(TransactWriteItems, &T, String, String) -> TransactWriteItems,
+        C: FnOnce(&[CancellationReason]) -> ControlFlow<super::Result, ()>,
 {
     let body = match super::parse_request_json::<VersionModifyReq<T>>(req) {
         Ok(r) => r,
@@ -95,15 +101,15 @@ pub async fn version_modify<'r, T, F>(
         |builder, user_id, new_version| {
             patch(builder, &body.item, user_id, new_version)
         },
-        |_| ControlFlow::Continue(())
+        check,
     ).await
 }
 
-pub fn version_put_item<T, F>(
+pub fn version_put_item<T, P>(
     item_id: String,
-    patch: F,
+    patch: P,
 ) -> impl FnOnce(TransactWriteItems, &T, String, String) -> TransactWriteItems
-    where F: FnOnce(put::Builder, &T) -> put::Builder
+    where P: FnOnce(put::Builder, &T) -> put::Builder
 {
     move |builder, item, user_id, new_version| {
         let put = Put::builder()
