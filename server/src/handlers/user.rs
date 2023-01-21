@@ -15,7 +15,11 @@ pub async fn get(req: Request) -> common::Result {
             Ok(v) => v,
             Err(_) => return common::empty_response(StatusCode::BAD_REQUEST),
         };
-        get_changed(db, user_id, version).await?
+        if version == 0 {
+            get_all(db, user_id).await?
+        } else {
+            get_changed(db, user_id, version).await?
+        }
     } else {
         get_all(db, user_id).await?
     };
@@ -111,7 +115,7 @@ async fn get_changed(db: &Client, user_id: String, client_version: u32) -> Resul
     let query_changed = db.query()
         .table_name(common::TABLE_USER)
         .index_name(common::INDEX_MODIFIED_VERSION)
-        .key_condition_expression("UserId = :userId AND Version > :clientVersion")
+        .key_condition_expression("UserId = :userId AND ModifiedVersion > :clientVersion")
         .expression_attribute_values(":userId", AttributeValue::S(user_id.clone()))
         .expression_attribute_values(":clientVersion", AttributeValue::N(client_version.to_string()))
         .select(Select::AllAttributes)
