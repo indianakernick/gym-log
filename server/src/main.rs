@@ -55,7 +55,7 @@ async fn function_handler(req: Request) -> Result<Response<Body>, Error> {
 
     let RequestContext::ApiGatewayV2(req_ctx) = req.request_context();
 
-    match req_ctx.route_key.as_ref().map(|s| s.as_str()) {
+    match req_ctx.route_key.as_deref() {
         Some("GET /user") => user::get(req).await,
         Some("OPTIONS /user") => options(),
         Some("DELETE /user/measurement/{measurementId}") => user_measurement::delete(req).await,

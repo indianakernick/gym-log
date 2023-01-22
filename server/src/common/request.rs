@@ -54,7 +54,7 @@ pub fn is_uuid(id: &str) -> bool {
         }
     }
 
-    return true;
+    true
 }
 
 pub fn validate_uuid(id: &str) -> Result<(), super::Result> {

@@ -141,6 +141,7 @@ fn deserialize_time<'de: 'a, 'a, D>(d: D) -> Result<Option<&'a str>, D::Error>
     }
 }
 
+/// A wrapper around a &str that validates it is a UUID when deserializing.
 #[repr(transparent)]
 #[derive(Serialize)]
 pub struct Uuid<'a>(pub &'a str);
@@ -158,6 +159,7 @@ impl<'de: 'a, 'a> Deserialize<'de> for Uuid<'a> {
     }
 }
 
+/// A wrapper around a Vec<T> that validates its length when deserializing.
 #[repr(transparent)]
 #[derive(Serialize)]
 pub struct MaxLenVec<T, const MAX_LEN: usize>(pub Vec<T>);
@@ -176,6 +178,7 @@ impl<'de, T: Deserialize<'de>, const MAX_LEN: usize> Deserialize<'de> for MaxLen
     }
 }
 
+/// A wrapper around a &str that validates its length when deserializing.
 #[repr(transparent)]
 #[derive(Serialize)]
 pub struct MaxLenStr<'a, const MAX_LEN: usize>(pub &'a str);

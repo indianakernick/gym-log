@@ -50,7 +50,7 @@ pub async fn version_delete(
     req: &Request,
     item_id: String,
 ) -> super::Result {
-    let client_version = match super::parse_request_json::<VersionDeleteReq>(&req) {
+    let client_version = match super::parse_request_json::<VersionDeleteReq>(req) {
         Ok(b) => b.version,
         Err(r) => return r,
     };
@@ -186,7 +186,7 @@ pub async fn version_apply<P, C>(
     let result = patch(builder, user_id, new_version).send().await;
 
     match result {
-        Ok(_) => return super::empty_response(StatusCode::OK),
+        Ok(_) => super::empty_response(StatusCode::OK),
         Err(e) => {
             if let Some(reasons) = cancellation_reasons(&e) {
                 if reasons[0].code() == Some("ConditionalCheckFailed") {
@@ -203,7 +203,7 @@ pub async fn version_apply<P, C>(
                 }
             }
 
-            return Err(e.into());
+            Err(e.into())
         }
     }
 }

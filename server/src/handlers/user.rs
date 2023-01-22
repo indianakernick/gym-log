@@ -35,7 +35,7 @@ async fn get_all(db: &Client, user_id: String) -> Result<String, Error> {
     let items = db.query()
         .table_name(common::TABLE_USER)
         .key_condition_expression("UserId = :userId")
-        .expression_attribute_values(":userId", AttributeValue::S(user_id.clone()))
+        .expression_attribute_values(":userId", AttributeValue::S(user_id))
         .filter_expression("attribute_not_exists(Deleted)")
         .into_paginator()
         .items()
@@ -149,10 +149,9 @@ async fn get_changed(db: &Client, user_id: String, client_version: u32) -> Resul
 
     let measurements = get_all_measurements(changed_measurements.iter().copied());
 
-    // For workouts, we need to separately query for the nested exercises and
-    // sets. We could attach a modified version to these sub-items to get them
-    // in the above query. We might also want to consider storing sets as a list
-    // of maps within the exercise item.
+    // For workouts, we need to separately query for the nested exercises. We
+    // could attach a modified version to exercises to get them in the above
+    // query.
 
     // This isn't very efficient but it works. We're getting there!
 
@@ -170,8 +169,8 @@ async fn get_changed(db: &Client, user_id: String, client_version: u32) -> Resul
     }
 
     for query in queries.iter() {
-        workouts.extend(
-            get_all_workouts(query.items().unwrap().iter()).drain(..)
+        workouts.append(
+            &mut get_all_workouts(query.items().unwrap().iter())
         );
     }
 
@@ -204,11 +203,11 @@ async fn get_version(db: &Client, user_id: String) -> Result<u32, Error> {
 fn get_all_measurements<'a, I>(items: I) -> Vec<common::Measurement<'a>>
     where I: Iterator<Item=&'a HashMap<String, AttributeValue>>
 {
-    let mut measurements = Vec::<common::Measurement>::new();
+    let mut measurements = Vec::new();
 
     for item in items {
         measurements.push(common::Measurement {
-            measurement_id: item["Id"].as_s().unwrap(),
+            measurement_id: &item["Id"].as_s().unwrap()["MEASUREMENT#".len()..],
             modified_version: common::as_number(&item["ModifiedVersion"]),
             r#type: common::MaxLenStr(item["Type"].as_s().unwrap()),
             capture_date: item["CaptureDate"].as_s().unwrap(),
