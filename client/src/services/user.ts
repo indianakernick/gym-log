@@ -3,28 +3,146 @@ import auth from './auth';
 const BASE_URL = 'https://pa36mmpygd.execute-api.ap-southeast-2.amazonaws.com/';
 
 export default new class {
+  private async getHeaders(json: boolean = false): Promise<HeadersInit> {
+    const headers: HeadersInit = { Authorization: await auth.getAccessToken() };
+    if (json) headers['Content-Type'] = 'application/json';
+    return headers;
+  }
+
   async getUser(): Promise<User> {
     const res = await fetch(`${BASE_URL}user`, {
-      headers: {
-        Authorization: await auth.getAccessToken(),
-      }
+      method: 'GET',
+      headers: await this.getHeaders()
     });
 
     if (!res.ok) {
       throw 'something...';
     }
 
-    return JSON.parse(await res.json())
+    return JSON.parse(await res.json());
+  }
+
+  async getUserChanges(sinceVersion: number): Promise<User> {
+    const res = await fetch(`${BASE_URL}user?since=${sinceVersion}`, {
+      method: 'GET',
+      headers: await this.getHeaders()
+    });
+
+    return JSON.parse(await res.json());
+  }
+
+  async deleteUserMeasurement(version: number, measurementId: string): Promise<void> {
+    const res = await fetch(`${BASE_URL}user/measurement/${measurementId}`, {
+      method: 'DELETE',
+      headers: await this.getHeaders(true),
+      body: JSON.stringify({ version })
+    });
+  }
+
+  async updateUserMeasurement(
+    version: number,
+    m: Omit<Measurement, 'modified_version'>
+  ): Promise<void> {
+    const res = await fetch(`${BASE_URL}user/measurement/${m.measurement_id}`, {
+      method: 'PUT',
+      headers: await this.getHeaders(true),
+      body: JSON.stringify({
+        version,
+        item: {
+          type: m.type,
+          capture_date: m.capture_date,
+          value: m.value,
+          notes: m.notes
+        }
+      })
+    });
+  }
+
+  async deleteWorkout(version: number, workoutId: string): Promise<void> {
+    const res = await fetch(`${BASE_URL}user/workout/${workoutId}`, {
+      method: 'DELETE',
+      headers: await this.getHeaders(true),
+      body: JSON.stringify({ version })
+    });
+  }
+
+  async updateWorkout(
+    version: number,
+    w: Omit<Workout, 'modified_version' | 'exercises'>
+  ): Promise<void> {
+    const res = await fetch(`${BASE_URL}user/workout/${w.workout_id}`, {
+      method: 'PUT',
+      headers: await this.getHeaders(true),
+      body: JSON.stringify({
+        version,
+        item: {
+          start_time: w.start_time,
+          finish_time: w.finish_time,
+          notes: w.notes
+        }
+      })
+    });
+  }
+
+  async deleteExercise(
+    version: number,
+    workoutId: string,
+    exerciseId: string
+  ): Promise<void> {
+    const res = await fetch(`${BASE_URL}user/workout/${workoutId}/exercise/${exerciseId}`, {
+      method: 'DELETE',
+      headers: await this.getHeaders(true),
+      body: JSON.stringify({ version })
+    });
+  }
+
+  async updateExercise(
+    version: number,
+    workoutId: string,
+    exercise: Exercise
+  ): Promise<void> {
+    const res = await fetch(`${BASE_URL}user/workout/${workoutId}/exercise/${exercise.exercise_id}`, {
+      method: 'PUT',
+      headers: await this.getHeaders(true),
+      body: JSON.stringify({
+        version,
+        item: {
+          order: exercise.order,
+          type: exercise.type,
+          notes: exercise.notes,
+          sets: exercise.sets
+        }
+      })
+    });
+  }
+
+  async updateExerciseOrder(
+    version: number,
+    workoutId: string,
+    exercises: string[]
+  ): Promise<void> {
+    const res = await fetch(`${BASE_URL}user/workout/${workoutId}/order`, {
+      method: 'PUT',
+      headers: await this.getHeaders(true),
+      body: JSON.stringify({
+        version,
+        item: exercises
+      })
+    });
   }
 };
 
 export interface User {
+  version: number;
   measurements: Measurement[];
   workouts: Workout[];
+  deleted_measurements?: string[];
+  deleted_workouts?: string[]
 }
 
 export interface Measurement {
   measurement_id: string;
+  modified_version: number;
   type: MeasurementType;
   capture_date: string;
   value: number;
@@ -40,6 +158,7 @@ export type MeasurementType =
 
 export interface Workout {
   workout_id: string;
+  modified_version: number;
   start_time: string | null;
   finish_time: string | null;
   notes: string;
@@ -76,7 +195,6 @@ export type TreadmillExerciseType = 'treadmill';
 
 interface Set {
   set_id: string;
-  order: number;
 }
 
 export interface LiftingSet extends Set {

@@ -18,7 +18,7 @@ export default new class {
     const req = indexedDB.open(DB_MAIN, 0);
     req.onsuccess = () => this.db.set(req.result);
     req.onerror = () => { throw req.error; };
-    req.onupgradeneeded = (e) => {
+    req.onupgradeneeded = () => {
       req.result.createObjectStore(OS_AUTH)
     };
   }
