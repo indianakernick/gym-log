@@ -228,9 +228,38 @@ export default new class {
   // could have been changed by a user action so it needs to be read again.
 
   async getNextStagedChange(): Promise<StagedChange | undefined> {
-    // go through each of the object stores and return the first change that is
-    // found
-    throw 'todo';
+    const db = await this.db.get();
+    const tx = db.transaction(['user', 'stagedMeasurement', 'stagedWorkout', 'stagedExercise']);
+
+    const measurement = await tx.objectStore('stagedMeasurement').openCursor();
+    if (measurement) {
+      return {
+        version: await this.getVersion(tx),
+        measurementId: measurement.primaryKey,
+        measurement: measurement.value
+      };
+    }
+
+    const workout = await tx.objectStore('stagedWorkout').openCursor();
+    if (workout) {
+      return {
+        version: await this.getVersion(tx),
+        workoutId: workout.primaryKey,
+        workout: workout.value
+      };
+    }
+
+    const exercise = await tx.objectStore('stagedExercise').openCursor();
+    if (exercise) {
+      return {
+        version: await this.getVersion(tx),
+        workoutId: exercise.primaryKey.substring(0, 36),
+        exerciseId: exercise.primaryKey.substring(37),
+        exercise: exercise.value
+      };
+    }
+
+    return undefined;
   }
 
   // ------------- Apply remote changes after successful upload ------------- //
@@ -296,14 +325,6 @@ export default new class {
     );
   }
 
-  private async incrementVersion<
-    Stores extends StoreNames<Schema>
-  >(tx: IDBPTransaction<Schema, (Stores | 'user')[], 'readwrite'>) {
-    const store = tx.objectStore('user');
-    const version = await store.get('version') || 0;
-    await store.put(version + 1, 'version');
-  }
-
   private async applyDelete<S extends keyof StagedStores>(
     canon: S,
     staged: StagedStores[S],
@@ -353,5 +374,20 @@ export default new class {
     }
 
     await tx.objectStore(canon).put(item);
+  }
+
+  private async incrementVersion<
+    Stores extends StoreNames<Schema>
+  >(tx: IDBPTransaction<Schema, (Stores | 'user')[], 'readwrite'>): Promise<void> {
+    const store = tx.objectStore('user');
+    const version = await store.get('version') || 0;
+    await store.put(version + 1, 'version');
+  }
+
+  private async getVersion<
+    Stores extends StoreNames<Schema>,
+    Mode extends IDBTransactionMode
+  >(tx: IDBPTransaction<Schema, (Stores | 'user')[], Mode>): Promise<number> {
+    return await tx.objectStore('user').get('version') || 0;
   }
 }
