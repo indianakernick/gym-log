@@ -16,9 +16,7 @@ pub async fn put(req: Request) -> common::Result {
     common::version_modify_checked(
         &req,
         |mut builder, exercises: &Exercises, user_id, new_version| {
-            builder = common::version_update_item(
-                builder, user_id.clone(), format!("WORKOUT#{workout_id}"), new_version
-            );
+            builder = common::check_exists(builder, user_id.clone(), format!("WORKOUT#{workout_id}"));
 
             for (i, exercise) in exercises.0.iter().map(|e| e.0).enumerate() {
                 builder = builder.transact_items(TransactWriteItem::builder()
@@ -26,10 +24,11 @@ pub async fn put(req: Request) -> common::Result {
                         .table_name(common::TABLE_USER)
                         .key("UserId", AttributeValue::S(user_id.clone()))
                         .key("Id", AttributeValue::S(format!("WORKOUT#{workout_id}#{exercise}")))
-                        .update_expression("SET #order = :order")
                         .expression_attribute_names("#order", "Order")
                         .expression_attribute_values(":order", AttributeValue::N(i.to_string()))
-                        .condition_expression("attribute_exists(UserId)")
+                        .expression_attribute_values(":newVersion", AttributeValue::N(new_version.clone()))
+                        .condition_expression("attribute_exists(UserId) AND attribute_not_exists(Deleted)")
+                        .update_expression("SET #order = :order, ModifiedVersion = :newVersion")
                         .build())
                     .build());
             }

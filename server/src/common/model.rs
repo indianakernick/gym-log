@@ -15,14 +15,17 @@ pub struct User<'a> {
     pub measurements: Vec<Measurement<'a>>,
     #[serde(borrow)]
     pub workouts: Vec<Workout<'a>>,
+    #[serde(borrow)]
+    pub exercises: Vec<Exercise<'a>>,
     /// A list of measurements that were deleted since the given version.
     #[serde(borrow)]
-    #[serde(skip_serializing_if = "Vec::is_empty")]
     pub deleted_measurements: Vec<&'a str>,
     /// A list of workouts that were deleted since the given version.
     #[serde(borrow)]
-    #[serde(skip_serializing_if = "Vec::is_empty")]
     pub deleted_workouts: Vec<&'a str>,
+    /// A list of exercises that were deleted since the given version.
+    #[serde(borrow)]
+    pub deleted_exercises: Vec<&'a str>,
 }
 
 #[derive(Serialize, Deserialize)]
@@ -46,7 +49,7 @@ pub struct Measurement<'a> {
 
 #[derive(Serialize, Deserialize)]
 pub struct Workout<'a> {
-    /// UUID of the exercise.
+    /// UUID of the workout.
     #[serde(skip_deserializing)]
     pub workout_id: &'a str,
     /// The time that the workout started in ISO 8601 precise to the second.
@@ -58,17 +61,14 @@ pub struct Workout<'a> {
     /// Any user provided notes associated with the workout.
     #[serde(borrow)]
     pub notes: MaxLenStr<'a, MAX_NOTES_LEN>,
-    /// The exercises within a workout.
-    #[serde(borrow)]
-    #[serde(skip_deserializing)]
-    pub exercises: Vec<Exercise<'a>>,
 }
 
 #[derive(Serialize, Deserialize)]
 pub struct Exercise<'a> {
-    /// UUID of the exercise.
+    /// UUID of the workout concatenated with the UUID of the exercise separated
+    /// by a `#`.
     #[serde(skip_deserializing)]
-    pub exercise_id: &'a str,
+    pub workout_exercise_id: &'a str,
     /// Index of the exercise within the workout.
     pub order: u32,
     /// The type of exercise which defines the meaning of various properties on

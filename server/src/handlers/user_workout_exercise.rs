@@ -1,5 +1,5 @@
 use std::{ops::ControlFlow, collections::HashMap};
-use aws_sdk_dynamodb::model::{AttributeValue, TransactWriteItem, Put, Delete};
+use aws_sdk_dynamodb::model::{AttributeValue, TransactWriteItem, Put};
 use lambda_http::{Request, RequestExt, http::StatusCode};
 use crate::common;
 
@@ -21,17 +21,18 @@ pub async fn delete(req: Request) -> common::Result {
         &req,
         client_version,
         |mut builder, user_id, new_version| {
-            builder = common::version_update_item(
-                builder, user_id.clone(), format!("WORKOUT#{workout_id}"), new_version
+            builder = common::check_exists(
+                builder,
+                user_id.clone(),
+                format!("WORKOUT#{workout_id}"),
             );
-            builder.transact_items(TransactWriteItem::builder()
-                .delete(Delete::builder()
-                    .table_name(common::TABLE_USER)
-                    .key("UserId", AttributeValue::S(user_id))
-                    .key("Id", AttributeValue::S(format!("WORKOUT#{workout_id}#{exercise_id}")))
-                    .condition_expression("attribute_exists(UserId)")
-                    .build())
-                .build())
+
+            common::version_delete_item(
+                builder,
+                user_id,
+                format!("WORKOUT#{workout_id}#{exercise_id}"),
+                new_version,
+            )
         },
         |reasons| {
             if reasons.iter().any(|r| r.code() == Some("ConditionalCheckFailed")) {
@@ -59,9 +60,7 @@ pub async fn put(req: Request) -> common::Result {
     common::version_modify_checked(
         &req,
         |mut builder, exercise: &common::Exercise, user_id, new_version| {
-            builder = common::version_update_item(
-                builder, user_id.clone(), format!("WORKOUT#{workout_id}"), new_version
-            );
+            builder = common::check_exists(builder, user_id.clone(), format!("WORKOUT#{workout_id}"));
 
             let sets = exercise.sets.0.iter()
                 .map(|set| {
@@ -98,6 +97,7 @@ pub async fn put(req: Request) -> common::Result {
                     .table_name(common::TABLE_USER)
                     .item("UserId", AttributeValue::S(user_id))
                     .item("Id", AttributeValue::S(format!("WORKOUT#{workout_id}#{exercise_id}")))
+                    .item("ModifiedVersion", AttributeValue::N(new_version))
                     .item("Order", AttributeValue::N(exercise.order.to_string()))
                     .item("Type", AttributeValue::S(exercise.r#type.0.into()))
                     .item("Notes", AttributeValue::S(exercise.notes.0.into()))

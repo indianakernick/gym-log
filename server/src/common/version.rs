@@ -1,7 +1,7 @@
 use std::ops::ControlFlow;
 use aws_sdk_dynamodb::{
     error::{TransactWriteItemsError, TransactWriteItemsErrorKind},
-    model::{TransactWriteItem, AttributeValue, Update, ReturnValuesOnConditionCheckFailure, put, Put, CancellationReason},
+    model::{TransactWriteItem, AttributeValue, Update, ReturnValuesOnConditionCheckFailure, put, Put, CancellationReason, ConditionCheck},
     types::SdkError, client::fluent_builders::TransactWriteItems,
 };
 use lambda_http::{Request, http::StatusCode};
@@ -59,17 +59,7 @@ pub async fn version_delete(
         req,
         client_version,
         |builder, user_id, new_version| {
-            builder.transact_items(TransactWriteItem::builder()
-                .update(Update::builder()
-                    .table_name(super::TABLE_USER)
-                    .key("UserId", AttributeValue::S(user_id))
-                    .key("Id", AttributeValue::S(item_id))
-                    .expression_attribute_values(":newVersion", AttributeValue::N(new_version))
-                    .expression_attribute_values(":deleted", AttributeValue::Bool(true))
-                    .condition_expression("attribute_exists(UserId) AND attribute_not_exists(Deleted)")
-                    .update_expression("SET ModifiedVersion = :newVersion, Deleted = :deleted")
-                    .build())
-                .build())
+            version_delete_item(builder, user_id, item_id, new_version)
         },
         |reasons| {
             if reasons[0].code() == Some("ConditionalCheckFailed") {
@@ -137,7 +127,7 @@ pub fn version_put_item<T, P>(
     }
 }
 
-pub fn version_update_item(
+pub fn version_delete_item(
     builder: TransactWriteItems,
     user_id: String,
     item_id: String,
@@ -149,8 +139,24 @@ pub fn version_update_item(
             .key("UserId", AttributeValue::S(user_id))
             .key("Id", AttributeValue::S(item_id))
             .expression_attribute_values(":newVersion", AttributeValue::N(new_version))
+            .expression_attribute_values(":deleted", AttributeValue::Bool(true))
             .condition_expression("attribute_exists(UserId) AND attribute_not_exists(Deleted)")
-            .update_expression("SET ModifiedVersion = :newVersion")
+            .update_expression("SET ModifiedVersion = :newVersion, Deleted = :deleted")
+            .build())
+        .build())
+}
+
+pub fn check_exists(
+    builder: TransactWriteItems,
+    user_id: String,
+    item_id: String,
+) -> TransactWriteItems {
+    builder.transact_items(TransactWriteItem::builder()
+        .condition_check(ConditionCheck::builder()
+            .table_name(super::TABLE_USER)
+            .key("UserId", AttributeValue::S(user_id))
+            .key("Id", AttributeValue::S(item_id))
+            .condition_expression("attribute_exists(UserId) AND attribute_not_exists(Deleted)")
             .build())
         .build())
 }
