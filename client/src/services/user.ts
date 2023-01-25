@@ -69,7 +69,7 @@ export default new class {
 
   async updateWorkout(
     version: number,
-    w: Omit<Workout, 'exercises'>
+    w: Workout
   ): Promise<void> {
     const res = await fetch(`${BASE_URL}user/workout/${w.workout_id}`, {
       method: 'PUT',
@@ -87,9 +87,9 @@ export default new class {
 
   async deleteExercise(
     version: number,
-    workoutId: string,
-    exerciseId: string
+    workoutExerciseId: Exercise['workout_exercise_id'],
   ): Promise<void> {
+    const { workoutId, exerciseId } = splitWorkoutExerciseId(workoutExerciseId);
     const res = await fetch(`${BASE_URL}user/workout/${workoutId}/exercise/${exerciseId}`, {
       method: 'DELETE',
       headers: await this.getHeaders(true),
@@ -99,10 +99,10 @@ export default new class {
 
   async updateExercise(
     version: number,
-    workoutId: string,
     exercise: Exercise
   ): Promise<void> {
-    const res = await fetch(`${BASE_URL}user/workout/${workoutId}/exercise/${exercise.exercise_id}`, {
+    const { workoutId, exerciseId } = splitWorkoutExerciseId(exercise.workout_exercise_id);
+    const res = await fetch(`${BASE_URL}user/workout/${workoutId}/exercise/${exerciseId}`, {
       method: 'PUT',
       headers: await this.getHeaders(true),
       body: JSON.stringify({
@@ -164,11 +164,10 @@ export interface Workout {
   start_time: string | null;
   finish_time: string | null;
   notes: string;
-  exercises: Exercise[];
 }
 
 export type Exercise = {
-  exercise_id: string;
+  workout_exercise_id: `${string}#${string}`;
   order: number;
   notes: string;
 } & ({
@@ -217,4 +216,11 @@ export interface TreadmillSet extends Set {
   // on machine display
   distance: number;
   duration: number;
+}
+
+export function splitWorkoutExerciseId(workoutExerciseId: Exercise['workout_exercise_id']) {
+  return {
+    workoutId: workoutExerciseId.substring(0, 36),
+    exerciseId: workoutExerciseId.substring(37)
+  };
 }

@@ -2,12 +2,17 @@ import {
   openDB,
   type DBSchema,
   type IDBPDatabase,
-  type IDBPObjectStore,
   type IDBPTransaction,
   type StoreNames
 } from 'idb';
 import { AsyncInit } from '../utils/async-init';
-import type { Exercise, Measurement, UserChanges, Workout } from './user';
+import {
+  splitWorkoutExerciseId,
+  type Exercise,
+  type Measurement,
+  type UserChanges,
+  type Workout
+} from './user';
 
 
 // I'm not sold on the terminology I've chosen here. Maybe try to borrow terms
@@ -59,10 +64,10 @@ interface Schema extends DBSchema {
   },
   workout: {
     key: Workout['workout_id'];
-    value: Omit<Workout, 'exercises'>;
+    value: Workout;
   },
   exercise: {
-    key: `${Workout['workout_id']}#${Exercise['exercise_id']}`;
+    key: Exercise['workout_exercise_id'];
     value: Exercise;
   },
   stagedMeasurement: {
@@ -71,10 +76,10 @@ interface Schema extends DBSchema {
   },
   stagedWorkout: {
     key: Workout['workout_id'];
-    value: Omit<Workout, 'exercises'> | Deleted;
+    value: Workout | Deleted;
   },
   stagedExercise: {
-    key: `${Workout['workout_id']}#${Exercise['exercise_id']}`;
+    key: Exercise['workout_exercise_id'];
     value: Exercise | Deleted;
   },
 }
@@ -91,11 +96,11 @@ export type MergeConflict = {
 } | {
   type: 'workout';
   id: Workout['workout_id'];
-  local: Omit<Workout, 'exercises'> | Deleted;
-  remote: Omit<Workout, 'exercises'> | Deleted;
+  local: Workout | Deleted;
+  remote: Workout | Deleted;
 } | {
   type: 'exercise';
-  id: `${Workout['workout_id']}#${Exercise['exercise_id']}`;
+  id: Exercise['workout_exercise_id'];
   local: Exercise | Deleted;
   remote: Exercise | Deleted;
 };
@@ -111,7 +116,7 @@ export type StagedChange = {
   measurement: Measurement | Deleted;
 } | {
   workoutId: string;
-  workout: Omit<Workout, 'exercises'> | Deleted;
+  workout: Workout | Deleted;
 } | {
   workoutId: string;
   exerciseId: string;
@@ -182,18 +187,18 @@ export default new class {
     return this.stageDelete('workout', 'stagedWorkout', workoutId);
   }
 
-  async stageUpdateWorkout(workout: Omit<Workout, 'exercises'>): Promise<void> {
+  async stageUpdateWorkout(workout: Workout): Promise<void> {
     const db = await this.db.get();
     await db.put('stagedWorkout', workout, workout.workout_id);
   }
 
-  stageDeleteExercise(workoutId: string, exerciseId: string): Promise<void> {
-    return this.stageDelete('exercise', 'stagedExercise', `${workoutId}#${exerciseId}`);
+  stageDeleteExercise(workoutExerciseId: Exercise['workout_exercise_id']): Promise<void> {
+    return this.stageDelete('exercise', 'stagedExercise', workoutExerciseId);
   }
 
-  async stageUpdateExercise(workoutId: string, exercise: Exercise): Promise<void> {
+  async stageUpdateExercise(exercise: Exercise): Promise<void> {
     const db = await this.db.get();
-    await db.put('stagedExercise', exercise, `${workoutId}#${exercise.exercise_id}`);
+    await db.put('stagedExercise', exercise, exercise.workout_exercise_id);
   }
 
   private async stageDelete<S extends keyof StagedStores>(
@@ -344,8 +349,7 @@ export default new class {
     if (exercise) {
       return {
         version: await this.getVersion(tx),
-        workoutId: exercise.primaryKey.substring(0, 36),
-        exerciseId: exercise.primaryKey.substring(37),
+        ...splitWorkoutExerciseId(exercise.primaryKey),
         exercise: exercise.value
       };
     }
@@ -383,7 +387,7 @@ export default new class {
     return this.applyDelete('workout', 'stagedWorkout', workoutId);
   }
 
-  applyUpdateWorkout(workout: Omit<Workout, 'exercises'>): Promise<void> {
+  applyUpdateWorkout(workout: Workout): Promise<void> {
     return this.applyUpdate(
       'workout',
       'stagedWorkout',
@@ -397,16 +401,16 @@ export default new class {
     );
   }
 
-  applyDeleteExercise(workoutId: string, exerciseId: string): Promise<void> {
-    return this.applyDelete('exercise', 'stagedExercise', `${workoutId}#${exerciseId}`);
+  applyDeleteExercise(workoutExerciseId: Exercise['workout_exercise_id']): Promise<void> {
+    return this.applyDelete('exercise', 'stagedExercise', workoutExerciseId);
   }
 
-  applyUpdateExercise(workoutId: string, exercise: Exercise): Promise<void> {
+  applyUpdateExercise(exercise: Exercise): Promise<void> {
     return this.applyUpdate(
       'exercise',
       'stagedExercise',
       exercise,
-      `${workoutId}#${exercise.exercise_id}`,
+      exercise.workout_exercise_id,
       (a, b) => {
         return a.order === b.order
           && a.type === b.type
