@@ -208,7 +208,6 @@ fn get_all_measurements<'a, I>(items: I) -> Vec<common::Measurement<'a>>
     for item in items {
         measurements.push(common::Measurement {
             measurement_id: &item["Id"].as_s().unwrap()["MEASUREMENT#".len()..],
-            modified_version: common::as_number(&item["ModifiedVersion"]),
             r#type: common::MaxLenStr(item["Type"].as_s().unwrap()),
             capture_date: item["CaptureDate"].as_s().unwrap(),
             value: common::as_number(&item["Value"]),
@@ -243,7 +242,6 @@ fn get_all_workouts<'a, I>(items: I) -> Vec<common::Workout<'a>>
 
                 workouts.push(common::Workout {
                     workout_id: &sk[PREFIX_LEN..],
-                    modified_version: common::as_number(&item["ModifiedVersion"]),
                     start_time: item.get("StartTime").map(|a| a.as_s().unwrap().as_str()),
                     finish_time: item.get("FinishTime").map(|a| a.as_s().unwrap().as_str()),
                     notes: common::MaxLenStr(item["Notes"].as_s().unwrap()),

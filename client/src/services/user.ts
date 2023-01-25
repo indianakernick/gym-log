@@ -42,7 +42,7 @@ export default new class {
 
   async updateMeasurement(
     version: number,
-    m: Omit<Measurement, 'modified_version'>
+    m: Measurement
   ): Promise<void> {
     const res = await fetch(`${BASE_URL}user/measurement/${m.measurement_id}`, {
       method: 'PUT',
@@ -69,7 +69,7 @@ export default new class {
 
   async updateWorkout(
     version: number,
-    w: Omit<Workout, 'modified_version' | 'exercises'>
+    w: Omit<Workout, 'exercises'>
   ): Promise<void> {
     const res = await fetch(`${BASE_URL}user/workout/${w.workout_id}`, {
       method: 'PUT',
@@ -146,7 +146,6 @@ export interface UserChanges extends User {
 
 export interface Measurement {
   measurement_id: string;
-  modified_version: number;
   type: MeasurementType;
   capture_date: string;
   value: number;
@@ -162,7 +161,6 @@ export type MeasurementType =
 
 export interface Workout {
   workout_id: string;
-  modified_version: number;
   start_time: string | null;
   finish_time: string | null;
   notes: string;

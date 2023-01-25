@@ -30,9 +30,6 @@ pub struct Measurement<'a> {
     /// UUID of the measurement.
     #[serde(skip_deserializing)]
     pub measurement_id: &'a str,
-    /// The version that the measurement was last modified.
-    #[serde(skip_deserializing)]
-    pub modified_version: u32,
     /// Type of measurement. The client defines the meaning of this.
     #[serde(borrow)]
     pub r#type: MaxLenStr<'a, MAX_TYPE_LEN>,
@@ -52,9 +49,6 @@ pub struct Workout<'a> {
     /// UUID of the exercise.
     #[serde(skip_deserializing)]
     pub workout_id: &'a str,
-    /// The version that the workout was last modified.
-    #[serde(skip_deserializing)]
-    pub modified_version: u32,
     /// The time that the workout started in ISO 8601 precise to the second.
     #[serde(deserialize_with = "deserialize_time")]
     pub start_time: Option<&'a str>,
