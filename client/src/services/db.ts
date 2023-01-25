@@ -2,11 +2,17 @@ import {
   openDB,
   type DBSchema,
   type IDBPDatabase,
+  type IDBPObjectStore,
   type IDBPTransaction,
   type StoreNames
 } from 'idb';
 import { AsyncInit } from '../utils/async-init';
 import type { Exercise, Measurement, UserChanges, Workout } from './user';
+
+
+// I'm not sold on the terminology I've chosen here. Maybe try to borrow terms
+// from git.
+
 
 // When the user is making changes to their data, the changes are written to a
 // staging area. The staging area stores the difference between the local copy
@@ -79,20 +85,23 @@ export type Deleted = typeof DELETED;
 
 export type MergeConflict = {
   type: 'measurement';
+  id: Measurement['measurement_id'];
   local: Measurement | Deleted;
   remote: Measurement | Deleted;
 } | {
   type: 'workout';
+  id: Workout['workout_id'];
   local: Omit<Workout, 'exercises'> | Deleted;
   remote: Omit<Workout, 'exercises'> | Deleted;
 } | {
   type: 'exercise';
+  id: `${Workout['workout_id']}#${Exercise['exercise_id']}`;
   local: Exercise | Deleted;
   remote: Exercise | Deleted;
 };
 
 export type MergeConflictResolutions = {
-  [key: string]: 'local' | 'remote';
+  [key in string]?: 'local' | 'remote';
 };
 
 export type StagedChange = {
@@ -214,11 +223,93 @@ export default new class {
     remote: UserChanges,
     resolutions: MergeConflictResolutions = {}
   ): Promise<MergeConflict[]> {
-    // merge changes from the remote with the changes in the staged stores.
-    // if any merge conflicts are encountered, return the full list to the user
-    // for them to resolve and try again later.
-    // if this is successful, then all of the staged object stores will be empty
-    return [];
+    const conflicts: MergeConflict[] = [];
+    const db = await this.db.get();
+    const tx = db.transaction([
+      'user',
+      'measurement',
+      'workout',
+      'exercise',
+      'stagedMeasurement',
+      'stagedWorkout',
+      'stagedExercise'
+    ], 'readwrite');
+
+    await tx.objectStore('user').put(remote.version, 'version');
+
+    const measurementStore = tx.objectStore('measurement');
+    const stagedMeasurementStore = tx.objectStore('stagedMeasurement');
+
+    for (const m of remote.measurements) {
+      await measurementStore.put(m);
+
+      await this.mergeUpdate(
+        resolutions[m.measurement_id],
+        await stagedMeasurementStore.get(m.measurement_id),
+        m,
+        (a, b) => true,
+        () => stagedMeasurementStore.delete(m.measurement_id),
+        local => conflicts.push({ type: 'measurement', id: m.measurement_id, remote: m, local })
+      );
+    }
+
+    for (const m of remote.deleted_measurements || []) {
+      await measurementStore.delete(m);
+
+      await this.mergeDelete(
+        resolutions[m],
+        await stagedMeasurementStore.get(m),
+        () => stagedMeasurementStore.delete(m),
+        local => conflicts.push({ type: 'measurement', id: m, remote: DELETED, local })
+      );
+    }
+
+    // Dealing with workouts and exercises with the way that the back-end
+    // currently structures them will be a bit complicated.
+
+    if (conflicts.length) tx.abort();
+
+    return conflicts;
+  }
+
+  private async mergeUpdate<T extends object>(
+    res: MergeConflictResolutions[string],
+    staged: T | Deleted | undefined,
+    remote: T,
+    equal: (a: T, b: T) => boolean,
+    revert: () => Promise<void>,
+    conflict: (_: T | Deleted) => void
+  ) {
+    if (!staged) return;
+
+    if ('deleted' in staged) {
+      if (res === 'remote') {
+        return revert();
+      } else if (res === undefined) {
+        conflict(staged);
+      }
+    } else {
+      if (res === 'remote' || equal(staged, remote)) {
+        return revert();
+      } else if (res === undefined) {
+        conflict(staged);
+      }
+    }
+  }
+
+  private async mergeDelete<T extends object>(
+    res: MergeConflictResolutions[string],
+    staged: T | Deleted | undefined,
+    revert: () => Promise<void>,
+    conflict: (_: T | Deleted) => void
+  ): Promise<void> {
+    if (!staged) return;
+
+    if ('deleted' in staged || res === 'remote') {
+      return revert();
+    } else if (res === undefined) {
+      conflict(staged);
+    }
   }
 
   // --------------------- Get a staged change to upload -------------------- //
