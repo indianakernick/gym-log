@@ -9,9 +9,8 @@ export default new class {
     return headers;
   }
 
-  // Probably not necessary
-  async getUser(): Promise<User> {
-    const res = await fetch(`${BASE_URL}user`, {
+  async getChanges(sinceVersion: number): Promise<UserChanges> {
+    const res = await fetch(`${BASE_URL}user?since=${sinceVersion}`, {
       method: 'GET',
       headers: await this.getHeaders()
     });
@@ -19,15 +18,6 @@ export default new class {
     if (!res.ok) {
       throw 'something...';
     }
-
-    return JSON.parse(await res.json());
-  }
-
-  async getChanges(sinceVersion: number): Promise<UserChanges> {
-    const res = await fetch(`${BASE_URL}user?since=${sinceVersion}`, {
-      method: 'GET',
-      headers: await this.getHeaders()
-    });
 
     return JSON.parse(await res.json());
   }
@@ -133,15 +123,14 @@ export default new class {
   }
 };
 
-export interface User {
+export interface UserChanges {
   version: number;
   measurements: Measurement[];
   workouts: Workout[];
-}
-
-export interface UserChanges extends User {
-  deleted_measurements?: string[];
-  deleted_workouts?: string[]
+  exercises: Exercise[];
+  deleted_measurements: Measurement['measurement_id'][];
+  deleted_workouts: Workout['workout_id'][];
+  deleted_exercises: Exercise['workout_exercise_id'][];
 }
 
 export interface Measurement {

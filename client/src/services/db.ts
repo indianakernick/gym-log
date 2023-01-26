@@ -129,6 +129,26 @@ type StagedStores = {
   exercise: 'stagedExercise',
 };
 
+function measurementEqual(a: Measurement, b: Measurement): boolean {
+  return a.type === b.type
+    && a.capture_date === b.capture_date
+    && a.value === b.value
+    && a.notes === b.notes;
+}
+
+function workoutEqual(a: Workout, b: Workout): boolean {
+  return a.start_time === b.start_time
+    && a.finish_time === b.finish_time
+    && a.notes === b.notes;
+}
+
+function exerciseEqual(a: Exercise, b: Exercise): boolean {
+  return a.order === b.order
+    && a.type === b.type
+    && a.notes === b.notes
+    && JSON.stringify(a.sets) === JSON.stringify(b.sets);
+}
+
 export default new class {
   // It would probably make more sense to have an async factory function instead
   // of checking and waiting for the initialisation of this object every time
@@ -252,13 +272,13 @@ export default new class {
         resolutions[m.measurement_id],
         await stagedMeasurementStore.get(m.measurement_id),
         m,
-        (a, b) => true,
+        measurementEqual,
         () => stagedMeasurementStore.delete(m.measurement_id),
         local => conflicts.push({ type: 'measurement', id: m.measurement_id, remote: m, local })
       );
     }
 
-    for (const m of remote.deleted_measurements || []) {
+    for (const m of remote.deleted_measurements) {
       await measurementStore.delete(m);
 
       await this.mergeDelete(
@@ -269,8 +289,59 @@ export default new class {
       );
     }
 
-    // Dealing with workouts and exercises with the way that the back-end
-    // currently structures them will be a bit complicated.
+    const workoutStore = tx.objectStore('workout');
+    const stagedWorkoutStore = tx.objectStore('stagedWorkout');
+
+    for (const w of remote.workouts) {
+      await workoutStore.put(w);
+
+      await this.mergeUpdate(
+        resolutions[w.workout_id],
+        await stagedWorkoutStore.get(w.workout_id),
+        w,
+        workoutEqual,
+        () => stagedWorkoutStore.delete(w.workout_id),
+        local => conflicts.push({ type: 'workout', id: w.workout_id, remote: w, local })
+      );
+    }
+
+    for (const w of remote.deleted_workouts) {
+      await workoutStore.delete(w);
+
+      await this.mergeDelete(
+        resolutions[w],
+        await stagedWorkoutStore.get(w),
+        () => stagedWorkoutStore.delete(w),
+        local => conflicts.push({ type: 'workout', id: w, remote: DELETED, local })
+      );
+    }
+
+    const exerciseStore = tx.objectStore('exercise');
+    const stagedExerciseStore = tx.objectStore('stagedExercise');
+
+    for (const e of remote.exercises) {
+      await exerciseStore.put(e);
+
+      await this.mergeUpdate(
+        resolutions[e.workout_exercise_id],
+        await stagedExerciseStore.get(e.workout_exercise_id),
+        e,
+        exerciseEqual,
+        () => stagedExerciseStore.delete(e.workout_exercise_id),
+        local => conflicts.push({ type: 'exercise', id: e.workout_exercise_id, remote: e, local })
+      );
+    }
+
+    for (const e of remote.deleted_exercises) {
+      await exerciseStore.delete(e);
+
+      await this.mergeDelete(
+        resolutions[e],
+        await stagedExerciseStore.get(e),
+        () => stagedExerciseStore.delete(e),
+        local => conflicts.push({ type: 'exercise', id: e, remote: DELETED, local })
+      );
+    }
 
     if (conflicts.length) tx.abort();
 
@@ -283,7 +354,7 @@ export default new class {
     remote: T,
     equal: (a: T, b: T) => boolean,
     revert: () => Promise<void>,
-    conflict: (_: T | Deleted) => void
+    conflict: (local: T | Deleted) => void
   ) {
     if (!staged) return;
 
@@ -306,7 +377,7 @@ export default new class {
     res: MergeConflictResolutions[string],
     staged: T | Deleted | undefined,
     revert: () => Promise<void>,
-    conflict: (_: T | Deleted) => void
+    conflict: (local: T) => void
   ): Promise<void> {
     if (!staged) return;
 
@@ -374,12 +445,7 @@ export default new class {
       'stagedMeasurement',
       measurement,
       measurement.measurement_id,
-      (a, b) => {
-        return a.type === b.type
-          && a.capture_date === b.capture_date
-          && a.value === b.value
-          && a.notes === b.notes;
-      }
+      measurementEqual
     )
   }
 
@@ -393,11 +459,7 @@ export default new class {
       'stagedWorkout',
       workout,
       workout.workout_id,
-      (a, b) => {
-        return a.start_time === b.start_time
-          && a.finish_time === b.finish_time
-          && a.notes === b.notes;
-      }
+      workoutEqual
     );
   }
 
@@ -411,12 +473,7 @@ export default new class {
       'stagedExercise',
       exercise,
       exercise.workout_exercise_id,
-      (a, b) => {
-        return a.order === b.order
-          && a.type === b.type
-          && a.notes === b.notes
-          && JSON.stringify(a.sets) === JSON.stringify(b.sets);
-      }
+      exerciseEqual
     );
   }
 
