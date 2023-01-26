@@ -4,7 +4,7 @@ import type {
   RequestMessage,
   ResponseMap,
   ResponseMessage
-} from "../worker";
+} from '@/model/worker';
 
 export default new class {
   private readonly worker: SharedWorker;
@@ -18,10 +18,10 @@ export default new class {
 
   sendRequest<T extends MessageType>(
     type: T,
-    payload: RequestMap[T]
+    ...payload: RequestMap[T] extends void ? [] : [RequestMap[T]]
   ): Promise<ResponseMap[T]> {
     const id = this.id++;
-    this.worker.port.postMessage({ id, type, payload } as RequestMessage);
+    this.worker.port.postMessage({ id, type, payload: payload[0] } as RequestMessage);
     return new Promise(accept => {
       this.handlers.set(id, res => accept(res.payload as ResponseMap[T]));
     });

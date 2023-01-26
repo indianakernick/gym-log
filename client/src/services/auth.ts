@@ -30,4 +30,4 @@ export default new class {
   async isLoggedIn(): Promise<boolean> {
     return !!await db.getRefreshToken();
   }
-};
+}

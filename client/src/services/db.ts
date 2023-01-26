@@ -1,4 +1,21 @@
 import {
+  exerciseEqual,
+  measurementEqual,
+  splitWorkoutExerciseId,
+  workoutEqual,
+  type Exercise,
+  type Measurement,
+  type UserChanges,
+  type Workout
+} from '@/model/api';
+import {
+  DELETED,
+  type Deleted,
+  type MergeConflict,
+  type MergeConflictResolutions,
+  type StagedChange
+} from '@/model/db';
+import {
   openDB,
   type DBSchema,
   type IDBPDatabase,
@@ -7,13 +24,6 @@ import {
   type StoreNames
 } from 'idb';
 import { AsyncInit } from '../utils/async-init';
-import {
-  splitWorkoutExerciseId,
-  type Exercise,
-  type Measurement,
-  type UserChanges,
-  type Workout
-} from './user';
 
 
 // I'm not sold on the terminology I've chosen here. Maybe try to borrow terms
@@ -85,75 +95,18 @@ interface Schema extends DBSchema {
   },
 }
 
-export const DELETED = { deleted: true } as const;
-
-export type Deleted = typeof DELETED;
-
-export type MergeConflict = {
-  type: 'measurement';
-  id: Measurement['measurement_id'];
-  local: Measurement | Deleted;
-  remote: Measurement | Deleted;
-} | {
-  type: 'workout';
-  id: Workout['workout_id'];
-  local: Workout | Deleted;
-  remote: Workout | Deleted;
-} | {
-  type: 'exercise';
-  id: Exercise['workout_exercise_id'];
-  local: Exercise | Deleted;
-  remote: Exercise | Deleted;
-};
-
-export type MergeConflictResolutions = {
-  [key in string]?: 'local' | 'remote';
-};
-
-export type StagedChange = {
-  version: number;
-} & ({
-  measurementId: string;
-  measurement: Measurement | Deleted;
-} | {
-  workoutId: string;
-  workout: Workout | Deleted;
-} | {
-  workoutId: string;
-  exerciseId: string;
-  exercise: Exercise | Deleted;
-});
-
 type StagedStores = {
   measurement: 'stagedMeasurement',
   workout: 'stagedWorkout',
   exercise: 'stagedExercise',
 };
 
-function measurementEqual(a: Measurement, b: Measurement): boolean {
-  return a.type === b.type
-    && a.capture_date === b.capture_date
-    && a.value === b.value
-    && a.notes === b.notes;
-}
-
-function workoutEqual(a: Workout, b: Workout): boolean {
-  return a.start_time === b.start_time
-    && a.finish_time === b.finish_time
-    && a.notes === b.notes;
-}
-
-function exerciseEqual(a: Exercise, b: Exercise): boolean {
-  return a.order === b.order
-    && a.type === b.type
-    && a.notes === b.notes
-    && JSON.stringify(a.sets) === JSON.stringify(b.sets);
-}
-
 export default new class {
-  // It would probably make more sense to have an async factory function instead
-  // of checking and waiting for the initialisation of this object every time
-  // it's accessed.
+  // It would probably be more efficient to use an async factory function
+  // instead of checking and waiting for the initialisation of this object every
+  // time it's accessed. Although it's unclear how to achieve that. To avoid
+  // having to check, the whole app has to wait for the database connection to
+  // open.
   private db = new AsyncInit<IDBPDatabase<Schema>>();
 
   constructor() {
@@ -516,7 +469,8 @@ export default new class {
     } else if (
       !('deleted' in stagedItem)
       // Despite narrowing away the `deleted` property, the compiler doesn't see
-      // that the resultant type has the `Deleted` union member excluded.
+      // that the resultant type has the `Deleted` union member excluded. Or
+      // something like that...
       && equal(stagedItem as Exclude<Schema[StagedStores[S]]['value'], Deleted>, item)
     ) {
       await stagedStore.delete(id);
