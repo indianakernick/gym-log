@@ -19,5 +19,8 @@ export default defineConfig({
         passes: 4
       }
     }
+  },
+  worker: {
+    format: 'es'
   }
 });

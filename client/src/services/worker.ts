@@ -1,4 +1,10 @@
-import type { RequestMessage, ResponseMessage } from "../worker";
+import type {
+  MessageType,
+  RequestMap,
+  RequestMessage,
+  ResponseMap,
+  ResponseMessage
+} from "../worker";
 
 export default new class {
   private readonly worker: SharedWorker;
@@ -10,12 +16,14 @@ export default new class {
     this.worker.port.onmessage = this.onMessage.bind(this);
   }
 
-  sendRequest(text: string, count: number): Promise<string> {
+  sendRequest<T extends MessageType>(
+    type: T,
+    payload: RequestMap[T]
+  ): Promise<ResponseMap[T]> {
     const id = this.id++;
-    const msg: RequestMessage = { id, text, count };
-    this.worker.port.postMessage(msg);
+    this.worker.port.postMessage({ id, type, payload } as RequestMessage);
     return new Promise(accept => {
-      this.handlers.set(id, msg => accept(msg.message));
+      this.handlers.set(id, res => accept(res.payload as ResponseMap[T]));
     });
   }
 
