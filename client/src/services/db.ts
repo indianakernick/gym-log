@@ -2,6 +2,7 @@ import {
   openDB,
   type DBSchema,
   type IDBPDatabase,
+  type IDBPObjectStore,
   type IDBPTransaction,
   type StoreNames
 } from 'idb';
@@ -165,7 +166,7 @@ export default new class {
           db.createObjectStore('user');
           db.createObjectStore('measurement', { keyPath: 'measurement_id' });
           db.createObjectStore('workout', { keyPath: 'workout_id' });
-          db.createObjectStore('exercise');
+          db.createObjectStore('exercise', { keyPath: 'workout_exercise_id' });
           db.createObjectStore('stagedMeasurement');
           db.createObjectStore('stagedWorkout');
           db.createObjectStore('stagedExercise');
@@ -262,90 +263,86 @@ export default new class {
 
     await tx.objectStore('user').put(remote.version, 'version');
 
-    const measurementStore = tx.objectStore('measurement');
-    const stagedMeasurementStore = tx.objectStore('stagedMeasurement');
+    await this.mergeEntity(
+      resolutions,
+      conflicts,
+      tx.objectStore('measurement'),
+      tx.objectStore('stagedMeasurement'),
+      remote.measurements,
+      remote.deleted_measurements,
+      measurementEqual,
+      m => m.measurement_id,
+      (id, remote, local) => ({ type: 'measurement', id, remote, local })
+    );
 
-    for (const m of remote.measurements) {
-      await measurementStore.put(m);
+    await this.mergeEntity(
+      resolutions,
+      conflicts,
+      tx.objectStore('workout'),
+      tx.objectStore('stagedWorkout'),
+      remote.workouts,
+      remote.deleted_workouts,
+      workoutEqual,
+      m => m.workout_id,
+      (id, remote, local) => ({ type: 'workout', id, remote, local })
+    );
 
-      await this.mergeUpdate(
-        resolutions[m.measurement_id],
-        await stagedMeasurementStore.get(m.measurement_id),
-        m,
-        measurementEqual,
-        () => stagedMeasurementStore.delete(m.measurement_id),
-        local => conflicts.push({ type: 'measurement', id: m.measurement_id, remote: m, local })
-      );
-    }
-
-    for (const m of remote.deleted_measurements) {
-      await measurementStore.delete(m);
-
-      await this.mergeDelete(
-        resolutions[m],
-        await stagedMeasurementStore.get(m),
-        () => stagedMeasurementStore.delete(m),
-        local => conflicts.push({ type: 'measurement', id: m, remote: DELETED, local })
-      );
-    }
-
-    const workoutStore = tx.objectStore('workout');
-    const stagedWorkoutStore = tx.objectStore('stagedWorkout');
-
-    for (const w of remote.workouts) {
-      await workoutStore.put(w);
-
-      await this.mergeUpdate(
-        resolutions[w.workout_id],
-        await stagedWorkoutStore.get(w.workout_id),
-        w,
-        workoutEqual,
-        () => stagedWorkoutStore.delete(w.workout_id),
-        local => conflicts.push({ type: 'workout', id: w.workout_id, remote: w, local })
-      );
-    }
-
-    for (const w of remote.deleted_workouts) {
-      await workoutStore.delete(w);
-
-      await this.mergeDelete(
-        resolutions[w],
-        await stagedWorkoutStore.get(w),
-        () => stagedWorkoutStore.delete(w),
-        local => conflicts.push({ type: 'workout', id: w, remote: DELETED, local })
-      );
-    }
-
-    const exerciseStore = tx.objectStore('exercise');
-    const stagedExerciseStore = tx.objectStore('stagedExercise');
-
-    for (const e of remote.exercises) {
-      await exerciseStore.put(e);
-
-      await this.mergeUpdate(
-        resolutions[e.workout_exercise_id],
-        await stagedExerciseStore.get(e.workout_exercise_id),
-        e,
-        exerciseEqual,
-        () => stagedExerciseStore.delete(e.workout_exercise_id),
-        local => conflicts.push({ type: 'exercise', id: e.workout_exercise_id, remote: e, local })
-      );
-    }
-
-    for (const e of remote.deleted_exercises) {
-      await exerciseStore.delete(e);
-
-      await this.mergeDelete(
-        resolutions[e],
-        await stagedExerciseStore.get(e),
-        () => stagedExerciseStore.delete(e),
-        local => conflicts.push({ type: 'exercise', id: e, remote: DELETED, local })
-      );
-    }
+    await this.mergeEntity(
+      resolutions,
+      conflicts,
+      tx.objectStore('exercise'),
+      tx.objectStore('stagedExercise'),
+      remote.exercises,
+      remote.deleted_exercises,
+      exerciseEqual,
+      m => m.workout_exercise_id,
+      (id, remote, local) => ({ type: 'exercise', id, remote, local })
+    );
 
     if (conflicts.length) tx.abort();
 
     return conflicts;
+  }
+
+  private async mergeEntity<
+    S extends keyof StagedStores,
+    T extends StoreNames<Schema>
+  >(
+    resolutions: MergeConflictResolutions,
+    conflicts: MergeConflict[],
+    canonStore: IDBPObjectStore<Schema, T[], S, 'readwrite'>,
+    stagedStore: IDBPObjectStore<Schema, T[], StagedStores[S], 'readwrite'>,
+    remoteUpdates: Schema[S]['value'][],
+    remoteDeletes: Schema[S]['key'][],
+    equal: (a: Schema[S]['value'], b: Schema[S]['value']) => boolean,
+    getId: (item: Schema[S]['value']) => Schema[S]['key'],
+    makeConflict: (id: Schema[S]['key'], remote: Schema[S]['value'] | Deleted, local: Schema[S]['value'] | Deleted) => MergeConflict
+  ): Promise<void> {
+    for (const r of remoteUpdates) {
+      const id = getId(r);
+
+      await canonStore.put(r);
+
+      await this.mergeUpdate(
+        resolutions[id],
+        await stagedStore.get(id),
+        r,
+        equal,
+        () => stagedStore.delete(id),
+        local => conflicts.push(makeConflict(id, r, local))
+      );
+    }
+
+    for (const r of remoteDeletes) {
+      await canonStore.delete(r);
+
+      await this.mergeDelete(
+        resolutions[r],
+        await stagedStore.get(r),
+        () => stagedStore.delete(r),
+        local => conflicts.push(makeConflict(r, DELETED, local))
+      );
+    }
   }
 
   private async mergeUpdate<T extends object>(
