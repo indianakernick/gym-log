@@ -503,7 +503,7 @@ export default new class {
   //
   // The user sees the canonical version with the staged changes applied.
 
-  async getWorkoutList(): Promise<Workout[]> {
+  async getWorkouts(): Promise<Workout[]> {
     const db = await this.db.get();
     const tx = db.transaction(['workout', 'stagedWorkout']);
     const stagedStore = tx.objectStore('stagedWorkout');
@@ -514,28 +514,9 @@ export default new class {
       stagedStore.getAllKeys()
     ]);
 
-    let start = 0;
-    let newWorkouts: Workout[] = [];
-
-    for (let stagedIdx = 0; stagedIdx < staged.length; ++stagedIdx) {
-      const id = stagedKeys[stagedIdx];
-      const canonIdx = binarySearch(canon, start, canon.length, workout => {
-        return stringCompare(workout.workout_id, id);
-      });
-      const stagedWorkout = staged[stagedIdx];
-
-      if ('deleted' in stagedWorkout) {
-        canon.splice(canonIdx, 1);
-        start = canonIdx;
-      } else if (canonIdx !== -1) {
-        canon[canonIdx] = stagedWorkout;
-        start = canonIdx + 1;
-      } else {
-        newWorkouts.push(stagedWorkout);
-      }
-    }
-
-    canon.push(...newWorkouts);
+    this.applyStaged(canon, staged, stagedKeys, (workout, id) => {
+      return stringCompare(workout.workout_id, id);
+    });
 
     // Workouts without a start time first, followed by workouts with a start
     // time from most recent to least recent.
@@ -544,5 +525,54 @@ export default new class {
     });
 
     return canon;
+  }
+
+  async getExercisesOfWorkout(workoutId: string): Promise<Exercise[]> {
+    const db = await this.db.get();
+    const tx = db.transaction(['exercise', 'stagedExercise']);
+    const stagedStore = tx.objectStore('stagedExercise');
+    const query = IDBKeyRange.bound(workoutId + '#', workoutId + '$', false, true);
+
+    const [canon, staged, stagedKeys] = await Promise.all([
+      tx.objectStore('exercise').getAll(query),
+      stagedStore.getAll(query),
+      stagedStore.getAllKeys(query)
+    ]);
+
+    this.applyStaged(canon, staged, stagedKeys, (exercise, id) => {
+      return stringCompare(exercise.workout_exercise_id, id);
+    });
+
+    canon.sort((a, b) => a.order - b.order);
+
+    return canon;
+  }
+
+  private applyStaged<T extends object>(
+    canon: T[],
+    staged: (T | Deleted)[],
+    stagedKeys: string[],
+    compare: (item: T, id: string) => number
+  ) {
+    let start = 0;
+    let newItems: T[] = [];
+
+    for (let stagedIdx = 0; stagedIdx < staged.length; ++stagedIdx) {
+      const id = stagedKeys[stagedIdx];
+      const canonIdx = binarySearch(canon, start, canon.length, item => compare(item, id));
+      const stagedItem = staged[stagedIdx];
+
+      if ('deleted' in stagedItem) {
+        canon.splice(canonIdx, 1);
+        start = canonIdx;
+      } else if (canonIdx !== -1) {
+        canon[canonIdx] = stagedItem;
+        start = canonIdx + 1;
+      } else {
+        newItems.push(stagedItem);
+      }
+    }
+
+    canon.push(...newItems);
   }
 }
