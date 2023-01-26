@@ -159,7 +159,7 @@ export default new class {
   constructor() {
     openDB<Schema>(
       'main',
-      0,
+      1,
       {
         upgrade(db) {
           db.createObjectStore('auth');
