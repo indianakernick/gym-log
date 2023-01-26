@@ -81,6 +81,9 @@ interface Schema extends DBSchema {
   exercise: {
     key: Exercise['workout_exercise_id'];
     value: Exercise;
+    indexes: {
+      type: Exercise['type'];
+    }
   },
   stagedMeasurement: {
     key: Measurement['measurement_id'];
@@ -93,6 +96,9 @@ interface Schema extends DBSchema {
   stagedExercise: {
     key: Exercise['workout_exercise_id'];
     value: Exercise | Deleted;
+    indexes: {
+      type: Exercise['type'];
+    }
   },
 }
 
@@ -120,10 +126,12 @@ export default new class {
           db.createObjectStore('user');
           db.createObjectStore('measurement', { keyPath: 'measurement_id' });
           db.createObjectStore('workout', { keyPath: 'workout_id' });
-          db.createObjectStore('exercise', { keyPath: 'workout_exercise_id' });
+          const e = db.createObjectStore('exercise', { keyPath: 'workout_exercise_id' });
+          e.createIndex('type', 'type');
           db.createObjectStore('stagedMeasurement');
           db.createObjectStore('stagedWorkout');
-          db.createObjectStore('stagedExercise');
+          const se = db.createObjectStore('stagedExercise');
+          se.createIndex('type', 'type');
         }
       }
     ).then(db => this.db.set(db));
@@ -503,6 +511,7 @@ export default new class {
   //
   // The user sees the canonical version with the staged changes applied.
 
+  /// Get all workouts, ordered from most recent to least recent.
   async getWorkouts(): Promise<Workout[]> {
     const db = await this.db.get();
     const tx = db.transaction(['workout', 'stagedWorkout']);
@@ -527,6 +536,7 @@ export default new class {
     return canon;
   }
 
+  /// Get all exercises within a workout.
   async getExercisesOfWorkout(workoutId: string): Promise<Exercise[]> {
     const db = await this.db.get();
     const tx = db.transaction(['exercise', 'stagedExercise']);
@@ -548,12 +558,44 @@ export default new class {
     return canon;
   }
 
+  /// Get all exercises of a particular type, ordered by workout ID and exercise
+  /// ID.
+  async getExercisesOfType<T extends Exercise['type']>(
+    type: T
+  ): Promise<(Exercise & { type: T })[]> {
+    const db = await this.db.get();
+    const tx = db.transaction(['exercise', 'stagedExercise']);
+    const stagedIndex = tx.objectStore('stagedExercise').index('type');
+
+    const [canon, staged, stagedKeys] = await Promise.all([
+      tx.objectStore('exercise').index('type').getAll(type),
+      stagedIndex.getAll(type),
+      stagedIndex.getAllKeys(type)
+    ]);
+
+    const added = this.applyStaged(canon, staged, stagedKeys, (exercise, id) => {
+      return stringCompare(exercise.workout_exercise_id, id);
+    });
+
+    if (added > 0) {
+      // We have two sorted sub-arrays. We could merge them instead of sorting.
+      // Although it's unclear whether a JavaScript merge function will beat a
+      // highly optimized sorting function even if it has better time
+      // complexity.
+      canon.sort((a, b) => {
+        return stringCompare(a.workout_exercise_id, b.workout_exercise_id);
+      });
+    }
+
+    return canon as (Exercise & { type: T })[];
+  }
+
   private applyStaged<T extends object>(
     canon: T[],
     staged: (T | Deleted)[],
     stagedKeys: string[],
     compare: (item: T, id: string) => number
-  ) {
+  ): number {
     let start = 0;
     let newItems: T[] = [];
 
@@ -574,5 +616,7 @@ export default new class {
     }
 
     canon.push(...newItems);
+
+    return newItems.length;
   }
 }
