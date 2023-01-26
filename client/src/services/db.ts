@@ -23,7 +23,8 @@ import {
   type IDBPTransaction,
   type StoreNames
 } from 'idb';
-import { AsyncInit } from '../utils/async-init';
+import { AsyncInit } from '@/utils/async-init';
+import { binarySearch, stringCompare } from '@/utils/binary-search';
 
 
 // I'm not sold on the terminology I've chosen here. Maybe try to borrow terms
@@ -216,43 +217,47 @@ export default new class {
 
     await tx.objectStore('user').put(remote.version, 'version');
 
-    await this.mergeEntity(
-      resolutions,
-      conflicts,
-      tx.objectStore('measurement'),
-      tx.objectStore('stagedMeasurement'),
-      remote.measurements,
-      remote.deleted_measurements,
-      measurementEqual,
-      m => m.measurement_id,
-      (id, remote, local) => ({ type: 'measurement', id, remote, local })
-    );
+    await Promise.all([
+      this.mergeEntity(
+        resolutions,
+        conflicts,
+        tx.objectStore('measurement'),
+        tx.objectStore('stagedMeasurement'),
+        remote.measurements,
+        remote.deleted_measurements,
+        measurementEqual,
+        m => m.measurement_id,
+        (id, remote, local) => ({ type: 'measurement', id, remote, local })
+      ),
+      this.mergeEntity(
+        resolutions,
+        conflicts,
+        tx.objectStore('workout'),
+        tx.objectStore('stagedWorkout'),
+        remote.workouts,
+        remote.deleted_workouts,
+        workoutEqual,
+        m => m.workout_id,
+        (id, remote, local) => ({ type: 'workout', id, remote, local })
+      ),
+      this.mergeEntity(
+        resolutions,
+        conflicts,
+        tx.objectStore('exercise'),
+        tx.objectStore('stagedExercise'),
+        remote.exercises,
+        remote.deleted_exercises,
+        exerciseEqual,
+        m => m.workout_exercise_id,
+        (id, remote, local) => ({ type: 'exercise', id, remote, local })
+      )
+    ]);
 
-    await this.mergeEntity(
-      resolutions,
-      conflicts,
-      tx.objectStore('workout'),
-      tx.objectStore('stagedWorkout'),
-      remote.workouts,
-      remote.deleted_workouts,
-      workoutEqual,
-      m => m.workout_id,
-      (id, remote, local) => ({ type: 'workout', id, remote, local })
-    );
-
-    await this.mergeEntity(
-      resolutions,
-      conflicts,
-      tx.objectStore('exercise'),
-      tx.objectStore('stagedExercise'),
-      remote.exercises,
-      remote.deleted_exercises,
-      exerciseEqual,
-      m => m.workout_exercise_id,
-      (id, remote, local) => ({ type: 'exercise', id, remote, local })
-    );
-
-    if (conflicts.length) tx.abort();
+    if (conflicts.length) {
+      tx.abort();
+    } else {
+      tx.commit();
+    }
 
     return conflicts;
   }
@@ -492,5 +497,52 @@ export default new class {
     Mode extends IDBTransactionMode
   >(tx: IDBPTransaction<Schema, (Stores | 'user')[], Mode>): Promise<number> {
     return await tx.objectStore('user').get('version') || 0;
+  }
+
+  // ------------------------- Inspect the database ------------------------- //
+  //
+  // The user sees the canonical version with the staged changes applied.
+
+  async getWorkoutList(): Promise<Workout[]> {
+    const db = await this.db.get();
+    const tx = db.transaction(['workout', 'stagedWorkout']);
+    const stagedStore = tx.objectStore('stagedWorkout');
+
+    const [canon, staged, stagedKeys] = await Promise.all([
+      tx.objectStore('workout').getAll(),
+      stagedStore.getAll(),
+      stagedStore.getAllKeys()
+    ]);
+
+    let start = 0;
+    let newWorkouts: Workout[] = [];
+
+    for (let stagedIdx = 0; stagedIdx < staged.length; ++stagedIdx) {
+      const id = stagedKeys[stagedIdx];
+      const canonIdx = binarySearch(canon, start, canon.length, workout => {
+        return stringCompare(workout.workout_id, id);
+      });
+      const stagedWorkout = staged[stagedIdx];
+
+      if ('deleted' in stagedWorkout) {
+        canon.splice(canonIdx, 1);
+        start = canonIdx;
+      } else if (canonIdx !== -1) {
+        canon[canonIdx] = stagedWorkout;
+        start = canonIdx + 1;
+      } else {
+        newWorkouts.push(stagedWorkout);
+      }
+    }
+
+    canon.push(...newWorkouts);
+
+    // Workouts without a start time first, followed by workouts with a start
+    // time from most recent to least recent.
+    canon.sort((a, b) => {
+      return stringCompare(b.start_time || 'Z', a.start_time || 'Z');
+    });
+
+    return canon;
   }
 }
