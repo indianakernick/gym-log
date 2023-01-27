@@ -546,6 +546,27 @@ export default new class {
   }
 
   /**
+   * Get all measurements of a particular date, in an unspecified order.
+   */
+  async getMeasurementsOfDate(date: string): Promise<Measurement[]> {
+    const db = await this.db.get();
+    const tx = db.transaction(['measurement', 'stagedMeasurement']);
+    const stagedIndex = tx.objectStore('stagedMeasurement').index('date');
+
+    const [canon, staged, stagedKeys] = await Promise.all([
+      tx.objectStore('measurement').index('date').getAll(date),
+      stagedIndex.getAll(date),
+      stagedIndex.getAllKeys(date)
+    ]);
+
+    this.applyStaged(canon, staged, stagedKeys, (exercise, id) => {
+      return stringCompare(exercise.measurement_id, id);
+    });
+
+    return canon;
+  }
+
+  /**
    * Get all workouts, ordered by descending `start_time`.
    */
   async getWorkouts(): Promise<Workout[]> {
