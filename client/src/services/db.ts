@@ -534,8 +534,8 @@ export default new class {
       stagedIndex.getAllKeys(type)
     ]);
 
-    this.applyStaged(canon, staged, stagedKeys, (exercise, id) => {
-      return stringCompare(exercise.measurement_id, id);
+    this.applyStaged(canon, staged, stagedKeys, (measurement, id) => {
+      return stringCompare(measurement.measurement_id, id);
     });
 
     canon.sort((a, b) => {
@@ -548,7 +548,7 @@ export default new class {
   /**
    * Get all measurements of a particular date, in an unspecified order.
    */
-  async getMeasurementsOfDate(date: string): Promise<Measurement[]> {
+  async getMeasurementsOfDate(date: Measurement['capture_date']): Promise<Measurement[]> {
     const db = await this.db.get();
     const tx = db.transaction(['measurement', 'stagedMeasurement']);
     const stagedIndex = tx.objectStore('stagedMeasurement').index('date');
@@ -559,11 +559,61 @@ export default new class {
       stagedIndex.getAllKeys(date)
     ]);
 
-    this.applyStaged(canon, staged, stagedKeys, (exercise, id) => {
-      return stringCompare(exercise.measurement_id, id);
+    this.applyStaged(canon, staged, stagedKeys, (measurement, id) => {
+      return stringCompare(measurement.measurement_id, id);
     });
 
     return canon;
+  }
+
+  /**
+   * Get all unique values of `capture_date` on measurements, ordered by
+   * ascending `capture_date`.
+   */
+  async getMeasurementDates(): Promise<Measurement['capture_date'][]> {
+    const db = await this.db.get();
+    const tx = db.transaction(['measurement', 'stagedMeasurement']);
+    const stagedStore = tx.objectStore('stagedMeasurement');
+
+    if (await stagedStore.count() > 0) {
+      // If there are staged changes, then it doesn't seem possible to use the
+      // indexes with the data structure as it currently is. We could count the
+      // number of items with a date in the canon set, then count the updates
+      // and deletions in the staged set, but a deleted item doesn't know what
+      // date it had before it was deleted. It would need to be related back to
+      // the canonical item. It would be nice to find a more efficient way of
+      // doing this.
+
+      const [canon, staged, stagedKeys] = await Promise.all([
+        tx.objectStore('measurement').getAll(),
+        stagedStore.getAll(),
+        stagedStore.getAllKeys()
+      ]);
+
+      this.applyStaged(canon, staged, stagedKeys, (measurement, id) => {
+        return stringCompare(measurement.measurement_id, id);
+      });
+
+      const dates = new Set<Measurement['capture_date']>();
+
+      for (const measurement of canon) {
+        dates.add(measurement.capture_date);
+      }
+
+      // Values in a Set are iterated in insertion order.
+      return Array.from(dates).sort();
+    } else {
+      const dates: Measurement['capture_date'][] = [];
+      const canonIndex = tx.objectStore('measurement').index('date');
+      let canonCursor = await canonIndex.openKeyCursor(undefined, 'nextunique');
+
+      while (canonCursor) {
+        dates.push(canonCursor.key);
+        canonCursor = await canonCursor.continue();
+      }
+
+      return dates;
+    }
   }
 
   /**
