@@ -68,9 +68,7 @@ interface Schema extends DBSchema {
     key: Measurement['measurement_id'];
     value: Measurement;
     indexes: {
-      // Interpolate and extrapolate multiple measurements of the same type.
       type: Measurement['type'];
-      // Display measurements by date.
       date: Measurement['capture_date'];
     }
   },
@@ -88,6 +86,10 @@ interface Schema extends DBSchema {
   stagedMeasurement: {
     key: Measurement['measurement_id'];
     value: Measurement | Deleted;
+    indexes: {
+      type: Measurement['type'];
+      date: Measurement['capture_date'];
+    }
   },
   stagedWorkout: {
     key: Workout['workout_id'];
@@ -124,14 +126,18 @@ export default new class {
         upgrade(db) {
           db.createObjectStore('auth');
           db.createObjectStore('user');
-          db.createObjectStore('measurement', { keyPath: 'measurement_id' });
+          const m = db.createObjectStore('measurement', { keyPath: 'measurement_id' });
+          m.createIndex('type', 'type', { unique: false });
+          m.createIndex('date', 'capture_date', { unique: false });
           db.createObjectStore('workout', { keyPath: 'workout_id' });
           const e = db.createObjectStore('exercise', { keyPath: 'workout_exercise_id' });
-          e.createIndex('type', 'type');
-          db.createObjectStore('stagedMeasurement');
+          e.createIndex('type', 'type', { unique: false });
+          const sm = db.createObjectStore('stagedMeasurement');
+          sm.createIndex('type', 'type', { unique: false });
+          sm.createIndex('date', 'capture_date', { unique: false });
           db.createObjectStore('stagedWorkout');
           const se = db.createObjectStore('stagedExercise');
-          se.createIndex('type', 'type');
+          se.createIndex('type', 'type', { unique: false });
         }
       }
     ).then(db => this.db.set(db));
@@ -511,7 +517,37 @@ export default new class {
   //
   // The user sees the canonical version with the staged changes applied.
 
-  /// Get all workouts, ordered from most recent to least recent.
+  /**
+   * Get all measurements of a particular type, ordered by ascending
+   * `capture_date`.
+   */
+  async getMeasurementsOfType<T extends Measurement['type']>(
+    type: T
+  ): Promise<(Measurement & { type: T })[]> {
+    const db = await this.db.get();
+    const tx = db.transaction(['measurement', 'stagedMeasurement']);
+    const stagedIndex = tx.objectStore('stagedMeasurement').index('type');
+
+    const [canon, staged, stagedKeys] = await Promise.all([
+      tx.objectStore('measurement').index('type').getAll(type),
+      stagedIndex.getAll(type),
+      stagedIndex.getAllKeys(type)
+    ]);
+
+    this.applyStaged(canon, staged, stagedKeys, (exercise, id) => {
+      return stringCompare(exercise.measurement_id, id);
+    });
+
+    canon.sort((a, b) => {
+      return stringCompare(a.capture_date, b.capture_date);
+    });
+
+    return canon as (Measurement & { type: T })[];
+  }
+
+  /**
+   * Get all workouts, ordered by descending `start_time`.
+   */
   async getWorkouts(): Promise<Workout[]> {
     const db = await this.db.get();
     const tx = db.transaction(['workout', 'stagedWorkout']);
@@ -536,7 +572,9 @@ export default new class {
     return canon;
   }
 
-  /// Get all exercises within a workout.
+  /**
+   * Get all exercises within a workout, ordered by ascending `order`.
+   */
   async getExercisesOfWorkout(workoutId: string): Promise<Exercise[]> {
     const db = await this.db.get();
     const tx = db.transaction(['exercise', 'stagedExercise']);
@@ -558,8 +596,10 @@ export default new class {
     return canon;
   }
 
-  /// Get all exercises of a particular type, ordered by workout ID and exercise
-  /// ID.
+  /**
+   * Get all exercises of a particular type, ordered by ascending
+   * `workout_exercise_id`.
+   */
   async getExercisesOfType<T extends Exercise['type']>(
     type: T
   ): Promise<(Exercise & { type: T })[]> {
