@@ -37,7 +37,8 @@ export default new class {
     }));
   }
 
-  async login(email: string, password: string): Promise<AuthenticationResultType | undefined> {
+  async login(email: string, password: string): Promise<AuthenticationResultType> {
+    // AuthenticationResult will always be present because MFA is disabled.
     return (await this.client.send(new InitiateAuthCommand({
       ClientId: CLIENT_ID,
       AuthFlow: 'USER_PASSWORD_AUTH',
@@ -45,16 +46,17 @@ export default new class {
         USERNAME: email,
         PASSWORD: password
       }
-    }))).AuthenticationResult;
+    }))).AuthenticationResult!;
   }
 
-  async refresh(refreshToken: string): Promise<AuthenticationResultType | undefined> {
+  async refresh(refreshToken: string): Promise<AuthenticationResultType> {
+    // AuthenticationResult will always be present because MFA is disabled.
     return (await this.client.send(new InitiateAuthCommand({
       ClientId: CLIENT_ID,
       AuthFlow: 'REFRESH_TOKEN_AUTH',
       AuthParameters: {
         REFRESH_TOKEN: refreshToken
       }
-    }))).AuthenticationResult;
+    }))).AuthenticationResult!;
   }
 }

@@ -1,0 +1,48 @@
+<script setup lang="ts">
+import cognito from '@/services/cognito';
+import db from '@/services/db';
+import { getCognitoErrorMessage } from '@/utils/error';
+import { ref } from 'vue';
+import { useRouter } from 'vue-router';
+
+const router = useRouter();
+
+let email = '';
+let password = '';
+let loading = ref(false);
+let error = ref<string | undefined>(undefined);
+
+async function login() {
+  if (loading.value) return;
+  loading.value = true;
+  error.value = undefined;
+
+  try {
+    const result = await cognito.login(email, password);
+    if (result.RefreshToken) {
+      await db.setRefreshToken(result.RefreshToken);
+      await router.replace('/');
+    } else {
+      // ?
+    }
+  } catch (e) {
+    error.value = getCognitoErrorMessage(e);
+  } finally {
+    loading.value = false;
+  }
+}
+</script>
+
+<template>
+  <main>
+    <label for="email">Email:</label>
+    <input type="email" id="email" v-model.lazy="email" :disabled="loading" />
+    <br/>
+    <label for="password">Password:</label>
+    <input type="password" id="password" v-model.lazy="password" :disabled="loading" />
+    <br/>
+    <button @click="login" :disabled="loading">Login</button>
+
+    <p v-if="error && !loading">Error: {{ error }}</p>
+  </main>
+</template>
