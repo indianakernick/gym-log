@@ -26,27 +26,22 @@ import {
 import { AsyncInit } from '@/utils/async-init';
 import { binarySearch, stringCompare } from '@/utils/binary-search';
 
-
-// I'm not sold on the terminology I've chosen here. Maybe try to borrow terms
-// from git.
-
-
 // When the user is making changes to their data, the changes are written to a
 // staging area. The staging area stores the difference between the local copy
 // of remote database (the canonical database) and the local database. The user
-// always sees the local version of the database (unless they're resolving merge
-// conflicts) which means that they see the canonical version with the staged
-// changes applied.
+// always sees canonical version with the the staged changes applied (unless
+// they're resolving merge conflicts).
 //
-// Changes from the staging area will be uploaded from time to time. If a
-// different client made changes to the remote database since this client last
-// fetched it, then the request to apply changes will be rejected and the client
-// will need to fetch the remote changes. If the request to push changes to the
-// remote succeeds, then the change is removed the from the staging area and
-// applied to the canonical version. The version number is also incremented so
-// that the client knows the version of the remote database that is has.
+// Changes from the staging area will be pushed up to the remote from time to
+// time. If a different client made changes to the remote database since this
+// client last fetched it, then the request to push changes will be rejected and
+// the client will need to fetch the remote changes to update its remote copy.
+// If the request to push changes to the remote succeeds, then the change is
+// removed the from the staging area and applied to the canonical version. The
+// version number is also incremented so that the client knows the version of
+// the remote database that is has.
 //
-// When a request to apply changes to the remote is rejected, the client will
+// When a request to push changes to the remote is rejected, the client will
 // fetch the new set of changes to be applied to its canonical database. At this
 // point, there will be two sets of changes relative to the canonical database.
 // If the sets of changes involve different objects, then they can be trivially
@@ -160,31 +155,49 @@ export default new class {
 
   // ----------------------- Stage changes for upload ----------------------- //
   //
-  // Stage changes to the local database and prepare them to be uploaded to the
+  // Stage changes to the local database and prepare them to be pushed to the
   // remote database.
 
+  /**
+   * Stage a delete-measurement request.
+   */
   stageDeleteMeasurement(measurementId: string): Promise<void> {
     return this.stageDelete('measurement', 'stagedMeasurement', measurementId);
   }
 
+  /**
+   * Stage an update-measurement request.
+   */
   async stageUpdateMeasurement(measurement: Measurement): Promise<void> {
     const db = await this.db.get();
     await db.put('stagedMeasurement', measurement, measurement.measurement_id);
   }
 
+  /**
+   * Stage a delete-workout request.
+   */
   stageDeleteWorkout(workoutId: string): Promise<void> {
     return this.stageDelete('workout', 'stagedWorkout', workoutId);
   }
 
+  /**
+   * Stage an update-workout request.
+   */
   async stageUpdateWorkout(workout: Workout): Promise<void> {
     const db = await this.db.get();
     await db.put('stagedWorkout', workout, workout.workout_id);
   }
 
+  /**
+   * Stage a delete-exercise request.
+   */
   stageDeleteExercise(workoutExerciseId: Exercise['workout_exercise_id']): Promise<void> {
     return this.stageDelete('exercise', 'stagedExercise', workoutExerciseId);
   }
 
+  /**
+   * Stage an update-exercise request.
+   */
   async stageUpdateExercise(exercise: Exercise): Promise<void> {
     const db = await this.db.get();
     await db.put('stagedExercise', exercise, exercise.workout_exercise_id);
@@ -213,6 +226,21 @@ export default new class {
   // after periodically polling or after a modification request was rejected.
   // The user will be asked to resolve merge conflicts if they arise.
 
+  /**
+   * Apply a set of changes to the canonical version and handle conflicts with
+   * the staged changes.
+   *
+   * If there is a remote change and a staged change being applied to the same
+   * object and those two changes are different, then there is a merge conflict.
+   * When this is detected, the user will be shown the two changes and asked to
+   * choose one of them to keep. The decisions that the user makes can be used
+   * to restart the process and either keep or delete the conflicting staged
+   * changes.
+   *
+   * @param remote changes from the remote relative to the canonical version.
+   * @param resolutions decisions made by the user to resolve merge conflicts.
+   * @returns a list of merge conflicts for the user to resolve.
+   */
   async merge(
     remote: UserChanges,
     resolutions: MergeConflictResolutions = {}
@@ -363,6 +391,9 @@ export default new class {
   // are applied. When preparing to upload the next change, the staged changes
   // could have been changed by a user action so it needs to be read again.
 
+  /**
+   * Find one staged change that's ready to push.
+   */
   async getNextStagedChange(): Promise<StagedChange | undefined> {
     const db = await this.db.get();
     const tx = db.transaction(['user', 'stagedMeasurement', 'stagedWorkout', 'stagedExercise']);
@@ -404,10 +435,20 @@ export default new class {
   // is still staged and hasn't changed, then the change is removed from the
   // staging area.
 
+  /**
+   * Apply a delete-measurement change to the canonical version after
+   * successfully pushing that change. Remove it from the staging area if it
+   * exists.
+   */
   applyDeleteMeasurement(measurementId: string): Promise<void> {
     return this.applyDelete('measurement', 'stagedMeasurement', measurementId);
   }
 
+  /**
+   * Apply an update-measurement change to the canonical version after
+   * successfully pushing that change. Remove it from the staging area if it
+   * exists.
+   */
   applyUpdateMeasurement(measurement: Measurement): Promise<void> {
     return this.applyUpdate(
       'measurement',
@@ -418,10 +459,18 @@ export default new class {
     )
   }
 
+  /**
+   * Apply a delete-workout change to the canonical version after successfully
+   * pushing that change. Remove it from the staging area if it exists.
+   */
   applyDeleteWorkout(workoutId: string): Promise<void> {
     return this.applyDelete('workout', 'stagedWorkout', workoutId);
   }
 
+  /**
+   * Apply an update-workout change to the canonical version after successfully
+   * pushing that change. Remove it from the staging area if it exists.
+   */
   applyUpdateWorkout(workout: Workout): Promise<void> {
     return this.applyUpdate(
       'workout',
@@ -432,10 +481,18 @@ export default new class {
     );
   }
 
+  /**
+   * Apply a delete-exercise change to the canonical version after successfully
+   * pushing that change. Remove it from the staging area if it exists.
+   */
   applyDeleteExercise(workoutExerciseId: Exercise['workout_exercise_id']): Promise<void> {
     return this.applyDelete('exercise', 'stagedExercise', workoutExerciseId);
   }
 
+  /**
+   * Apply an update-exercise change to the canonical version after successfully
+   * pushing that change. Remove it from the staging area if it exists.
+   */
   applyUpdateExercise(exercise: Exercise): Promise<void> {
     return this.applyUpdate(
       'exercise',
@@ -701,6 +758,10 @@ export default new class {
     return canon as (Exercise & { type: T })[];
   }
 
+  /**
+   * Apply the staged changes to the canonical version to materialize the local
+   * version of the database.
+   */
   private applyStaged<T extends object>(
     canon: T[],
     staged: (T | Deleted)[],
