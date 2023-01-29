@@ -28,6 +28,8 @@ export default new class {
   }
 
   async isLoggedIn(): Promise<boolean> {
+    // The refresh token is encrypted. Is attempting to use it the only way to
+    // check if it's valid?
     return !!await db.getRefreshToken();
   }
 
