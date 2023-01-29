@@ -52,7 +52,7 @@ import { binarySearch, stringCompare } from '@/utils/binary-search';
 
 interface Schema extends DBSchema {
   auth: {
-    key: 'refresh_token';
+    key: 'refreshToken';
     value: string;
   },
   user: {
@@ -145,12 +145,17 @@ export default new class {
 
   async getRefreshToken(): Promise<string | undefined> {
     const db = await this.db.get();
-    return db.get('auth', 'refresh_token');
+    return db.get('auth', 'refreshToken');
   }
 
   async setRefreshToken(refreshToken: string): Promise<void> {
     const db = await this.db.get();
-    await db.put('auth', refreshToken, 'refresh_token');
+    await db.put('auth', refreshToken, 'refreshToken');
+  }
+
+  async clearRefreshToken(): Promise<void> {
+    const db = await this.db.get();
+    await db.delete('auth', 'refreshToken');
   }
 
   // ----------------------- Stage changes for upload ----------------------- //

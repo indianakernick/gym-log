@@ -3,7 +3,11 @@ import cognito from '@/services/cognito';
 import db from '@/services/db';
 import { getCognitoErrorMessage } from '@/utils/error';
 import { ref } from 'vue';
-import { useRouter } from 'vue-router';
+import { useRouter, type RouteLocationRaw } from 'vue-router';
+
+const props = defineProps<{
+  redirect?: RouteLocationRaw;
+}>();
 
 const router = useRouter();
 
@@ -21,7 +25,7 @@ async function login() {
     const result = await cognito.login(email, password);
     if (result.RefreshToken) {
       await db.setRefreshToken(result.RefreshToken);
-      await router.replace('/');
+      await router.replace(props.redirect || '/');
     } else {
       // ?
     }
@@ -44,5 +48,7 @@ async function login() {
     <button @click="login" :disabled="loading">Login</button>
 
     <p v-if="error && !loading">Error: {{ error }}</p>
+
+    <router-link :to="'/signup'">Create account</router-link>
   </main>
 </template>
