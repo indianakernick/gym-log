@@ -5,6 +5,7 @@ import MeasurementEditView from '@/views/MeasurementEditView.vue';
 import MeasurementListView from '@/views/MeasurementListView.vue';
 import SignUpView from '@/views/SignUpView.vue';
 import { authGuard } from './auth-guard';
+import { dateGuard } from './date-guard';
 
 export default createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -34,7 +35,7 @@ export default createRouter({
     {
       path: '/measurement/:date',
       component: MeasurementEditView,
-      beforeEnter: authGuard,
+      beforeEnter: [dateGuard, authGuard],
       props: true
     }
   ]

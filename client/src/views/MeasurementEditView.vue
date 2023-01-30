@@ -9,7 +9,6 @@ import { useRouter } from 'vue-router';
 
 // Remaining functionality:
 //
-//  - The date prop comes from the URL so it needs to be validated.
 //  - Create measurements in the past.
 //  - Change the date of measurements.
 //  - Add notes to measurements.
