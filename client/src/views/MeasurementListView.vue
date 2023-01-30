@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import db from '@/services/db';
-import { displayDate, toDbDate } from '@/utils/date';
+import { displayDate, today } from '@/utils/date';
 import { ref } from 'vue';
 import { useRouter } from 'vue-router';
 
@@ -13,7 +13,7 @@ db.getMeasurementDates().then(d => {
 });
 
 function add() {
-  router.push(`/measurement/${toDbDate(new Date())}`);
+  router.push(`/measurement/${today()}`);
 }
 
 </script>
