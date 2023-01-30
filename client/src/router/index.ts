@@ -1,6 +1,8 @@
 import { createRouter, createWebHistory } from 'vue-router';
 import HomeView from '@/views/HomeView.vue';
 import LoginView from '@/views/LoginView.vue';
+import MeasurementEditView from '@/views/MeasurementEditView.vue';
+import MeasurementListView from '@/views/MeasurementListView.vue';
 import SignUpView from '@/views/SignUpView.vue';
 import { authGuard } from './auth-guard';
 
@@ -23,6 +25,17 @@ export default createRouter({
     {
       path: '/signup',
       component: SignUpView
+    },
+    {
+      path: '/measurements',
+      component: MeasurementListView,
+      beforeEnter: authGuard
+    },
+    {
+      path: '/measurement/:date',
+      component: MeasurementEditView,
+      beforeEnter: authGuard,
+      props: true
     }
   ]
 });

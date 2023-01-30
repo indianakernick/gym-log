@@ -23,12 +23,20 @@ export function measurementEqual(a: Measurement, b: Measurement): boolean {
     && a.notes === b.notes;
 }
 
-export type MeasurementType =
-  | 'weight'
-  | 'list'
-  | 'of'
-  | 'body'
-  | 'parts';
+export const MEASUREMENT_TYPES = [
+  'weight',
+  'height',
+  'arm-right-upper',
+  'arm-right-lower',
+  'arm-left-upper',
+  'arm-left-lower',
+  'leg-right-upper',
+  'leg-right-lower',
+  'leg-left-upper',
+  'leg-left-lower'
+] as const;
+
+export type MeasurementType = typeof MEASUREMENT_TYPES[number];
 
 export interface Workout {
   workout_id: string;
