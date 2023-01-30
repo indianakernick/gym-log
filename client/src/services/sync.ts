@@ -2,6 +2,8 @@ import type { MergeConflictResolutions, StagedChange } from '@/model/db';
 import db from '@/services/db';
 import user, { CacheOutdatedError } from '@/services/user';
 
+// Do we gain anything by moving this into the service worker?
+
 const DEBOUNCE_DURATION = 5000;
 const SYNC_PERIOD = 10 * 60 * 1000;
 
@@ -98,6 +100,7 @@ export default new class {
         // TODO: show the conflicts to the user and ask them for resolutions
         alert('Merge conflicts!!!');
       } else {
+        // TODO: tell the current view to refresh itself somehow
         return;
       }
     }

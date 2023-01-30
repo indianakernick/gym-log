@@ -433,6 +433,9 @@ export default new class {
     return undefined;
   }
 
+  /**
+   * Get the current version of the database to use when pull changes.
+   */
   async getCurrentVersion(): Promise<number> {
     return this.getVersion((await this.db.get()).transaction(['user']));
   }
