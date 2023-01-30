@@ -9,7 +9,6 @@ import { useRouter } from 'vue-router';
 // Remaining functionality:
 //
 //  - The date prop comes from the URL so it needs to be validated.
-//  - Delete measurements.
 //  - Create measurements in the past.
 //  - Change the date of measurements.
 //  - Add notes to measurements.
@@ -56,7 +55,13 @@ async function save() {
   router.back();
 }
 
-function add(event: Event) {
+function deleteItem(index: number) {
+  deletedMeasurements.push(measurements.value[index].measurement_id);
+  measurements.value.splice(index, 1);
+  triggerRef(measurements);
+}
+
+function addItem(event: Event) {
   const select = event.target as HTMLSelectElement | null;
   if (select?.value) {
     measurements.value.push({
@@ -97,7 +102,7 @@ const DISPLAY_TYPES: { [key in MeasurementType]: string } = {
     </div>
 
     <ul>
-      <li v-for="m of measurements">
+      <li v-for="(m, i) in measurements">
         <label :for="m.measurement_id">{{ DISPLAY_TYPES[m.type] }}:</label>
         <input
           type="number"
@@ -105,11 +110,12 @@ const DISPLAY_TYPES: { [key in MeasurementType]: string } = {
           v-model.lazy="m.value"
           @focus="($event.target as HTMLInputElement | null)?.select()"
         />
+        <button @click="deleteItem(i)">X</button>
       </li>
     </ul>
 
     <template v-if="availableTypes.length">
-      <select @change="add">
+      <select @change="addItem">
         <option value="" disabled selected>Add a measurement</option>
         <option v-for="t of availableTypes" :value="t">{{ DISPLAY_TYPES[t] }}</option>
       </select>
