@@ -3,7 +3,7 @@ import { MEASUREMENT_TYPES, type Measurement, type MeasurementType } from '@/mod
 import db from '@/services/db';
 import { displayDate } from '@/utils/date';
 import { uuid } from '@/utils/uuid';
-import { computed, ref, shallowRef } from 'vue';
+import { computed, shallowRef, triggerRef } from 'vue';
 import { useRouter } from 'vue-router';
 
 // Remaining functionality:
@@ -20,9 +20,9 @@ const props = defineProps<{
 
 const router = useRouter();
 
+// Making this a shallow ref so that it can be easily written to IndexedDB.
 let measurements = shallowRef<Measurement[]>([]);
 let deletedMeasurements: string[] = [];
-let newType = ref<MeasurementType | ''>('');
 
 db.getMeasurementsOfDate(props.date).then(d => {
   measurements.value = d;
@@ -47,6 +47,7 @@ function sort() {
   measurements.value.sort((a, b) => {
     return MEASUREMENT_TYPES.indexOf(a.type) - MEASUREMENT_TYPES.indexOf(b.type);
   });
+  triggerRef(measurements);
 }
 
 async function save() {
@@ -55,18 +56,19 @@ async function save() {
   router.back();
 }
 
-function add() {
-  if (newType.value) {
+function add(event: Event) {
+  const select = event.target as HTMLSelectElement | null;
+  if (select?.value) {
     measurements.value.push({
       measurement_id: deletedMeasurements.pop() || uuid(),
-      type: newType.value,
+      type: select.value as MeasurementType,
       capture_date: props.date,
       value: 0,
       notes: ''
     });
     sort();
+    select.value = '';
   }
-  newType.value = '';
 }
 
 const DISPLAY_TYPES: { [key in MeasurementType]: string } = {
@@ -97,16 +99,20 @@ const DISPLAY_TYPES: { [key in MeasurementType]: string } = {
     <ul>
       <li v-for="m of measurements">
         <label :for="m.measurement_id">{{ DISPLAY_TYPES[m.type] }}:</label>
-        <input type="number" v-model.lazy="m.value" />
+        <input
+          type="number"
+          inputmode="decimal"
+          v-model.lazy="m.value"
+          @focus="($event.target as HTMLInputElement | null)?.select()"
+        />
       </li>
     </ul>
 
     <template v-if="availableTypes.length">
-      <select v-model.lazy="newType">
-        <option value="" disabled>Select a measurement type</option>
+      <select @change="add">
+        <option value="" disabled selected>Add a measurement</option>
         <option v-for="t of availableTypes" :value="t">{{ DISPLAY_TYPES[t] }}</option>
       </select>
-      <button @click="add" :disabled="!newType">Add</button>
     </template>
   </main>
 </template>

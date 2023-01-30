@@ -637,45 +637,46 @@ export default new class {
     const tx = db.transaction(['measurement', 'stagedMeasurement']);
     const stagedStore = tx.objectStore('stagedMeasurement');
 
-    if (await stagedStore.count() > 0) {
-      // If there are staged changes, then it doesn't seem possible to use the
-      // indexes with the data structure as it currently is. We could count the
-      // number of items with a date in the canon set, then count the updates
-      // and deletions in the staged set, but a deleted item doesn't know what
-      // date it had before it was deleted. It would need to be related back to
-      // the canonical item. It would be nice to find a more efficient way of
-      // doing this.
+    // If there are staged changes, then it doesn't seem possible to use the
+    // indexes with the data structure as it currently is. We could count the
+    // number of items with a date in the canon set, then count the updates and
+    // deletions in the staged set, but a deleted item doesn't know what date it
+    // it had before it was deleted. It would need to be related back to the
+    // canonical item. It would be nice to find a more efficient way of doing
+    // this.
+    //
+    // If there are no staged changes, then we could use a cursor to visit the
+    // unique values. Unfortunately, Safari doesn't support 'nextunique'.
+    //
+    // const dates: Measurement['capture_date'][] = [];
+    // const canonIndex = tx.objectStore('measurement').index('date');
+    // let canonCursor = await canonIndex.openKeyCursor(undefined, 'nextunique');
+    //
+    // while (canonCursor) {
+    //   dates.push(canonCursor.key);
+    //   canonCursor = await canonCursor.continue();
+    // }
+    //
+    // return dates;
 
-      const [canon, staged, stagedKeys] = await Promise.all([
-        tx.objectStore('measurement').getAll(),
-        stagedStore.getAll(),
-        stagedStore.getAllKeys()
-      ]);
+    const [canon, staged, stagedKeys] = await Promise.all([
+      tx.objectStore('measurement').getAll(),
+      stagedStore.getAll(),
+      stagedStore.getAllKeys()
+    ]);
 
-      this.applyStaged(canon, staged, stagedKeys, (measurement, id) => {
-        return stringCompare(measurement.measurement_id, id);
-      });
+    this.applyStaged(canon, staged, stagedKeys, (measurement, id) => {
+      return stringCompare(measurement.measurement_id, id);
+    });
 
-      const dates = new Set<Measurement['capture_date']>();
+    const dates = new Set<Measurement['capture_date']>();
 
-      for (const measurement of canon) {
-        dates.add(measurement.capture_date);
-      }
-
-      // Values in a Set are iterated in insertion order.
-      return Array.from(dates).sort();
-    } else {
-      const dates: Measurement['capture_date'][] = [];
-      const canonIndex = tx.objectStore('measurement').index('date');
-      let canonCursor = await canonIndex.openKeyCursor(undefined, 'nextunique');
-
-      while (canonCursor) {
-        dates.push(canonCursor.key);
-        canonCursor = await canonCursor.continue();
-      }
-
-      return dates;
+    for (const measurement of canon) {
+      dates.add(measurement.capture_date);
     }
+
+    // Values in a Set are iterated in insertion order.
+    return Array.from(dates).sort();
   }
 
   /**
