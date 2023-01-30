@@ -433,6 +433,10 @@ export default new class {
     return undefined;
   }
 
+  async getCurrentVersion(): Promise<number> {
+    return this.getVersion((await this.db.get()).transaction(['user']));
+  }
+
   // ------------- Apply remote changes after successful upload ------------- //
   //
   // When uploading a change succeeds, the version number is incremented and the

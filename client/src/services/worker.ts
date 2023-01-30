@@ -12,7 +12,7 @@ export default new class {
   private id: number = 0;
 
   constructor() {
-    this.worker = new SharedWorker(new URL('../worker/index.ts', import.meta.url));
+    this.worker = new SharedWorker(new URL('../worker/index.ts', import.meta.url), { type: 'module' });
     this.worker.port.onmessage = this.onMessage.bind(this);
   }
 

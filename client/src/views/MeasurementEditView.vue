@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { MEASUREMENT_TYPES, type Measurement, type MeasurementType } from '@/model/api';
 import db from '@/services/db';
+import sync from '@/services/sync';
 import { displayDate } from '@/utils/date';
 import { uuid } from '@/utils/uuid';
 import { computed, shallowRef, triggerRef } from 'vue';
@@ -52,6 +53,7 @@ function sort() {
 async function save() {
   await Promise.all(deletedMeasurements.map(m => db.stageDeleteMeasurement(m)));
   await Promise.all(measurements.value.map(m => db.stageUpdateMeasurement(m)));
+  sync.sync();
   router.back();
 }
 

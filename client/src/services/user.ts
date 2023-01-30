@@ -9,6 +9,10 @@ import auth from './auth';
 
 const BASE_URL = 'https://pa36mmpygd.execute-api.ap-southeast-2.amazonaws.com/';
 
+export class CacheOutdatedError extends Error {}
+
+export class BadResponseError extends Error {}
+
 export default new class {
   private async getHeaders(json: boolean = false): Promise<HeadersInit> {
     const headers: HeadersInit = { Authorization: await auth.getAccessToken() };
@@ -22,11 +26,9 @@ export default new class {
       headers: await this.getHeaders()
     });
 
-    if (!res.ok) {
-      throw 'something...';
-    }
+    if (!res.ok) throw new BadResponseError();
 
-    return JSON.parse(await res.json());
+    return await res.json();
   }
 
   async deleteMeasurement(version: number, measurementId: string): Promise<void> {
@@ -35,6 +37,9 @@ export default new class {
       headers: await this.getHeaders(true),
       body: JSON.stringify({ version })
     });
+
+    if (res.status === 409) throw new CacheOutdatedError();
+    if (!res.ok) throw new BadResponseError();
   }
 
   async updateMeasurement(
@@ -54,6 +59,9 @@ export default new class {
         }
       })
     });
+
+    if (res.status === 409) throw new CacheOutdatedError();
+    if (!res.ok) throw new BadResponseError();
   }
 
   async deleteWorkout(version: number, workoutId: string): Promise<void> {
@@ -62,6 +70,9 @@ export default new class {
       headers: await this.getHeaders(true),
       body: JSON.stringify({ version })
     });
+
+    if (res.status === 409) throw new CacheOutdatedError();
+    if (!res.ok) throw new BadResponseError();
   }
 
   async updateWorkout(
@@ -80,6 +91,9 @@ export default new class {
         }
       })
     });
+
+    if (res.status === 409) throw new CacheOutdatedError();
+    if (!res.ok) throw new BadResponseError();
   }
 
   async deleteExercise(
@@ -92,6 +106,9 @@ export default new class {
       headers: await this.getHeaders(true),
       body: JSON.stringify({ version })
     });
+
+    if (res.status === 409) throw new CacheOutdatedError();
+    if (!res.ok) throw new BadResponseError();
   }
 
   async updateExercise(
@@ -112,6 +129,9 @@ export default new class {
         }
       })
     });
+
+    if (res.status === 409) throw new CacheOutdatedError();
+    if (!res.ok) throw new BadResponseError();
   }
 
   async updateExerciseOrder(
@@ -127,5 +147,8 @@ export default new class {
         item: exercises
       })
     });
+
+    if (res.status === 409) throw new CacheOutdatedError();
+    if (!res.ok) throw new BadResponseError();
   }
 }
