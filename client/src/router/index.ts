@@ -33,7 +33,7 @@ export default createRouter({
       beforeEnter: authGuard
     },
     {
-      path: '/measurement/:date',
+      path: '/measurements/:date',
       component: MeasurementEditView,
       beforeEnter: [dateGuard, authGuard],
       props: true

@@ -1,3 +1,4 @@
+use std::collections::HashMap;
 use serde::{Serialize, Deserialize};
 
 pub const TABLE_USER: &str = "gym-log.User";
@@ -12,14 +13,14 @@ pub struct User<'a> {
     /// The current version of the user's data.
     pub version: u32,
     #[serde(borrow)]
-    pub measurements: Vec<Measurement<'a>>,
+    pub measurement_sets: Vec<MeasurementSet<'a>>,
     #[serde(borrow)]
     pub workouts: Vec<Workout<'a>>,
     #[serde(borrow)]
     pub exercises: Vec<Exercise<'a>>,
     /// A list of measurements that were deleted since the given version.
     #[serde(borrow)]
-    pub deleted_measurements: Vec<&'a str>,
+    pub deleted_measurement_sets: Vec<&'a str>,
     /// A list of workouts that were deleted since the given version.
     #[serde(borrow)]
     pub deleted_workouts: Vec<&'a str>,
@@ -28,23 +29,18 @@ pub struct User<'a> {
     pub deleted_exercises: Vec<&'a str>,
 }
 
+// I'm really struggling to find a good word for this.
 #[derive(Serialize, Deserialize)]
-pub struct Measurement<'a> {
-    /// UUID of the measurement.
-    #[serde(skip_deserializing)]
-    pub measurement_id: &'a str,
-    /// Type of measurement. The client defines the meaning of this.
-    #[serde(borrow)]
-    pub r#type: MaxLenStr<'a, MAX_TYPE_LEN>,
-    /// The date that the measurement was captured in ISO 8601 precise to the
+pub struct MeasurementSet<'a> {
+    /// The date that the measurements were captured in ISO 8601 precise to the
     /// day.
-    #[serde(deserialize_with = "deserialize_date")]
-    pub capture_date: &'a str,
-    /// The value of the measurement whose meaning depends on the type.
-    pub value: f64,
-    /// Any user provided notes associated with the measurement.
+    #[serde(skip_deserializing)]
+    pub date: &'a str,
+    /// Any user provided notes associated with the measurements on this day.
     #[serde(borrow)]
     pub notes: MaxLenStr<'a, MAX_NOTES_LEN>,
+    /// The measurements captured on this day as a map from type to value.
+    pub measurements: HashMap<&'a str, f64>,
 }
 
 #[derive(Serialize, Deserialize)]
@@ -109,16 +105,6 @@ pub struct Set<'a> {
     #[serde(default)]
     #[serde(skip_serializing_if = "Option::is_none")]
     pub duration: Option<u32>,
-}
-
-fn deserialize_date<'de: 'a, 'a, D>(d: D) -> Result<&'a str, D::Error>
-    where D: serde::Deserializer<'de>
-{
-    let s = <&str>::deserialize(d)?;
-    match chrono::NaiveDate::parse_from_str(s, "%F") {
-        Ok(_) => Ok(s),
-        Err(e) => Err(serde::de::Error::custom(e))
-    }
 }
 
 fn deserialize_time<'de: 'a, 'a, D>(d: D) -> Result<Option<&'a str>, D::Error>

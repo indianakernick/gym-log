@@ -64,3 +64,15 @@ pub fn validate_uuid(id: &str) -> Result<(), super::Result> {
         Err(super::error_response(StatusCode::BAD_REQUEST, "invalid UUID in path"))
     }
 }
+
+pub fn is_date(date: &str) -> bool {
+    chrono::NaiveDate::parse_from_str(date, "%F").is_ok()
+}
+
+pub fn validate_date(date: &str) -> Result<(), super::Result> {
+    if is_date(date) {
+        Ok(())
+    } else {
+        Err(super::error_response(StatusCode::BAD_REQUEST, "invalid date in path"))
+    }
+}

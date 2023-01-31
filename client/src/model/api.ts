@@ -1,26 +1,36 @@
 export interface UserChanges {
   version: number;
-  measurements: Measurement[];
+  measurement_sets: MeasurementSet[];
   workouts: Workout[];
   exercises: Exercise[];
-  deleted_measurements: Measurement['measurement_id'][];
+  deleted_measurement_sets: MeasurementSet['date'][];
   deleted_workouts: Workout['workout_id'][];
   deleted_exercises: Exercise['workout_exercise_id'][];
 }
 
-export interface Measurement {
-  measurement_id: string;
-  type: MeasurementType;
-  capture_date: string;
-  value: number;
+export interface MeasurementSet {
+  date: string;
   notes: string;
+  measurements: { [key in MeasurementType]?: number };
 }
 
-export function measurementEqual(a: Measurement, b: Measurement): boolean {
-  return a.type === b.type
-    && a.capture_date === b.capture_date
-    && a.value === b.value
-    && a.notes === b.notes;
+export function measurementSetEqual(a: MeasurementSet, b: MeasurementSet): boolean {
+  if (a.notes !== b.notes) return false;
+
+  const aKeys = Object.keys(a.measurements) as MeasurementType[];
+  const bKeys = Object.keys(b.measurements) as MeasurementType[];
+
+  if (aKeys.length !== bKeys.length) return false;
+
+  aKeys.sort();
+  bKeys.sort();
+
+  for (let k = 0; k < aKeys.length; ++k) {
+    if (aKeys[k] !== bKeys[k]) return false;
+    if (a.measurements[aKeys[k]] !== b.measurements[aKeys[k]]) return false;
+  }
+
+  return true;
 }
 
 export const MEASUREMENT_TYPES = [

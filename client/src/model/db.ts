@@ -1,4 +1,4 @@
-import type { Exercise, Measurement, Workout } from './api';
+import type { Exercise, MeasurementSet, Workout } from './api';
 
 export const DELETED = { deleted: true } as const;
 
@@ -6,9 +6,9 @@ export type Deleted = typeof DELETED;
 
 export type MergeConflict = {
   type: 'measurement';
-  id: Measurement['measurement_id'];
-  local: Measurement | Deleted;
-  remote: Measurement | Deleted;
+  id: MeasurementSet['date'];
+  local: MeasurementSet | Deleted;
+  remote: MeasurementSet | Deleted;
 } | {
   type: 'workout';
   id: Workout['workout_id'];
@@ -29,7 +29,7 @@ export type StagedChange = {
   version: number;
 } & ({
   measurementId: string;
-  measurement: Measurement | Deleted;
+  measurement: MeasurementSet | Deleted;
 } | {
   workoutId: string;
   workout: Workout | Deleted;

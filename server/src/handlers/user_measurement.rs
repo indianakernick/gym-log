@@ -6,7 +6,7 @@ pub async fn delete(req: Request) -> common::Result {
     let params = req.path_parameters();
     let measurement_id = params.first("measurementId").unwrap();
 
-    if !common::is_uuid(measurement_id) {
+    if !common::is_date(measurement_id) {
         return common::empty_response(StatusCode::NOT_FOUND);
     }
 
@@ -17,18 +17,20 @@ pub async fn put(req: Request) -> common::Result {
     let params = req.path_parameters();
     let measurement_id = params.first("measurementId").unwrap();
 
-    if let Err(e) = common::validate_uuid(measurement_id) {
+    if let Err(e) = common::validate_date(measurement_id) {
         return e;
     }
 
     common::version_modify(&req, common::version_put_item(
         format!("MEASUREMENT#{measurement_id}"),
-        |builder, item: &common::Measurement| {
+        |builder, item: &common::MeasurementSet| {
             builder
-                .item("Type", AttributeValue::S(item.r#type.0.into()))
-                .item("CaptureDate", AttributeValue::S(item.capture_date.into()))
-                .item("Value", AttributeValue::N(item.value.to_string()))
                 .item("Notes", AttributeValue::S(item.notes.0.into()))
+                .item("Measurements", AttributeValue::M(
+                    item.measurements.iter()
+                        .map(|(k, v)| ((*k).into(), AttributeValue::N(v.to_string())))
+                        .collect()
+                ))
         }
     )).await
 }

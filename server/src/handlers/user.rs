@@ -32,9 +32,10 @@ pub async fn get(req: Request) -> common::Result {
 }
 
 const UUID_LEN: usize = 36;
+const DATE_LEN: usize = 10;
 const VERSION_LEN: usize = "VERSION".len();
 const MEASUREMENT_PREFIX_LEN: usize = "MEASUREMENT#".len();
-const MEASUREMENT_LEN: usize = MEASUREMENT_PREFIX_LEN + UUID_LEN;
+const MEASUREMENT_SET_LEN: usize = MEASUREMENT_PREFIX_LEN + DATE_LEN;
 const WORKOUT_PREFIX_LEN: usize = "WORKOUT#".len();
 const WORKOUT_LEN: usize = WORKOUT_PREFIX_LEN + UUID_LEN;
 const EXERCISE_LEN: usize = WORKOUT_PREFIX_LEN + 2 * UUID_LEN + 1;
@@ -84,10 +85,10 @@ async fn get_changed(db: &Client, user_id: String, client_version: u32) -> Resul
     if version <= client_version {
         return Ok(serde_json::to_string(&common::User {
             version,
-            measurements: Vec::new(),
+            measurement_sets: Vec::new(),
             workouts: Vec::new(),
             exercises: Vec::new(),
-            deleted_measurements: Vec::new(),
+            deleted_measurement_sets: Vec::new(),
             deleted_workouts: Vec::new(),
             deleted_exercises: Vec::new(),
         }).unwrap());
@@ -114,10 +115,10 @@ async fn get_changed(db: &Client, user_id: String, client_version: u32) -> Resul
 }
 
 fn to_user<'a>(mut version: u32, items: &Vec<HashMap<String, AttributeValue>>) -> common::User {
-    let mut measurements = Vec::new();
+    let mut measurement_sets = Vec::new();
     let mut workouts = Vec::new();
     let mut exercises = Vec::new();
-    let mut deleted_measurements = Vec::new();
+    let mut deleted_measurement_sets = Vec::new();
     let mut deleted_workouts = Vec::new();
     let mut deleted_exercises = Vec::new();
 
@@ -130,12 +131,12 @@ fn to_user<'a>(mut version: u32, items: &Vec<HashMap<String, AttributeValue>>) -
                 version = common::as_number(&item["Version"]);
             }
 
-            MEASUREMENT_LEN => {
+            MEASUREMENT_SET_LEN => {
                 let measurement_id = &sk[MEASUREMENT_PREFIX_LEN..];
                 if deleted {
-                    deleted_measurements.push(measurement_id);
+                    deleted_measurement_sets.push(measurement_id);
                 } else {
-                    measurements.push(to_measurement(measurement_id, item));
+                    measurement_sets.push(to_measurement_set(measurement_id, item));
                 }
             }
 
@@ -163,25 +164,25 @@ fn to_user<'a>(mut version: u32, items: &Vec<HashMap<String, AttributeValue>>) -
 
     common::User {
         version,
-        measurements,
+        measurement_sets,
         workouts,
         exercises,
-        deleted_measurements,
+        deleted_measurement_sets,
         deleted_workouts,
         deleted_exercises,
     }
 }
 
-fn to_measurement<'a>(
-    measurement_id: &'a str,
+fn to_measurement_set<'a>(
+    date: &'a str,
     item: &'a HashMap<String, AttributeValue>,
-) -> common::Measurement<'a> {
-    common::Measurement {
-        measurement_id,
-        r#type: common::MaxLenStr(item["Type"].as_s().unwrap()),
-        capture_date: item["CaptureDate"].as_s().unwrap(),
-        value: common::as_number(&item["Value"]),
+) -> common::MeasurementSet<'a> {
+    common::MeasurementSet {
+        date,
         notes: common::MaxLenStr(item["Notes"].as_s().unwrap()),
+        measurements: item["Measurements"].as_m().unwrap().iter()
+            .map(|(k, v)| (k.as_str(), common::as_number(v)))
+            .collect()
     }
 }
 

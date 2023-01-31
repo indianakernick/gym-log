@@ -13,7 +13,7 @@ db.getMeasurementDates().then(d => {
 });
 
 function add() {
-  router.push(`/measurement/${today()}`);
+  router.push(`/measurements/${today()}`);
 }
 
 </script>
@@ -26,7 +26,7 @@ function add() {
 
     <ol>
       <li v-for="date in dates">
-        <router-link :to="`/measurement/${date}`">{{ displayDate(date) }}</router-link>
+        <router-link :to="`/measurements/${date}`">{{ displayDate(date) }}</router-link>
       </li>
     </ol>
   </main>

@@ -1,10 +1,11 @@
 import {
   exerciseEqual,
-  measurementEqual,
+  measurementSetEqual,
   splitWorkoutExerciseId,
   workoutEqual,
   type Exercise,
-  type Measurement,
+  type MeasurementSet,
+  type MeasurementType,
   type UserChanges,
   type Workout
 } from '@/model/api';
@@ -60,12 +61,8 @@ interface Schema extends DBSchema {
     value: number;
   },
   measurement: {
-    key: Measurement['measurement_id'];
-    value: Measurement;
-    indexes: {
-      type: Measurement['type'];
-      date: Measurement['capture_date'];
-    }
+    key: MeasurementSet['date'];
+    value: MeasurementSet;
   },
   workout: {
     key: Workout['workout_id'];
@@ -79,12 +76,8 @@ interface Schema extends DBSchema {
     }
   },
   stagedMeasurement: {
-    key: Measurement['measurement_id'];
-    value: Measurement | Deleted;
-    indexes: {
-      type: Measurement['type'];
-      date: Measurement['capture_date'];
-    }
+    key: MeasurementSet['date'];
+    value: MeasurementSet | Deleted;
   },
   stagedWorkout: {
     key: Workout['workout_id'];
@@ -121,15 +114,11 @@ export default new class {
         upgrade(db) {
           db.createObjectStore('auth');
           db.createObjectStore('user');
-          const m = db.createObjectStore('measurement', { keyPath: 'measurement_id' });
-          m.createIndex('type', 'type', { unique: false });
-          m.createIndex('date', 'capture_date', { unique: false });
+          db.createObjectStore('measurement', { keyPath: 'date' });
           db.createObjectStore('workout', { keyPath: 'workout_id' });
           const e = db.createObjectStore('exercise', { keyPath: 'workout_exercise_id' });
           e.createIndex('type', 'type', { unique: false });
-          const sm = db.createObjectStore('stagedMeasurement');
-          sm.createIndex('type', 'type', { unique: false });
-          sm.createIndex('date', 'capture_date', { unique: false });
+          db.createObjectStore('stagedMeasurement');
           db.createObjectStore('stagedWorkout');
           const se = db.createObjectStore('stagedExercise');
           se.createIndex('type', 'type', { unique: false });
@@ -166,22 +155,22 @@ export default new class {
   /**
    * Stage a delete-measurement request.
    */
-  stageDeleteMeasurement(measurementId: string): Promise<void> {
-    return this.stageDelete('measurement', 'stagedMeasurement', measurementId);
+  stageDeleteMeasurement(date: MeasurementSet['date']): Promise<void> {
+    return this.stageDelete('measurement', 'stagedMeasurement', date);
   }
 
   /**
    * Stage an update-measurement request.
    */
-  async stageUpdateMeasurement(measurement: Measurement): Promise<void> {
+  async stageUpdateMeasurement(measurement: MeasurementSet): Promise<void> {
     const db = await this.db.get();
-    await db.put('stagedMeasurement', measurement, measurement.measurement_id);
+    await db.put('stagedMeasurement', measurement, measurement.date);
   }
 
   /**
    * Stage a delete-workout request.
    */
-  stageDeleteWorkout(workoutId: string): Promise<void> {
+  stageDeleteWorkout(workoutId: Workout['workout_id']): Promise<void> {
     return this.stageDelete('workout', 'stagedWorkout', workoutId);
   }
 
@@ -270,10 +259,10 @@ export default new class {
         conflicts,
         tx.objectStore('measurement'),
         tx.objectStore('stagedMeasurement'),
-        remote.measurements,
-        remote.deleted_measurements,
-        measurementEqual,
-        m => m.measurement_id,
+        remote.measurement_sets,
+        remote.deleted_measurement_sets,
+        measurementSetEqual,
+        m => m.date,
         (id, remote, local) => ({ type: 'measurement', id, remote, local })
       ),
       this.mergeEntity(
@@ -461,13 +450,13 @@ export default new class {
    * successfully pushing that change. Remove it from the staging area if it
    * exists.
    */
-  applyUpdateMeasurement(measurement: Measurement): Promise<void> {
+  applyUpdateMeasurement(measurement: MeasurementSet): Promise<void> {
     return this.applyUpdate(
       'measurement',
       'stagedMeasurement',
       measurement,
-      measurement.measurement_id,
-      measurementEqual
+      measurement.date,
+      measurementSetEqual
     )
   }
 
@@ -587,84 +576,14 @@ export default new class {
   // The user sees the canonical version with the staged changes applied.
 
   /**
-   * Get all measurements of a particular type, ordered by ascending
-   * `capture_date`.
+   * Get all measurements of a particular type, ordered by ascending `date`.
    */
-  async getMeasurementsOfType<T extends Measurement['type']>(
-    type: T
-  ): Promise<(Measurement & { type: T })[]> {
-    const db = await this.db.get();
-    const tx = db.transaction(['measurement', 'stagedMeasurement']);
-    const stagedIndex = tx.objectStore('stagedMeasurement').index('type');
-
-    const [canon, staged, stagedKeys] = await Promise.all([
-      tx.objectStore('measurement').index('type').getAll(type),
-      stagedIndex.getAll(type),
-      stagedIndex.getAllKeys(type)
-    ]);
-
-    this.applyStaged(canon, staged, stagedKeys, (measurement, id) => {
-      return stringCompare(measurement.measurement_id, id);
-    });
-
-    canon.sort((a, b) => {
-      return stringCompare(a.capture_date, b.capture_date);
-    });
-
-    return canon as (Measurement & { type: T })[];
-  }
-
-  /**
-   * Get all measurements of a particular date, in an unspecified order.
-   */
-  async getMeasurementsOfDate(date: Measurement['capture_date']): Promise<Measurement[]> {
-    const db = await this.db.get();
-    const tx = db.transaction(['measurement', 'stagedMeasurement']);
-    const stagedIndex = tx.objectStore('stagedMeasurement').index('date');
-
-    const [canon, staged, stagedKeys] = await Promise.all([
-      tx.objectStore('measurement').index('date').getAll(date),
-      stagedIndex.getAll(date),
-      stagedIndex.getAllKeys(date)
-    ]);
-
-    this.applyStaged(canon, staged, stagedKeys, (measurement, id) => {
-      return stringCompare(measurement.measurement_id, id);
-    });
-
-    return canon;
-  }
-
-  /**
-   * Get all unique values of `capture_date` on measurements, ordered by
-   * ascending `capture_date`.
-   */
-  async getMeasurementDates(): Promise<Measurement['capture_date'][]> {
+  async getMeasurementsOfType(
+    type: MeasurementType
+  ): Promise<{ date: MeasurementSet['date'], value: number }[]> {
     const db = await this.db.get();
     const tx = db.transaction(['measurement', 'stagedMeasurement']);
     const stagedStore = tx.objectStore('stagedMeasurement');
-
-    // If there are staged changes, then it doesn't seem possible to use the
-    // indexes with the data structure as it currently is. We could count the
-    // number of items with a date in the canon set, then count the updates and
-    // deletions in the staged set, but a deleted item doesn't know what date it
-    // it had before it was deleted. It would need to be related back to the
-    // canonical item. It would be nice to find a more efficient way of doing
-    // this.
-    //
-    // If there are no staged changes, then we could use a cursor to visit the
-    // unique values. Unfortunately, Safari doesn't support 'nextunique'.
-    //
-    // const dates: Measurement['capture_date'][] = [];
-    // const canonIndex = tx.objectStore('measurement').index('date');
-    // let canonCursor = await canonIndex.openKeyCursor(undefined, 'nextunique');
-    //
-    // while (canonCursor) {
-    //   dates.push(canonCursor.key);
-    //   canonCursor = await canonCursor.continue();
-    // }
-    //
-    // return dates;
 
     const [canon, staged, stagedKeys] = await Promise.all([
       tx.objectStore('measurement').getAll(),
@@ -673,17 +592,76 @@ export default new class {
     ]);
 
     this.applyStaged(canon, staged, stagedKeys, (measurement, id) => {
-      return stringCompare(measurement.measurement_id, id);
+      return stringCompare(measurement.date, id);
     });
 
-    const dates = new Set<Measurement['capture_date']>();
+    return canon
+      .map(set => ({ date: set.date, value: set.measurements[type] }))
+      .filter((set): set is { date: MeasurementSet['date'], value: number } => set.value !== undefined);
+  }
 
-    for (const measurement of canon) {
-      dates.add(measurement.capture_date);
+  /**
+   * Get the set of measurements for a date.
+   */
+  async getMeasurementSet(date: MeasurementSet['date']): Promise<MeasurementSet | undefined> {
+    const db = await this.db.get();
+    const tx = db.transaction(['measurement', 'stagedMeasurement']);
+    const stagedStore = tx.objectStore('stagedMeasurement');
+
+    const [canon, staged, stagedKeys] = await Promise.all([
+      tx.objectStore('measurement').getAll(date),
+      stagedStore.getAll(date),
+      stagedStore.getAllKeys(date)
+    ]);
+
+    this.applyStaged(canon, staged, stagedKeys, (measurement, id) => {
+      return stringCompare(measurement.date, id);
+    });
+
+    return canon[0];
+  }
+
+  /**
+   * Get all unique values of `capture_date` on measurements, ordered by
+   * ascending `capture_date`.
+   */
+  async getMeasurementDates(): Promise<MeasurementSet['date'][]> {
+    const db = await this.db.get();
+    const tx = db.transaction(['measurement', 'stagedMeasurement']);
+    const stagedStore = tx.objectStore('stagedMeasurement');
+
+    const [canonKeys, staged, stagedKeys] = await Promise.all([
+      tx.objectStore('measurement').getAllKeys(),
+      stagedStore.getAll(),
+      stagedStore.getAllKeys()
+    ]);
+
+    let start = 0;
+    let newDates: string[] = [];
+
+    for (let stagedIdx = 0; stagedIdx < staged.length; ++stagedIdx) {
+      const id = stagedKeys[stagedIdx];
+      const canonIdx = binarySearch(
+        canonKeys,
+        start,
+        canonKeys.length,
+        item => stringCompare(item, id)
+      );
+      const stagedItem = staged[stagedIdx];
+
+      if ('deleted' in stagedItem) {
+        canonKeys.splice(canonIdx, 1);
+        start = canonIdx;
+      } else if (canonIdx !== -1) {
+        start = canonIdx + 1;
+      } else {
+        newDates.push(id);
+      }
     }
 
-    // Values in a Set are iterated in insertion order.
-    return Array.from(dates).sort();
+    canonKeys.push(...newDates);
+
+    return canonKeys;
   }
 
   /**

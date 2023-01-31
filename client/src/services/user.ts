@@ -1,7 +1,7 @@
 import {
   splitWorkoutExerciseId,
   type Exercise,
-  type Measurement,
+  type MeasurementSet,
   type UserChanges,
   type Workout
 } from '@/model/api';
@@ -44,18 +44,16 @@ export default new class {
 
   async updateMeasurement(
     version: number,
-    m: Measurement
+    m: MeasurementSet
   ): Promise<void> {
-    const res = await fetch(`${BASE_URL}user/measurement/${m.measurement_id}`, {
+    const res = await fetch(`${BASE_URL}user/measurement/${m.date}`, {
       method: 'PUT',
       headers: await this.getHeaders(true),
       body: JSON.stringify({
         version,
         item: {
-          type: m.type,
-          capture_date: m.capture_date,
-          value: m.value,
-          notes: m.notes
+          notes: m.notes,
+          measurements: m.measurements
         }
       })
     });
