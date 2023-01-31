@@ -1,28 +1,35 @@
 <script setup lang="ts">
 import db from '@/services/db';
-import { displayDate, today } from '@/utils/date';
-import { ref } from 'vue';
+import { displayDate, toDateString } from '@/utils/date';
+import { shallowRef } from 'vue';
 import { useRouter } from 'vue-router';
 
 const router = useRouter();
 
-let dates = ref<string[]>([]);
+let dates = shallowRef<string[]>([]);
 
 db.getMeasurementDates().then(d => {
   dates.value = d;
 });
 
-function add() {
-  router.push(`/measurements/${today()}`);
+function addToday() {
+  router.push(`/measurements/${toDateString(new Date())}`);
 }
 
+function addPast(event: Event) {
+  const date = (event.target as HTMLInputElement | null)?.valueAsDate;
+  if (date) {
+    router.push(`/measurements/${toDateString(date)}`);
+  }
+}
 </script>
 
 <template>
   <main>
     <h1>Measurements</h1>
 
-    <button @click="add">Add</button>
+    <button @click="addToday">Add Today</button>
+    <input type="date" :max="toDateString(new Date())" @change="addPast" />
 
     <ol>
       <li v-for="date in dates">

@@ -6,10 +6,6 @@ import { displayDate } from '@/utils/date';
 import { computed, shallowRef, triggerRef } from 'vue';
 import { useRouter } from 'vue-router';
 
-// Remaining functionality:
-//
-//  - Create measurements in the past.
-
 const props = defineProps<{
   date: string
 }>();

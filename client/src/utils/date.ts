@@ -1,5 +1,5 @@
-export function today(): string {
-  return toString(shift(new Date()));
+export function toDateString(date: Date): string {
+  return toString(shift(date));
 }
 
 export function isValidDate(dateStr: string): boolean {
