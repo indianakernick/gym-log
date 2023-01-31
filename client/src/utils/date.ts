@@ -8,10 +8,18 @@ export function isValidDate(dateStr: string): boolean {
 }
 
 export function displayDate(dateStr: string): string {
-  return formatter.format(shift(new Date(dateStr)));
+  return dateFormatter.format(shift(new Date(dateStr)));
 }
 
-const formatter = new Intl.DateTimeFormat(undefined, { dateStyle: 'medium' });
+export function displayDateTime(dateTimeStr: string): string {
+  return dateTimeFormatter.format(new Date(dateTimeStr));
+}
+
+const dateFormatter = new Intl.DateTimeFormat(undefined, { dateStyle: 'medium' });
+const dateTimeFormatter = new Intl.DateTimeFormat(undefined, {
+  dateStyle: 'short',
+  timeStyle: 'short'
+});
 
 function toString(date: Date): string {
   return date.toISOString().substring(0, 10);

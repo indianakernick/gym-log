@@ -13,7 +13,7 @@ const props = defineProps<{
 const router = useRouter();
 
 // Making this a shallow ref so that it can be easily written to IndexedDB.
-let measurementSet = shallowRef<MeasurementSet>({
+const measurementSet = shallowRef<MeasurementSet>({
   date: props.date,
   notes: '',
   measurements: {}

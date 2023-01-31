@@ -7,7 +7,7 @@ import { useRouter } from 'vue-router';
 
 const router = useRouter();
 
-let dates = shallowRef<string[]>([]);
+const dates = shallowRef<string[]>([]);
 
 db.getMeasurementDates().then(d => {
   dates.value = d;

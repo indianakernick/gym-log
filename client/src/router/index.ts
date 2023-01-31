@@ -4,6 +4,7 @@ import LoginView from '@/views/LoginView.vue';
 import MeasurementEditView from '@/views/MeasurementEditView.vue';
 import MeasurementListView from '@/views/MeasurementListView.vue';
 import SignUpView from '@/views/SignUpView.vue';
+import WorkoutListView from '@/views/WorkoutListView.vue';
 import { authGuard } from './auth-guard';
 import { dateGuard } from './date-guard';
 
@@ -37,6 +38,11 @@ export default createRouter({
       component: MeasurementEditView,
       beforeEnter: [dateGuard, authGuard],
       props: true
+    },
+    {
+      path: '/workouts',
+      component: WorkoutListView,
+      beforeEnter: authGuard
     }
   ]
 });
