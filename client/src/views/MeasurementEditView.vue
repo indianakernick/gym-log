@@ -9,7 +9,6 @@ import { useRouter } from 'vue-router';
 // Remaining functionality:
 //
 //  - Create measurements in the past.
-//  - Add notes to measurements.
 
 const props = defineProps<{
   date: string
@@ -91,6 +90,9 @@ const DISPLAY_TYPES: { [key in MeasurementType]: string } = {
     <div>
       <time :d="props.date">{{ displayDate(props.date) }}</time>
     </div>
+
+    <label for="notes">Notes:</label>
+    <textarea id="notes" v-model.lazy="measurementSet.notes"></textarea>
 
     <ul>
       <template v-for="ty in MEASUREMENT_TYPES">
