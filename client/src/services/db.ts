@@ -622,8 +622,7 @@ export default new class {
   }
 
   /**
-   * Get all unique values of `capture_date` on measurements, ordered by
-   * ascending `capture_date`.
+   * Get all measurement dates, ordered by descending `date`.
    */
   async getMeasurementDates(): Promise<MeasurementSet['date'][]> {
     const db = await this.db.get();
@@ -661,7 +660,9 @@ export default new class {
 
     canonKeys.push(...newDates);
 
-    return canonKeys;
+    if (newDates.length) canonKeys.sort();
+
+    return canonKeys.reverse();
   }
 
   /**
