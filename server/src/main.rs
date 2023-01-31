@@ -1,54 +1,7 @@
 mod common;
 mod handlers;
 
-use aws_sdk_dynamodb::model::AttributeValue;
 use lambda_http::{Body, Error, Request, RequestExt, Response, request::RequestContext, http::StatusCode};
-
-async fn api_thing_get(req: Request) -> Result<Response<Body>, Error> {
-    let config = aws_config::load_from_env().await;
-    let client = aws_sdk_dynamodb::Client::new(&config);
-
-    let item = client.get_item()
-        .table_name("gym-log.main")
-        .key("PK", AttributeValue::S("abc".into()))
-        .key("SK", AttributeValue::S("xyz".into()))
-        .projection_expression("NotAReservedWord")
-        .send()
-        .await?;
-
-    let value = &item.item().unwrap()["NotAReservedWord"];
-
-    Ok(common::with_cors(Response::builder())
-        .status(200)
-        .header("content-type", "text/plain")
-        .body(value.as_s().unwrap().as_str().into())
-        .map_err(Box::new)?)
-}
-
-async fn api_thing_put(req: Request) -> Result<Response<Body>, Error> {
-    let config = aws_config::load_from_env().await;
-    let client = aws_sdk_dynamodb::Client::new(&config);
-
-    let new_value = match req.into_body() {
-        Body::Empty => String::new(),
-        Body::Text(t) => t,
-        Body::Binary(b) => String::from_utf8(b).unwrap_or(String::new()),
-    };
-
-    client.update_item()
-        .table_name("gym-log.main")
-        .key("PK", AttributeValue::S("abc".into()))
-        .key("SK", AttributeValue::S("xyz".into()))
-        .update_expression("SET NotAReservedWord = :newValue")
-        .expression_attribute_values(":newValue", AttributeValue::S(new_value))
-        .send()
-        .await?;
-
-    Ok(common::with_cors(Response::builder())
-        .status(200)
-        .body(().into())
-        .map_err(Box::new)?)
-}
 
 async fn function_handler(req: Request) -> Result<Response<Body>, Error> {
     use handlers::*;
@@ -69,10 +22,6 @@ async fn function_handler(req: Request) -> Result<Response<Body>, Error> {
         Some("PUT /user/workout/{workoutId}/exercise/{exerciseId}") => user_workout_exercise::put(req).await,
         Some("OPTIONS /user/workout/{workoutId}/order") => options(),
         Some("PUT /user/workout/{workoutId}/order") => user_workout_order::put(req).await,
-
-        Some("GET /thing") => api_thing_get(req).await,
-        Some("PUT /thing") => api_thing_put(req).await,
-        Some("OPTIONS /thing") => options(),
 
         Some(_) | None => common::empty_response(StatusCode::NOT_FOUND)
     }
