@@ -4,9 +4,11 @@ import LoginView from '@/views/LoginView.vue';
 import MeasurementEditView from '@/views/MeasurementEditView.vue';
 import MeasurementListView from '@/views/MeasurementListView.vue';
 import SignUpView from '@/views/SignUpView.vue';
+import WorkoutEditView from '@/views/WorkoutEditView.vue';
 import WorkoutListView from '@/views/WorkoutListView.vue';
 import { authGuard } from './auth-guard';
 import { dateGuard } from './date-guard';
+import { uuidGuard } from './uuid-guard';
 
 export default createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -43,6 +45,12 @@ export default createRouter({
       path: '/workouts',
       component: WorkoutListView,
       beforeEnter: authGuard
+    },
+    {
+      path: '/workouts/:id',
+      component: WorkoutEditView,
+      beforeEnter: [uuidGuard, authGuard],
+      props: true
     }
   ]
 });

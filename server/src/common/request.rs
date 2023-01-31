@@ -46,6 +46,16 @@ pub fn is_uuid(id: &str) -> bool {
                     return false;
                 }
             }
+            14 => {
+                if b != b'4' {
+                    return false;
+                }
+            }
+            19 => {
+                if ![b'8', b'9', b'a', b'b', b'A', b'B'].contains(&b) {
+                    return false;
+                }
+            }
             _ => {
                 if !b.is_ascii_hexdigit() {
                     return false;

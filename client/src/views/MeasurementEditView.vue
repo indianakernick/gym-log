@@ -7,7 +7,7 @@ import { computed, shallowRef, triggerRef } from 'vue';
 import { useRouter } from 'vue-router';
 
 const props = defineProps<{
-  date: string
+  date: string;
 }>();
 
 const router = useRouter();
@@ -38,10 +38,8 @@ const availableTypes = computed(() => {
 });
 
 async function save() {
-  if (measurementSet.value) {
-    await db.stageUpdateMeasurement(measurementSet.value);
-    sync.sync();
-  }
+  await db.stageUpdateMeasurement(measurementSet.value);
+  sync.sync();
   router.back();
 }
 
@@ -79,8 +77,8 @@ const DISPLAY_TYPES: { [key in MeasurementType]: string } = {
     <h1>Edit Measurements</h1>
     <button @click="router.back()">Cancel</button>
     <button
-      @click="save()"
-      :disabled="Object.keys(measurementSet.measurements).length === 0"
+      @click="save"
+      :disabled="!Object.keys(measurementSet.measurements).length"
     >Save</button>
 
     <div>

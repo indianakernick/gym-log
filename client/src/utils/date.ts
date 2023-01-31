@@ -2,6 +2,10 @@ export function toDateString(date: Date): string {
   return toString(shift(date));
 }
 
+export function toDateTimeString(date: Date): string {
+  return date.toISOString().substring(0, 19) + 'Z';
+}
+
 export function isValidDate(dateStr: string): boolean {
   const date = new Date(dateStr);
   return !Number.isNaN(date.valueOf()) && toString(date) === dateStr;

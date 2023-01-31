@@ -101,6 +101,9 @@ export default new class {
         alert('Merge conflicts!!!');
       } else {
         // TODO: tell the current view to refresh itself somehow
+        // the user might be looking at something that has just been deleted.
+        // so we would need to make sure that we don't accidentally create it
+        // again
         return;
       }
     }

@@ -14,7 +14,7 @@ const workouts = shallowRef<Workout[]>([]);
 db.getWorkouts().then(d => workouts.value = d);
 
 function add() {
-  router.push(`/workout/${uuid()}`);
+  router.push(`/workouts/${uuid()}`);
 }
 
 function deleteWorkout(index: number) {
@@ -32,7 +32,7 @@ function deleteWorkout(index: number) {
 
     <ol>
       <li v-for="workout, i in workouts">
-        <router-link :to="`/workout/${workout.workout_id}`">
+        <router-link :to="`/workouts/${workout.workout_id}`">
           <div>
             <time v-if="workout.start_time" :d="workout.start_time">{{
               displayDateTime(workout.start_time)

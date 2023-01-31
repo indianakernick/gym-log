@@ -162,9 +162,14 @@ export default new class {
   /**
    * Stage an update-measurement request.
    */
-  async stageUpdateMeasurement(measurement: MeasurementSet): Promise<void> {
-    const db = await this.db.get();
-    await db.put('stagedMeasurement', measurement, measurement.date);
+  stageUpdateMeasurement(measurement: MeasurementSet): Promise<void> {
+    return this.stageUpdate(
+      'measurement',
+      'stagedMeasurement',
+      measurement,
+      measurement.date,
+      measurementSetEqual
+    );
   }
 
   /**
@@ -177,9 +182,14 @@ export default new class {
   /**
    * Stage an update-workout request.
    */
-  async stageUpdateWorkout(workout: Workout): Promise<void> {
-    const db = await this.db.get();
-    await db.put('stagedWorkout', workout, workout.workout_id);
+  stageUpdateWorkout(workout: Workout): Promise<void> {
+    return this.stageUpdate(
+      'workout',
+      'stagedWorkout',
+      workout,
+      workout.workout_id,
+      workoutEqual
+    );
   }
 
   /**
@@ -192,9 +202,14 @@ export default new class {
   /**
    * Stage an update-exercise request.
    */
-  async stageUpdateExercise(exercise: Exercise): Promise<void> {
-    const db = await this.db.get();
-    await db.put('stagedExercise', exercise, exercise.workout_exercise_id);
+  stageUpdateExercise(exercise: Exercise): Promise<void> {
+    return this.stageUpdate(
+      'exercise',
+      'stagedExercise',
+      exercise,
+      exercise.workout_exercise_id,
+      exerciseEqual
+    );
   }
 
   private async stageDelete<S extends keyof StagedStores>(
@@ -207,6 +222,26 @@ export default new class {
 
     if (await tx.objectStore(canon).count(id) > 0) {
       await tx.objectStore(staged).put(DELETED, id);
+    } else {
+      await tx.objectStore(staged).delete(id);
+    }
+
+    tx.commit();
+  }
+
+  private async stageUpdate<S extends keyof StagedStores>(
+    canon: S,
+    staged: StagedStores[S],
+    stagedItem: Schema[S]['value'],
+    id: Schema[S]['key'],
+    equal: (a: Schema[S]['value'], b: Schema[S]['value']) => boolean
+  ): Promise<void> {
+    const db = await this.db.get();
+    const tx = db.transaction([canon, staged], 'readwrite');
+
+    const canonItem = await tx.objectStore(canon).get(id);
+    if (!canonItem || !equal(canonItem, stagedItem)) {
+      await tx.objectStore(staged).put(stagedItem, id);
     } else {
       await tx.objectStore(staged).delete(id);
     }
@@ -690,6 +725,27 @@ export default new class {
     });
 
     return canon;
+  }
+
+  /**
+   * Get a workout with particular ID.
+   */
+  async getWorkout(workoutId: string): Promise<Workout | undefined> {
+    const db = await this.db.get();
+    const tx = db.transaction(['workout', 'stagedWorkout']);
+    const stagedStore = tx.objectStore('stagedWorkout');
+
+    const [canon, staged, stagedKeys] = await Promise.all([
+      tx.objectStore('workout').getAll(workoutId),
+      stagedStore.getAll(workoutId),
+      stagedStore.getAllKeys(workoutId)
+    ]);
+
+    this.applyStaged(canon, staged, stagedKeys, (workout, id) => {
+      return stringCompare(workout.workout_id, id);
+    });
+
+    return canon[0];
   }
 
   /**
