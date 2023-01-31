@@ -8,7 +8,8 @@ pub fn with_cors(builder: Builder) -> Builder {
     // don't think that matters much.
 
     builder
-        .header("Access-Control-Allow-Origin", "http://gymlog.indianakernick.com.s3-website-ap-southeast-2.amazonaws.com")
+        // .header("Access-Control-Allow-Origin", "http://gymlog.indianakernick.com.s3-website-ap-southeast-2.amazonaws.com")
+        .header("Access-Control-Allow-Origin", "*")
         .header("Access-Control-Allow-Methods", "OPTIONS,PUT,GET,DELETE")
         .header("Access-Control-Allow-Headers", "Authorization,Content-Type")
         .header("Access-Control-Max-Age", "86400")
