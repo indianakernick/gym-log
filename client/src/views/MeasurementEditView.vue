@@ -75,7 +75,7 @@ const DISPLAY_TYPES: { [key in MeasurementType]: string } = {
 <template>
   <main>
     <h1>Edit Measurements</h1>
-    <button @click="router.back()">Cancel</button>
+    <button @click="router.back">Cancel</button>
     <button
       @click="save"
       :disabled="!Object.keys(measurementSet.measurements).length"

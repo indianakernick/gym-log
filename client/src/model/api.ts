@@ -66,14 +66,14 @@ export type Exercise = {
   order: number;
   notes: string;
 } & ({
-  type: LiftingExerciseType;
-  sets: LiftingSet[];
+  type: RepeatingExerciseType;
+  sets: RepeatingSet[];
 } | {
-  type: BikeExerciseType;
-  sets: BikeSet[];
+  type: VariableExerciseType;
+  sets: VariableSet[];
 } | {
-  type: TreadmillExerciseType;
-  sets: TreadmillSet[];
+  type: FixedExerciseType;
+  sets: FixedSet[];
 });
 
 export function exerciseEqual(a: Exercise, b: Exercise): boolean {
@@ -90,35 +90,84 @@ export function splitWorkoutExerciseId(workoutExerciseId: Exercise['workout_exer
   };
 }
 
-export type LiftingExerciseType =
-  | 'list'
-  | 'of'
-  | 'lifting'
-  | 'exercises';
+// exercises that involve repeating an action multiple times
+export const REPEATING_EXERCISE_TYPES = [
+  'biceps-curl',
+  'chest-press',
+  'dumbbell-wrist-curl',
+  'fixed-pulldown',
+  'leg-extension',
+  'pectoral-fly',
+  'seated-row',
+  'shoulder-press',
+  'triceps-extension',
+] as const;
 
-export type BikeExerciseType =
-  | 'elliptical'
-  | 'recumbent_bike'
-  | 'upright_bike';
+export type RepeatingExerciseType = typeof REPEATING_EXERCISE_TYPES[number];
 
-export type TreadmillExerciseType = 'treadmill';
+// exercises whose speed is variable and depends on how the user performs
+export const VARIABLE_EXERCISE_TYPES = [
+  'elliptical',
+  'recumbent-bike',
+  'upright-bike',
+] as const;
+
+export type VariableExerciseType = typeof VARIABLE_EXERCISE_TYPES[number];
+
+// exercises whose speed is fixed and depends on the machine
+export const FIXED_EXERCISE_TYPES = [
+  'treadmill',
+] as const;
+
+export type FixedExerciseType = typeof FIXED_EXERCISE_TYPES[number];
+
+export type ExerciseType =
+  | RepeatingExerciseType
+  | VariableExerciseType
+  | FixedExerciseType;
+
+// TODO: is there a way to use the type system to ensure that each exercise type
+// is mentioned exactly once?
+export const EXERCISE_TYPE_GROUPS = {
+  arms: [
+    'biceps-curl',
+    'chest-press',
+    'dumbbell-wrist-curl',
+    'fixed-pulldown',
+    'pectoral-fly',
+    'seated-row',
+    'shoulder-press',
+    'triceps-extension',
+  ],
+  legs: [
+    'leg-extension',
+  ],
+  cardio: [
+    'elliptical',
+    'recumbent-bike',
+    'treadmill',
+    'upright-bike',
+  ],
+} as const satisfies { [key: string]: readonly ExerciseType[] };
+
+export type ExerciseTypeGroup = keyof typeof EXERCISE_TYPE_GROUPS;
 
 interface Set {
   set_id: string;
 }
 
-export interface LiftingSet extends Set {
+export interface RepeatingSet extends Set {
   repetitions: number;
   resistance: number;
 }
 
-export interface BikeSet extends Set {
+export interface VariableSet extends Set {
   resistance: number;
   distance: number;
   duration: number;
 }
 
-export interface TreadmillSet extends Set {
+export interface FixedSet extends Set {
   resistance: number;
   speed: number;
   // distance is calculated from speed and duration but user can override based

@@ -55,7 +55,7 @@ function addExercise() {
 <template>
   <main>
     <h1>Edit Workout</h1>
-    <button @click="router.back()">Cancel</button>
+    <button @click="router.back">Cancel</button>
     <button
       @click="save"
       :disabled="!exercises.length"
