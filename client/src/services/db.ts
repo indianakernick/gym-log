@@ -515,7 +515,7 @@ export default new class {
 
     await this.incrementVersion(tx);
 
-    const stagedItem = stagedStore.get(id);
+    const stagedItem = await stagedStore.get(id);
     if (stagedItem && 'deleted' in stagedItem) {
       await stagedStore.delete(id);
     }

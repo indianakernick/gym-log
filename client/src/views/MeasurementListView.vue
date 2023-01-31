@@ -1,7 +1,8 @@
 <script setup lang="ts">
 import db from '@/services/db';
+import sync from '@/services/sync';
 import { displayDate, toDateString } from '@/utils/date';
-import { shallowRef } from 'vue';
+import { shallowRef, triggerRef } from 'vue';
 import { useRouter } from 'vue-router';
 
 const router = useRouter();
@@ -22,6 +23,12 @@ function addPast(event: Event) {
     router.push(`/measurements/${toDateString(date)}`);
   }
 }
+
+function deleteSet(index: number) {
+  db.stageDeleteMeasurement(dates.value[index]).then(() => sync.sync());
+  dates.value.splice(index, 1);
+  triggerRef(dates);
+}
 </script>
 
 <template>
@@ -32,8 +39,9 @@ function addPast(event: Event) {
     <input type="date" :max="toDateString(new Date())" @change="addPast" />
 
     <ol>
-      <li v-for="date in dates">
+      <li v-for="date, i in dates">
         <router-link :to="`/measurements/${date}`">{{ displayDate(date) }}</router-link>
+        <button @click="deleteSet(i)">X</button>
       </li>
     </ol>
   </main>
