@@ -156,97 +156,57 @@ export default new class {
    * Stage a delete-measurement request.
    */
   stageDeleteMeasurement(date: MeasurementSet['date']): Promise<void> {
-    return this.stageDelete('measurement', 'stagedMeasurement', date);
+    return this.stageDelete('stagedMeasurement', date);
   }
 
   /**
    * Stage an update-measurement request.
    */
   stageUpdateMeasurement(measurement: MeasurementSet): Promise<void> {
-    return this.stageUpdate(
-      'measurement',
-      'stagedMeasurement',
-      measurement,
-      measurement.date,
-      measurementSetEqual
-    );
+    return this.stageUpdate('stagedMeasurement', measurement, measurement.date);
   }
 
   /**
    * Stage a delete-workout request.
    */
   stageDeleteWorkout(workoutId: Workout['workout_id']): Promise<void> {
-    return this.stageDelete('workout', 'stagedWorkout', workoutId);
+    return this.stageDelete('stagedWorkout', workoutId);
   }
 
   /**
    * Stage an update-workout request.
    */
   stageUpdateWorkout(workout: Workout): Promise<void> {
-    return this.stageUpdate(
-      'workout',
-      'stagedWorkout',
-      workout,
-      workout.workout_id,
-      workoutEqual
-    );
+    return this.stageUpdate('stagedWorkout', workout, workout.workout_id);
   }
 
   /**
    * Stage a delete-exercise request.
    */
   stageDeleteExercise(workoutExerciseId: Exercise['workout_exercise_id']): Promise<void> {
-    return this.stageDelete('exercise', 'stagedExercise', workoutExerciseId);
+    return this.stageDelete('stagedExercise', workoutExerciseId);
   }
 
   /**
    * Stage an update-exercise request.
    */
   stageUpdateExercise(exercise: Exercise): Promise<void> {
-    return this.stageUpdate(
-      'exercise',
-      'stagedExercise',
-      exercise,
-      exercise.workout_exercise_id,
-      exerciseEqual
-    );
+    return this.stageUpdate('stagedExercise', exercise, exercise.workout_exercise_id);
   }
 
   private async stageDelete<S extends keyof StagedStores>(
-    canon: S,
     staged: StagedStores[S],
     id: Schema[S]['key']
   ): Promise<void> {
-    const db = await this.db.get();
-    const tx = db.transaction([canon, staged], 'readwrite');
-
-    if (await tx.objectStore(canon).count(id) > 0) {
-      await tx.objectStore(staged).put(DELETED, id);
-    } else {
-      await tx.objectStore(staged).delete(id);
-    }
-
-    tx.commit();
+    await (await this.db.get()).put(staged, DELETED, id);
   }
 
   private async stageUpdate<S extends keyof StagedStores>(
-    canon: S,
     staged: StagedStores[S],
     stagedItem: Schema[S]['value'],
-    id: Schema[S]['key'],
-    equal: (a: Schema[S]['value'], b: Schema[S]['value']) => boolean
+    id: Schema[S]['key']
   ): Promise<void> {
-    const db = await this.db.get();
-    const tx = db.transaction([canon, staged], 'readwrite');
-
-    const canonItem = await tx.objectStore(canon).get(id);
-    if (!canonItem || !equal(canonItem, stagedItem)) {
-      await tx.objectStore(staged).put(stagedItem, id);
-    } else {
-      await tx.objectStore(staged).delete(id);
-    }
-
-    tx.commit();
+    await (await this.db.get()).put(staged, stagedItem, id);
   }
 
   // --------------- Merge remote changes with staged changes --------------- //
@@ -422,36 +382,88 @@ export default new class {
 
   /**
    * Find one staged change that's ready to push.
+   *
+   * In the process of finding a staged change, this will remove unnecessary
+   * staged changes to avoid pushing things unnecessarily.
    */
   async getNextStagedChange(): Promise<StagedChange | undefined> {
     const db = await this.db.get();
-    const tx = db.transaction(['user', 'stagedMeasurement', 'stagedWorkout', 'stagedExercise']);
+    const tx = db.transaction([
+      'user',
+      'measurement',
+      'workout',
+      'exercise',
+      'stagedMeasurement',
+      'stagedWorkout',
+      'stagedExercise'
+    ], 'readwrite');
 
-    const measurement = await tx.objectStore('stagedMeasurement').openCursor();
-    if (measurement) {
-      return {
-        version: await this.getVersion(tx),
-        measurementId: measurement.primaryKey,
-        measurement: measurement.value
-      };
-    }
+    const version = await this.getVersion(tx);
 
-    const workout = await tx.objectStore('stagedWorkout').openCursor();
-    if (workout) {
-      return {
-        version: await this.getVersion(tx),
-        workoutId: workout.primaryKey,
-        workout: workout.value
-      };
-    }
+    const measurement = await this.getStaged(
+      tx.objectStore('measurement'),
+      tx.objectStore('stagedMeasurement'),
+      measurementSetEqual,
+      (id, value) => ({
+        version,
+        measurementId: id,
+        measurement: value
+      })
+    );
+    if (measurement) return measurement;
 
-    const exercise = await tx.objectStore('stagedExercise').openCursor();
-    if (exercise) {
-      return {
-        version: await this.getVersion(tx),
-        ...splitWorkoutExerciseId(exercise.primaryKey),
-        exercise: exercise.value
-      };
+    const workout = await this.getStaged(
+      tx.objectStore('workout'),
+      tx.objectStore('stagedWorkout'),
+      workoutEqual,
+      (id, value) => ({
+        version,
+        workoutId: id,
+        workout: value
+      })
+    );
+    if (workout) return workout;
+
+    const exercise = await this.getStaged(
+      tx.objectStore('exercise'),
+      tx.objectStore('stagedExercise'),
+      exerciseEqual,
+      (id, value) => ({
+        version,
+        ...splitWorkoutExerciseId(id),
+        exercise: value
+      })
+    );
+    if (exercise) return exercise;
+
+    return undefined;
+  }
+
+  private async getStaged<S extends keyof StagedStores, T extends StoreNames<Schema>>(
+    canonStore: IDBPObjectStore<Schema, T[], S, 'readwrite'>,
+    stagedStore: IDBPObjectStore<Schema, T[], StagedStores[S], 'readwrite'>,
+    equal: (a: Schema[S]['value'], b: Schema[S]['value']) => boolean,
+    makeChange: (id: Schema[StagedStores[S]]['key'], value: Schema[StagedStores[S]]['value']) => StagedChange
+  ): Promise<StagedChange | undefined> {
+    let cursor = await stagedStore.openCursor();
+
+    while (cursor) {
+      if ('deleted' in cursor.value) {
+        if (await canonStore.count(cursor.primaryKey) > 0) {
+          return makeChange(cursor.primaryKey, cursor.value);
+        } else {
+          await cursor.delete();
+        }
+      } else {
+        const canonItem = await canonStore.get(cursor.primaryKey);
+        if (!canonItem || !equal(canonItem, cursor.value as Schema[S]['value'])) {
+          return makeChange(cursor.primaryKey, cursor.value);
+        } else {
+          await cursor.delete();
+        }
+      }
+
+      cursor = await cursor.continue();
     }
 
     return undefined;
