@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import type { Workout, Exercise } from '@/model/api';
+import { back } from '@/router/back';
 import db from '@/services/db';
 import sync from '@/services/sync';
 import { displayDateTime, toDateTimeString } from '@/utils/date';
@@ -34,7 +35,7 @@ async function save() {
   await Promise.all(exercises.value.map(e => db.stageUpdateExercise(e)));
   await Promise.all(deletedExercises.map(e => db.stageDeleteExercise(e)));
   sync.sync();
-  router.back();
+  back(router, `/workouts`);
 }
 
 function start() {
@@ -55,7 +56,7 @@ function addExercise() {
 <template>
   <main>
     <h1>Edit Workout</h1>
-    <button @click="router.back">Cancel</button>
+    <button @click="back(router, `/workouts`)">Cancel</button>
     <button
       @click="save"
       :disabled="!exercises.length"

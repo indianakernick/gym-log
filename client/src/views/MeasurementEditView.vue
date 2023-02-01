@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { MEASUREMENT_TYPES, type MeasurementSet, type MeasurementType } from '@/model/api';
+import { back } from '@/router/back';
 import db from '@/services/db';
 import sync from '@/services/sync';
 import { displayDate } from '@/utils/date';
@@ -12,7 +13,6 @@ const props = defineProps<{
 
 const router = useRouter();
 
-// Making this a shallow ref so that it can be easily written to IndexedDB.
 const measurementSet = shallowRef<MeasurementSet>({
   date: props.date,
   notes: '',
@@ -40,7 +40,7 @@ const availableTypes = computed(() => {
 async function save() {
   await db.stageUpdateMeasurement(measurementSet.value);
   sync.sync();
-  router.back();
+  back(router, `/measurements`);
 }
 
 function deleteMeasurement(type: MeasurementType) {
@@ -75,7 +75,7 @@ const DISPLAY_TYPES: { [key in MeasurementType]: string } = {
 <template>
   <main>
     <h1>Edit Measurements</h1>
-    <button @click="router.back">Cancel</button>
+    <button @click="back(router, `/measurements`)">Cancel</button>
     <button
       @click="save"
       :disabled="!Object.keys(measurementSet.measurements).length"
