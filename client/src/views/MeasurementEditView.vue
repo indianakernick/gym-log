@@ -69,7 +69,6 @@ const DISPLAY_TYPES: { [key in MeasurementType]: string } = {
   'leg-left-upper': 'Left Upper Leg (cm)',
   'leg-left-lower': 'Left Lower Leg (cm)'
 };
-
 </script>
 
 <template>

@@ -107,7 +107,7 @@ export type RepeatingExerciseType = typeof REPEATING_EXERCISE_TYPES[number];
 
 // exercises whose speed is variable and depends on how the user performs
 export const VARIABLE_EXERCISE_TYPES = [
-  'elliptical',
+  'elliptical-cross-trainer',
   'recumbent-bike',
   'upright-bike',
 ] as const;
@@ -143,7 +143,7 @@ export const EXERCISE_TYPE_GROUPS = {
     'leg-extension',
   ],
   cardio: [
-    'elliptical',
+    'elliptical-cross-trainer',
     'recumbent-bike',
     'treadmill',
     'upright-bike',
@@ -174,4 +174,28 @@ export interface FixedSet extends Set {
   // on machine display
   distance: number;
   duration: number;
+}
+
+export function getRepeatingSets(exercise: Exercise): RepeatingSet[] | undefined {
+  if (REPEATING_EXERCISE_TYPES.includes(exercise.type as RepeatingExerciseType)) {
+    return exercise.sets as RepeatingSet[];
+  } else {
+    return undefined;
+  }
+}
+
+export function getVariableSets(exercise: Exercise): VariableSet[] | undefined {
+  if (VARIABLE_EXERCISE_TYPES.includes(exercise.type as VariableExerciseType)) {
+    return exercise.sets as VariableSet[];
+  } else {
+    return undefined;
+  }
+}
+
+export function getFixedSets(exercise: Exercise): FixedSet[] | undefined {
+  if (FIXED_EXERCISE_TYPES.includes(exercise.type as FixedExerciseType)) {
+    return exercise.sets as FixedSet[];
+  } else {
+    return undefined;
+  }
 }

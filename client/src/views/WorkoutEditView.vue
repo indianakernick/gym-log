@@ -1,9 +1,12 @@
 <script setup lang="ts">
-import type { Workout, Exercise } from '@/model/api';
+import ExerciseEdit from '@/components/ExerciseEdit.vue'
+import { type Workout, type Exercise, EXERCISE_TYPE_GROUPS, type ExerciseType } from '@/model/api';
 import { back } from '@/router/back';
 import db from '@/services/db';
 import sync from '@/services/sync';
 import { displayDateTime, toDateTimeString } from '@/utils/date';
+import { EXERCISE_TYPE, EXERCISE_TYPE_GROUP } from '@/utils/i18n';
+import { uuid } from '@/utils/uuid';
 import { shallowRef, triggerRef } from 'vue';
 import { useRouter } from 'vue-router';
 
@@ -48,8 +51,20 @@ function finish() {
   triggerRef(workout);
 }
 
-function addExercise() {
-
+function addExercise(event: Event) {
+  const select = event.target as HTMLSelectElement | null;
+  if (select?.value) {
+    const type = select.value as ExerciseType;
+    select.value = '';
+    exercises.value.push({
+      workout_exercise_id: `${workout.value}#${uuid()}`,
+      order: exercises.value.length,
+      type,
+      notes: '',
+      sets: []
+    });
+    triggerRef(exercises);
+  }
 }
 </script>
 
@@ -73,11 +88,19 @@ function addExercise() {
     <button v-else @click="start">Start</button>
 
     <ol>
-      <li v-for="exercise in exercises">{{ exercise.type }}</li>
+      <li v-for="exercise in exercises">
+        <ExerciseEdit :exercise="exercise"></ExerciseEdit>
+      </li>
     </ol>
 
-    <template v-if="!workout.finish_time">
-      <button @click="addExercise">Add Exercise</button>
+    <template v-if="workout.start_time && !workout.finish_time">
+      <select @change="addExercise">
+        <option value="" disabled selected>Add exercise</option>
+        <optgroup v-for="group, name in EXERCISE_TYPE_GROUPS" :label="EXERCISE_TYPE_GROUP[name]">
+          <option v-for="ty in group" :value="ty">{{ EXERCISE_TYPE[ty] }}</option>
+        </optgroup>
+      </select>
+      <br/>
       <button @click="finish">Finish</button>
     </template>
   </main>
