@@ -819,6 +819,45 @@ export default new class {
   }
 
   /**
+   * Add a `workout` field containing the workout associated with each exercise.
+   * Assumes that the exercises are ordered by ascending `workout_exercise_id`.
+   * The resulting array is in the same order but exercises whose workout is not
+   * found (perhaps deleted) will be removed.
+   */
+  async joinWorkoutWithExercises(
+    exercises: Exercise[]
+  ): Promise<(Exercise & { workout: Workout })[]> {
+    const db = await this.db.get();
+    const tx = db.transaction(['workout', 'stagedWorkout']);
+    const canonStore = tx.objectStore('workout');
+    const stagedStore = tx.objectStore('stagedWorkout');
+    const result: (Exercise & { workout: Workout })[] = [];
+
+    for (const [i, exercise] of exercises.entries()) {
+      const workoutId = exercise.workout_exercise_id.substring(0, 36);
+
+      if (exercises[i - 1]?.workout_exercise_id.substring(0, 36) === workoutId) {
+        const workout = result[result.length - 1]?.workout;
+        if (workout?.workout_id === workoutId) {
+          result.push({ ...exercise, workout });
+        }
+        continue;
+      }
+
+      const [canon, staged] = await Promise.all([
+        canonStore.get(workoutId),
+        stagedStore.get(workoutId)
+      ]);
+
+      const workout = this.applyStagedOne(canon, staged);
+
+      if (workout) result.push({ ...exercise, workout });
+    }
+
+    return result;
+  }
+
+  /**
    * Apply the staged changes to the canonical version to materialize the local
    * version of the database.
    */
@@ -850,5 +889,16 @@ export default new class {
     canon.push(...newItems);
 
     return newItems.length;
+  }
+
+  private applyStagedOne<T extends object>(
+    canon: T | undefined,
+    staged: T | Deleted | undefined
+  ): T | undefined {
+    if (staged) {
+      return 'deleted' in staged ? undefined : staged;
+    } else {
+      return canon;
+    }
   }
 }

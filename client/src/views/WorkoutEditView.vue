@@ -57,7 +57,7 @@ function addExercise(event: Event) {
     const type = select.value as ExerciseType;
     select.value = '';
     exercises.value.push({
-      workout_exercise_id: `${workout.value}#${uuid()}`,
+      workout_exercise_id: `${workout.value.workout_id}#${uuid()}`,
       order: exercises.value.length,
       type,
       notes: '',

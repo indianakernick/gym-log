@@ -6,27 +6,38 @@ import {
   type Exercise,
   type FixedSet,
   type RepeatingSet,
-  type VariableSet
+  type VariableSet,
+  type Workout
 } from '@/model/api';
 import db from '@/services/db';
+import { stringCompare } from '@/utils/binary-search';
 import { EXERCISE_TYPE } from '@/utils/i18n';
 import { uuid } from '@/utils/uuid';
-import { ref, watchEffect } from 'vue';
+import { ref, shallowRef, watchEffect } from 'vue';
 
 const props = defineProps<{
   exercise: Exercise
 }>();
 
-let history = ref<Exercise[]>([]);
+let history = shallowRef<(Exercise & { workout: Workout })[]>([]);
 let historyIdx = ref<number>(-1);
 
 db.getExercisesOfType(props.exercise.type).then(d => {
-  // TODO: sort this
-  // use the `order` field to order exercises within the same workout
-  // otherwise use the `start_time` of their parent workout
-  // maybe exclude any exercises within the same workout
-  history.value = d;
-  historyIdx.value = d.length - 1;
+  // TODO: this can be done in O(log n) because it's ordered by ID
+  for (let i = 0; i < d.length; ++i) {
+    if (d[i].workout_exercise_id.startsWith(props.exercise.workout_exercise_id.substring(0, 36))) {
+      d.splice(i, 1);
+      --i;
+    }
+  }
+
+  db.joinWorkoutWithExercises(d).then(d => {
+    d.sort((a, b) => {
+      return stringCompare(a.workout.start_time || '', b.workout.start_time || '');
+    });
+    history.value = d;
+    historyIdx.value = d.length - 1;
+  });
 });
 
 let repeatingSets = ref<RepeatingSet[]>();
