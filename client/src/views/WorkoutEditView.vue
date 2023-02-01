@@ -88,8 +88,11 @@ function addExercise(event: Event) {
     <button v-else @click="start">Start</button>
 
     <ol>
-      <li v-for="exercise in exercises">
-        <ExerciseEdit :exercise="exercise"></ExerciseEdit>
+      <li v-for="exercise, i in exercises">
+        <ExerciseEdit
+          :exercise="exercise"
+          :read-only="!!workout.finish_time || i < exercises.length - 1"
+        ></ExerciseEdit>
       </li>
     </ol>
 

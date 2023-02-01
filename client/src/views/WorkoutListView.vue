@@ -22,6 +22,9 @@ function deleteWorkout(index: number) {
   workouts.value.splice(index);
   triggerRef(workouts);
 }
+
+// TODO: prevent the user from creating a workout if there exists one without a
+// start_time or finish_time
 </script>
 
 <template>

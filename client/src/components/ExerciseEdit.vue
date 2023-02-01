@@ -8,7 +8,8 @@ import { ref, shallowRef } from 'vue';
 import SetEdit from './SetEdit.vue';
 
 const props = defineProps<{
-  exercise: Exercise
+  exercise: Exercise;
+  readOnly?: boolean;
 }>();
 
 let history = shallowRef<(Exercise & { workout: Workout })[]>([]);
@@ -44,6 +45,10 @@ db.getExercisesOfType(props.exercise.type).then(d => {
       <template v-else>
         <button @click="--historyIdx" :disabled="historyIdx < 1">Previous</button>
         <button @click="++historyIdx" :disabled="historyIdx === history.length - 1">Next</button>
+        <!--
+          The only way for a historic workout to not have a start_time is if
+          there was a merge.
+        -->
         <time v-if="history[historyIdx].workout.start_time" :d="history[historyIdx].workout.start_time">{{
           displayDateTime(history[historyIdx].workout.start_time!)
         }}</time>
@@ -56,9 +61,10 @@ db.getExercisesOfType(props.exercise.type).then(d => {
     <div>
       <strong>Current</strong>
 
-      <SetEdit :exercise="exercise" :history="history"></SetEdit>
+      <SetEdit :exercise="exercise" :history="readOnly ? undefined : history"></SetEdit>
 
-      <div>
+      <div v-if="readOnly">{{ exercise.notes }}</div>
+      <div v-else>
         <textarea v-model.lazy="exercise.notes"></textarea>
       </div>
     </div>
