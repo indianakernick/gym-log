@@ -14,6 +14,12 @@ const workouts = shallowRef<Workout[]>([]);
 db.getWorkouts().then(d => workouts.value = d);
 
 function add() {
+  // We might get away with just looking at the first one because of the way
+  // they're sorted but merges could make things weird.
+  if (workouts.value.some(w => !w.start_time || !w.finish_time)) {
+    alert('You have incomplete workouts!');
+    return;
+  }
   router.push(`/workouts/${uuid()}`);
 }
 
@@ -22,9 +28,6 @@ function deleteWorkout(index: number) {
   workouts.value.splice(index);
   triggerRef(workouts);
 }
-
-// TODO: prevent the user from creating a workout if there exists one without a
-// start_time or finish_time
 </script>
 
 <template>

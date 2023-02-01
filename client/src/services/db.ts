@@ -784,6 +784,10 @@ export default new class {
     return canon;
   }
 
+  // TODO: is there a situation where we can use getExercisesOfType on its own
+  // without joinWorkoutWithExercises? If not, it might make sense to merge the
+  // two functions together.
+
   /**
    * Get all exercises of a particular type, ordered by ascending
    * `workout_exercise_id`.
