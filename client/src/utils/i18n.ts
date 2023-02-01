@@ -1,4 +1,17 @@
-import type { ExerciseType, ExerciseTypeGroup } from '@/model/api';
+import type { ExerciseType, ExerciseTypeGroup, MeasurementType } from '@/model/api';
+
+export const MEASUREMENT_TYPE: { [key in MeasurementType]: string } = {
+  'weight': 'Weight (kg)',
+  'height': 'Height (cm)',
+  'arm-right-upper': 'Right Upper Arm (cm)',
+  'arm-right-lower': 'Right Lower Arm (cm)',
+  'arm-left-upper': 'Left Upper Arm (cm)',
+  'arm-left-lower': 'Left Lower Arm (cm)',
+  'leg-right-upper': 'Right Upper Leg (cm)',
+  'leg-right-lower': 'Right Lower Leg (cm)',
+  'leg-left-upper': 'Left Upper Leg (cm)',
+  'leg-left-lower': 'Left Lower Leg (cm)',
+};
 
 export const EXERCISE_TYPE_GROUP: { [key in ExerciseTypeGroup]: string } = {
   arms: 'Arms',

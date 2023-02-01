@@ -4,6 +4,7 @@ import { back } from '@/router/back';
 import db from '@/services/db';
 import sync from '@/services/sync';
 import { displayDate } from '@/utils/date';
+import { MEASUREMENT_TYPE } from '@/utils/i18n';
 import { computed, shallowRef, triggerRef } from 'vue';
 import { useRouter } from 'vue-router';
 
@@ -56,19 +57,6 @@ function addMeasurement(event: Event) {
     triggerRef(measurementSet);
   }
 }
-
-const DISPLAY_TYPES: { [key in MeasurementType]: string } = {
-  'weight': 'Weight (kg)',
-  'height': 'Height (cm)',
-  'arm-right-upper': 'Right Upper Arm (cm)',
-  'arm-right-lower': 'Right Lower Arm (cm)',
-  'arm-left-upper': 'Left Upper Arm (cm)',
-  'arm-left-lower': 'Left Lower Arm (cm)',
-  'leg-right-upper': 'Right Upper Leg (cm)',
-  'leg-right-lower': 'Right Lower Leg (cm)',
-  'leg-left-upper': 'Left Upper Leg (cm)',
-  'leg-left-lower': 'Left Lower Leg (cm)'
-};
 </script>
 
 <template>
@@ -90,7 +78,7 @@ const DISPLAY_TYPES: { [key in MeasurementType]: string } = {
     <ul>
       <template v-for="ty in MEASUREMENT_TYPES">
         <li v-if="measurementSet.measurements[ty] !== undefined">
-          <label :for="`measurement-${ty}`">{{ DISPLAY_TYPES[ty] }}:</label>
+          <label :for="`measurement-${ty}`">{{ MEASUREMENT_TYPE[ty] }}:</label>
           <input
             :id="`measurement-${ty}`"
             type="number"
@@ -105,8 +93,8 @@ const DISPLAY_TYPES: { [key in MeasurementType]: string } = {
 
     <template v-if="availableTypes.length">
       <select @change="addMeasurement">
-        <option value="" disabled selected>Add a measurement</option>
-        <option v-for="t of availableTypes" :value="t">{{ DISPLAY_TYPES[t] }}</option>
+        <option value="" disabled selected>Add Measurement</option>
+        <option v-for="t of availableTypes" :value="t">{{ MEASUREMENT_TYPE[t] }}</option>
       </select>
     </template>
   </main>
