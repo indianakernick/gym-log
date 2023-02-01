@@ -17,6 +17,8 @@ let historyIdx = ref<number>(-1);
 
 db.getExercisesOfType(props.exercise.type).then(d => {
   // TODO: this can be done in O(log n) because it's ordered by ID
+  // also consider whether it makes sense to do this.
+  // should we remove this exercise or all exercises in the current workout?
   const workoutId = props.exercise.workout_exercise_id.substring(0, 36);
   for (let i = 0; i < d.length; ++i) {
     if (d[i].workout_exercise_id.startsWith(workoutId)) {
@@ -27,7 +29,9 @@ db.getExercisesOfType(props.exercise.type).then(d => {
 
   db.joinWorkoutWithExercises(d).then(d => {
     d.sort((a, b) => {
-      return stringCompare(a.workout.start_time || '', b.workout.start_time || '');
+      const time = stringCompare(a.workout.start_time || '', b.workout.start_time || '');
+      if (time !== 0) return time;
+      return a.order - b.order;
     });
     history.value = d;
     historyIdx.value = d.length - 1;

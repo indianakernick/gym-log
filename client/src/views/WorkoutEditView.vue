@@ -10,6 +10,9 @@ import { uuid } from '@/utils/uuid';
 import { shallowRef, triggerRef } from 'vue';
 import { useRouter } from 'vue-router';
 
+// TODO: support creating workouts in the past.
+// TODO: add an escape hatch to edit exercises after the workout has finished.
+
 const props = defineProps<{
   id: string;
 }>();

@@ -14,7 +14,7 @@ import { ref, watchEffect } from 'vue';
 
 const props = defineProps<{
   exercise: Exercise;
-  history?: (Exercise | { workout: Workout })[];
+  history?: (Exercise & { workout: Workout })[];
 }>();
 
 let repeatingSets = ref<RepeatingSet[]>();
@@ -27,11 +27,25 @@ watchEffect(() => {
   fixedSets.value = getFixedSets(props.exercise);
 });
 
-// TODO: Use values from previous sets and previous exercises to populate new
-// sets sane defaults
+function addSet<T>(sets: T[], set: T) {
+  // The existence of props.history indicates whether we can add sets so it must
+  // exist if we're here.
+  if (props.history!.length) {
+    const previous = props.history![props.history!.length - 1].sets as T[];
+    if (sets.length < previous.length) {
+      sets.push({ ...previous[sets.length] });
+      return;
+    }
+  }
+  if (sets.length > 0) {
+    sets.push({ ...sets[sets.length - 1] });
+    return;
+  }
+  sets.push(set);
+}
 
 function addRepeatingSet(sets: RepeatingSet[]) {
-  sets.push({
+  addSet(sets, {
     set_id: uuid(),
     repetitions: 0,
     resistance: 1
@@ -39,7 +53,7 @@ function addRepeatingSet(sets: RepeatingSet[]) {
 }
 
 function addVariableSet(sets: VariableSet[]) {
-  sets.push({
+  addSet(sets, {
     set_id: uuid(),
     resistance: 1,
     distance: 0,
@@ -48,9 +62,9 @@ function addVariableSet(sets: VariableSet[]) {
 }
 
 function addFixedSet(sets: FixedSet[]) {
-  sets.push({
+  addSet(sets, {
     set_id: uuid(),
-    resistance: 1,
+    resistance: 0,
     speed: 1,
     distance: 0,
     duration: 0
