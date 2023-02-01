@@ -95,7 +95,7 @@ function addExercise(event: Event) {
 
     <template v-if="workout.start_time && !workout.finish_time">
       <select @change="addExercise">
-        <option value="" disabled selected>Add exercise</option>
+        <option value="" disabled selected>Add Exercise</option>
         <optgroup v-for="group, name in EXERCISE_TYPE_GROUPS" :label="EXERCISE_TYPE_GROUP[name]">
           <option v-for="ty in group" :value="ty">{{ EXERCISE_TYPE[ty] }}</option>
         </optgroup>
