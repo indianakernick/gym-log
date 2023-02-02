@@ -1,16 +1,29 @@
 import type { ExerciseType, ExerciseTypeGroup, MeasurementType } from '@/model/api';
 
 export const MEASUREMENT_TYPE: { [key in MeasurementType]: string } = {
-  'weight': 'Weight (kg)',
-  'height': 'Height (cm)',
-  'arm-right-upper': 'Right Upper Arm (cm)',
-  'arm-right-lower': 'Right Lower Arm (cm)',
-  'arm-left-upper': 'Left Upper Arm (cm)',
-  'arm-left-lower': 'Left Lower Arm (cm)',
-  'leg-right-upper': 'Right Upper Leg (cm)',
-  'leg-right-lower': 'Right Lower Leg (cm)',
-  'leg-left-upper': 'Left Upper Leg (cm)',
-  'leg-left-lower': 'Left Lower Leg (cm)',
+  'weight': 'Weight',
+  'height': 'Height',
+  'arm-right-upper': 'Right Upper Arm',
+  'arm-right-lower': 'Right Lower Arm',
+  'arm-left-upper': 'Left Upper Arm',
+  'arm-left-lower': 'Left Lower Arm',
+  'leg-right-upper': 'Right Upper Leg',
+  'leg-right-lower': 'Right Lower Leg',
+  'leg-left-upper': 'Left Upper Leg',
+  'leg-left-lower': 'Left Lower Leg',
+};
+
+export const MEASUREMENT_TYPE_UNIT: { [key in MeasurementType]: string } = {
+  'weight': '(kg)',
+  'height': '(cm)',
+  'arm-right-upper': '(cm)',
+  'arm-right-lower': '(cm)',
+  'arm-left-upper': '(cm)',
+  'arm-left-lower': '(cm)',
+  'leg-right-upper': '(cm)',
+  'leg-right-lower': '(cm)',
+  'leg-left-upper': '(cm)',
+  'leg-left-lower': '(cm)',
 };
 
 export const EXERCISE_TYPE_GROUP: { [key in ExerciseTypeGroup]: string } = {
