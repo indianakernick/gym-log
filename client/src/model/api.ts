@@ -96,10 +96,13 @@ export const REPEATING_EXERCISE_TYPES = [
   'chest-press',
   'dumbbell-wrist-curl',
   'fixed-pulldown',
+  'leg-curl',
   'leg-extension',
   'pectoral-fly',
+  'seated-leg-curl',
   'seated-row',
   'shoulder-press',
+  'standing-calf',
   'triceps-extension',
 ] as const;
 
@@ -140,7 +143,10 @@ export const EXERCISE_TYPE_GROUPS = {
     'triceps-extension',
   ],
   legs: [
+    'leg-curl',
     'leg-extension',
+    'seated-leg-curl',
+    'standing-calf',
   ],
   cardio: [
     'elliptical-cross-trainer',
