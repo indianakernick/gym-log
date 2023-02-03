@@ -95,6 +95,8 @@ function setInputRef(el: HTMLInputElement | null, type: MeasurementType) {
     left-text="Cancel"
     right-text="Save"
     :right-disabled="!Object.keys(measurementSet.measurements).length"
+    @left="back(router, `/measurements`)"
+    @right="save"
   ></Header>
 
   <Main>
@@ -109,7 +111,7 @@ function setInputRef(el: HTMLInputElement | null, type: MeasurementType) {
       aria-label="Notes"
       placeholder="Notes"
       v-model.lazy="measurementSet.notes"
-      class="mx-3 my-2 p-1 resize-none rounded-lg dark:bg-neutral-700 dark:placeholder-neutral-400 focus:outline-none"
+      class="mx-3 my-2 px-2 py-1 resize-none rounded-lg dark:bg-neutral-700 dark:placeholder-neutral-400 focus:outline-none"
     ></textarea>
 
     <div
@@ -142,7 +144,7 @@ function setInputRef(el: HTMLInputElement | null, type: MeasurementType) {
             @change="setMeasurement($event, ty)"
             @focus="($event.target as HTMLInputElement | null)?.select()"
             :ref="el => setInputRef(el as any, ty)"
-            class="w-16 p-1 text-right rounded-lg dark:bg-neutral-700 dark:focus-visible:outline-blue-500"
+            class="w-16 px-2 py-1 text-right rounded-lg dark:bg-neutral-700 dark:focus-visible:outline-blue-500"
           />
 
           <div

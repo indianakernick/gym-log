@@ -23,5 +23,5 @@ button, a {
 
 #app > main {
   flex-grow: 1;
-  overflow-y: scroll;
+  overflow: hidden scroll;
 }
