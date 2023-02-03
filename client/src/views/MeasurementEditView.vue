@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import Header from '@/components/Header.vue';
 import { MEASUREMENT_TYPES, type MeasurementSet, type MeasurementType } from '@/model/api';
 import { back } from '@/router/back';
 import db from '@/services/db';
@@ -88,18 +89,12 @@ function setInputRef(el: HTMLInputElement | null, type: MeasurementType) {
 </script>
 
 <template>
-  <header class="p-3 border-b dark:border-neutral-300 border-neutral-700 grid grid-cols-header">
-    <button
-      class="mr-auto dark:text-blue-500 text-blue-600"
-      @click="back(router, `/measurements`)"
-    >Cancel</button>
-    <h1 class="font-bold text-lg text-center">Edit Measurements</h1>
-    <button
-      class="ml-auto font-bold dark:text-blue-500 text-blue-600"
-      @click="save"
-      :disabled="!Object.keys(measurementSet.measurements).length"
-    >Save</button>
-  </header>
+  <Header
+    title="Edit Measurements"
+    left-text="Cancel"
+    right-text="Save"
+    :right-disabled="!Object.keys(measurementSet.measurements).length"
+  ></Header>
 
   <main>
     <div class="flex flex-col py-2">

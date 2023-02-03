@@ -5,11 +5,7 @@ module.exports = {
     "./src/**/*.{css,vue}",
   ],
   theme: {
-    extend: {
-      gridTemplateColumns: {
-        'header': '1fr auto 1fr'
-      }
-    },
+    extend: {},
   },
   plugins: [],
 }
