@@ -6,3 +6,7 @@ html, body {
   @apply dark:bg-neutral-900;
   @apply dark:text-white;
 }
+
+button, a {
+  user-select: none;
+}

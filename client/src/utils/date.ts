@@ -8,7 +8,7 @@ export function toDateTimeString(date: Date): string {
 
 export function isValidDate(dateStr: string): boolean {
   const date = new Date(dateStr);
-  return !Number.isNaN(date.valueOf()) && toString(date) === dateStr;
+  return !Number.isNaN(+date) && toString(date) === dateStr;
 }
 
 export function displayDate(dateStr: string): string {
@@ -19,7 +19,7 @@ export function displayDateTime(dateTimeStr: string): string {
   return dateTimeFormatter.format(new Date(dateTimeStr));
 }
 
-const dateFormatter = new Intl.DateTimeFormat(undefined, { dateStyle: 'medium' });
+const dateFormatter = new Intl.DateTimeFormat(undefined, { dateStyle: 'long' });
 const dateTimeFormatter = new Intl.DateTimeFormat(undefined, {
   dateStyle: 'short',
   timeStyle: 'short'
@@ -30,5 +30,5 @@ function toString(date: Date): string {
 }
 
 function shift(date: Date): Date {
-  return new Date(date.valueOf() - date.getTimezoneOffset() * 60000);
+  return new Date(+date - date.getTimezoneOffset() * 60000);
 }

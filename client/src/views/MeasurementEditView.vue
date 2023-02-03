@@ -3,10 +3,10 @@ import { MEASUREMENT_TYPES, type MeasurementSet, type MeasurementType } from '@/
 import { back } from '@/router/back';
 import db from '@/services/db';
 import sync from '@/services/sync';
-import { displayDate } from '@/utils/date';
+import { displayDate, toDateString } from '@/utils/date';
 import { MEASUREMENT_TYPE, MEASUREMENT_TYPE_UNIT } from '@/utils/i18n';
 import { PlusIcon } from '@heroicons/vue/24/outline';
-import { nextTick, shallowRef, triggerRef } from 'vue';
+import { nextTick, ref, shallowRef, triggerRef, watch } from 'vue';
 import { useRouter } from 'vue-router';
 
 // TODO: prevent users from accidentally editing historic measurements. they
@@ -28,6 +28,28 @@ db.getMeasurementSet(props.date).then(d => {
   if (d) measurementSet.value = d;
 });
 
+const readOnly = ref(false);
+let midnightTimer: number | undefined = undefined;
+
+watch(
+  () => props.date,
+  d => {
+    const now = new Date();
+    readOnly.value = d !== toDateString(now);
+    clearTimeout(midnightTimer);
+
+    if (!readOnly.value) {
+      const midnight = new Date(now);
+      midnight.setDate(midnight.getDate() + 1);
+      midnight.setHours(0, 0, 0, 0);
+      midnightTimer = window.setTimeout(() => {
+        readOnly.value = true;
+      }, +midnight - +now);
+    }
+  },
+  { immediate: true }
+);
+
 async function save() {
   await db.stageUpdateMeasurement(measurementSet.value);
   sync.sync();
@@ -38,7 +60,7 @@ function addMeasurement(type: MeasurementType) {
   measurementSet.value.measurements[type] = 0;
   triggerRef(measurementSet);
   nextTick(() => {
-    refs.get(type)?.focus();
+    inputs.get(type)?.focus();
   });
 }
 
@@ -54,13 +76,13 @@ function setMeasurement(event: Event, type: MeasurementType) {
   }
 }
 
-const refs = new Map<MeasurementType, HTMLInputElement>();
+const inputs = new Map<MeasurementType, HTMLInputElement>();
 
 function setInputRef(el: HTMLInputElement | null, type: MeasurementType) {
   if (el) {
-    refs.set(type, el);
+    inputs.set(type, el);
   } else {
-    refs.delete(type);
+    inputs.delete(type);
   }
 }
 </script>
@@ -79,7 +101,7 @@ function setInputRef(el: HTMLInputElement | null, type: MeasurementType) {
     >Save</button>
   </header>
 
-  <main class="flex flex-col gap-2 py-2">
+  <main class="flex flex-col py-2">
     <div class="px-3 py-2 flex justify-between">
       <div>Capture Date</div>
       <time :d="props.date">{{ displayDate(props.date) }}</time>
@@ -87,52 +109,66 @@ function setInputRef(el: HTMLInputElement | null, type: MeasurementType) {
 
     <!-- TODO: make this grow and shrink based on its contents -->
     <textarea
+      v-if="!readOnly"
       aria-label="Notes"
       placeholder="Notes"
       v-model.lazy="measurementSet.notes"
-      class="mx-3 p-1 resize-none rounded-lg dark:bg-neutral-700 dark:placeholder-neutral-400 focus:outline-none"
+      class="mx-3 my-2 p-1 resize-none rounded-lg dark:bg-neutral-700 dark:placeholder-neutral-400 focus:outline-none"
     ></textarea>
 
+    <div
+      v-else-if="measurementSet.notes"
+      aria-label="Notes"
+      class="mx-3 my-2"
+    >{{ measurementSet.notes }}</div>
+
     <ul>
-      <li
-        v-for="ty in MEASUREMENT_TYPES"
-        class="px-3 py-2 flex flex-row items-center"
-      >
-        <label
-          :for="`measurement-${ty}`"
-          class="flex-grow"
+      <template v-for="ty in MEASUREMENT_TYPES">
+        <li
+          v-if="!readOnly || measurementSet.measurements[ty] !== undefined"
+          class="px-3 py-2 flex flex-row items-center"
         >
-          {{ MEASUREMENT_TYPE[ty] }}
-          <i class="text-neutral-400">{{ MEASUREMENT_TYPE_UNIT[ty] }}</i>
-        </label>
+          <label
+            :for="`measurement-${ty}`"
+            class="flex-grow"
+          >
+            {{ MEASUREMENT_TYPE[ty] }}
+            <i class="text-neutral-400">{{ MEASUREMENT_TYPE_UNIT[ty] }}</i>
+          </label>
 
-        <input
-          v-if="measurementSet.measurements[ty] !== undefined"
-          :id="`measurement-${ty}`"
-          type="number"
-          inputmode="decimal"
-          min="0"
-          :value="measurementSet.measurements[ty]"
-          @change="setMeasurement($event, ty)"
-          @focus="($event.target as HTMLInputElement | null)?.select()"
-          :ref="el => setInputRef(el as any, ty)"
-          class="w-16 text-right p-1 rounded-lg dark:bg-neutral-700 dark:focus-visible:outline-blue-500"
-        />
+          <input
+            v-if="!readOnly && measurementSet.measurements[ty] !== undefined"
+            :id="`measurement-${ty}`"
+            type="number"
+            inputmode="decimal"
+            min="0"
+            :value="measurementSet.measurements[ty]"
+            @change="setMeasurement($event, ty)"
+            @focus="($event.target as HTMLInputElement | null)?.select()"
+            :ref="el => setInputRef(el as any, ty)"
+            class="w-16 p-1 text-right rounded-lg dark:bg-neutral-700 dark:focus-visible:outline-blue-500"
+          />
 
-        <button
-          v-else
-          :id="`measurement-${ty}`"
-          @click="addMeasurement(ty)"
-          class="w-16 py-1 rounded-lg flex justify-center relative"
-        >
-          <!--
-            border-radius doesn't apply to outlines in Safari so this was the
-            next simplest thing.
-          -->
-          <div class="absolute inset-0 rounded-lg border dark:border-neutral-300"></div>
-          <PlusIcon class="w-6 h-6 dark:text-neutral-300"></PlusIcon>
-        </button>
-      </li>
+          <div
+            v-else-if="readOnly"
+            class="text-right"
+          >{{ measurementSet.measurements[ty] }}</div>
+
+          <button
+            v-else
+            :id="`measurement-${ty}`"
+            @click="addMeasurement(ty)"
+            class="w-16 py-1 rounded-lg flex justify-center relative"
+          >
+            <!--
+              border-radius doesn't apply to outlines in Safari so this was the
+              next simplest thing.
+            -->
+            <div class="absolute inset-0 rounded-lg border dark:border-neutral-300"></div>
+            <PlusIcon class="w-6 h-6 dark:text-neutral-300"></PlusIcon>
+          </button>
+        </li>
+      </template>
     </ul>
   </main>
 </template>
