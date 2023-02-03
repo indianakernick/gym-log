@@ -5,7 +5,7 @@ import db from '@/services/db';
 import sync from '@/services/sync';
 import { displayDate, toDateString } from '@/utils/date';
 import { ChevronRightIcon } from '@heroicons/vue/20/solid';
-import { PlusIcon, TrashIcon } from '@heroicons/vue/24/solid';
+import { CalendarIcon, PlusIcon, TrashIcon } from '@heroicons/vue/24/solid';
 import { ref, shallowRef, triggerRef } from 'vue';
 import { useRouter } from 'vue-router';
 
@@ -26,7 +26,13 @@ function addToday() {
 function addPast(event: Event) {
   const date = (event.target as HTMLInputElement | null)?.valueAsDate;
   if (date) {
-    router.push(`/measurements/${toDateString(date)}`);
+    // Safari doesn't support the max attribute. Also, it will emit the change
+    // event with today's date when the picker is opened.
+    const today = toDateString(new Date());
+    const selected = toDateString(date);
+    if (selected < today) {
+      router.push(`/measurements/${toDateString(date)}`);
+    }
   }
 }
 
@@ -89,20 +95,25 @@ function cancel(index: number, event: TouchEvent) {
 
 <template>
   <Header title="Measurements" @right="addToday">
+    <template #left>
+      <CalendarIcon class="w-6 h-6" />
+      <!--
+        Safari 15 doesn't support the showPicker method so we're putting the
+        date picker on top of the button.
+      -->
+      <input
+        class="opacity-0 absolute top-0 right-0"
+        type="date"
+        :max="toDateString(new Date())"
+        @change="addPast"
+      />
+    </template>
     <template #right>
       <PlusIcon class="w-6 h-6" />
     </template>
   </Header>
 
   <Main>
-    <!--
-    <input
-      type="date"
-      :max="toDateString(new Date())"
-      @change="addPast"
-    />
-    -->
-
     <ol class="my-2">
       <li
         v-for="date, i in dates"

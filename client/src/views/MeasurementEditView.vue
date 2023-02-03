@@ -92,12 +92,13 @@ function setInputRef(el: HTMLInputElement | null, type: MeasurementType) {
 <template>
   <Header
     title="Edit Measurements"
-    left-text="Cancel"
-    right-text="Save"
     :right-disabled="!Object.keys(measurementSet.measurements).length"
     @left="back(router, `/measurements`)"
     @right="save"
-  ></Header>
+  >
+    <template #left>Cancel</template>
+    <template #right>Save</template>
+  </Header>
 
   <Main>
     <div class="px-3 py-2 flex justify-between">
