@@ -10,3 +10,18 @@ html, body {
 button, a {
   user-select: none;
 }
+
+#app {
+  height: 100dvh;
+  display: flex;
+  flex-direction: column;
+}
+
+#app > header {
+  flex-shrink: 0;
+}
+
+#app > main {
+  flex-grow: 1;
+  overflow-y: scroll;
+}

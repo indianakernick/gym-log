@@ -101,74 +101,76 @@ function setInputRef(el: HTMLInputElement | null, type: MeasurementType) {
     >Save</button>
   </header>
 
-  <main class="flex flex-col py-2">
-    <div class="px-3 py-2 flex justify-between">
-      <div>Capture Date</div>
-      <time :d="props.date">{{ displayDate(props.date) }}</time>
+  <main>
+    <div class="flex flex-col py-2">
+      <div class="px-3 py-2 flex justify-between">
+        <div>Capture Date</div>
+        <time :d="props.date">{{ displayDate(props.date) }}</time>
+      </div>
+
+      <!-- TODO: make this grow and shrink based on its contents -->
+      <textarea
+        v-if="!readOnly"
+        aria-label="Notes"
+        placeholder="Notes"
+        v-model.lazy="measurementSet.notes"
+        class="mx-3 my-2 p-1 resize-none rounded-lg dark:bg-neutral-700 dark:placeholder-neutral-400 focus:outline-none"
+      ></textarea>
+
+      <div
+        v-else-if="measurementSet.notes"
+        aria-label="Notes"
+        class="mx-3 my-2"
+      >{{ measurementSet.notes }}</div>
+
+      <ul>
+        <template v-for="ty in MEASUREMENT_TYPES">
+          <li
+            v-if="!readOnly || measurementSet.measurements[ty] !== undefined"
+            class="px-3 py-2 flex flex-row items-center"
+          >
+            <label
+              :for="`measurement-${ty}`"
+              class="flex-grow"
+            >
+              {{ MEASUREMENT_TYPE[ty] }}
+              <i class="text-neutral-400">{{ MEASUREMENT_TYPE_UNIT[ty] }}</i>
+            </label>
+
+            <input
+              v-if="!readOnly && measurementSet.measurements[ty] !== undefined"
+              :id="`measurement-${ty}`"
+              type="number"
+              inputmode="decimal"
+              min="0"
+              :value="measurementSet.measurements[ty]"
+              @change="setMeasurement($event, ty)"
+              @focus="($event.target as HTMLInputElement | null)?.select()"
+              :ref="el => setInputRef(el as any, ty)"
+              class="w-16 p-1 text-right rounded-lg dark:bg-neutral-700 dark:focus-visible:outline-blue-500"
+            />
+
+            <div
+              v-else-if="readOnly"
+              class="text-right"
+            >{{ measurementSet.measurements[ty] }}</div>
+
+            <button
+              v-else
+              :id="`measurement-${ty}`"
+              @click="addMeasurement(ty)"
+              class="w-16 py-1 rounded-lg flex justify-center relative"
+            >
+              <!--
+                border-radius doesn't apply to outlines in Safari so this was the
+                next simplest thing.
+              -->
+              <div class="absolute inset-0 rounded-lg border dark:border-neutral-300"></div>
+              <PlusIcon class="w-6 h-6 dark:text-neutral-300"></PlusIcon>
+            </button>
+          </li>
+        </template>
+      </ul>
     </div>
-
-    <!-- TODO: make this grow and shrink based on its contents -->
-    <textarea
-      v-if="!readOnly"
-      aria-label="Notes"
-      placeholder="Notes"
-      v-model.lazy="measurementSet.notes"
-      class="mx-3 my-2 p-1 resize-none rounded-lg dark:bg-neutral-700 dark:placeholder-neutral-400 focus:outline-none"
-    ></textarea>
-
-    <div
-      v-else-if="measurementSet.notes"
-      aria-label="Notes"
-      class="mx-3 my-2"
-    >{{ measurementSet.notes }}</div>
-
-    <ul>
-      <template v-for="ty in MEASUREMENT_TYPES">
-        <li
-          v-if="!readOnly || measurementSet.measurements[ty] !== undefined"
-          class="px-3 py-2 flex flex-row items-center"
-        >
-          <label
-            :for="`measurement-${ty}`"
-            class="flex-grow"
-          >
-            {{ MEASUREMENT_TYPE[ty] }}
-            <i class="text-neutral-400">{{ MEASUREMENT_TYPE_UNIT[ty] }}</i>
-          </label>
-
-          <input
-            v-if="!readOnly && measurementSet.measurements[ty] !== undefined"
-            :id="`measurement-${ty}`"
-            type="number"
-            inputmode="decimal"
-            min="0"
-            :value="measurementSet.measurements[ty]"
-            @change="setMeasurement($event, ty)"
-            @focus="($event.target as HTMLInputElement | null)?.select()"
-            :ref="el => setInputRef(el as any, ty)"
-            class="w-16 p-1 text-right rounded-lg dark:bg-neutral-700 dark:focus-visible:outline-blue-500"
-          />
-
-          <div
-            v-else-if="readOnly"
-            class="text-right"
-          >{{ measurementSet.measurements[ty] }}</div>
-
-          <button
-            v-else
-            :id="`measurement-${ty}`"
-            @click="addMeasurement(ty)"
-            class="w-16 py-1 rounded-lg flex justify-center relative"
-          >
-            <!--
-              border-radius doesn't apply to outlines in Safari so this was the
-              next simplest thing.
-            -->
-            <div class="absolute inset-0 rounded-lg border dark:border-neutral-300"></div>
-            <PlusIcon class="w-6 h-6 dark:text-neutral-300"></PlusIcon>
-          </button>
-        </li>
-      </template>
-    </ul>
   </main>
 </template>
