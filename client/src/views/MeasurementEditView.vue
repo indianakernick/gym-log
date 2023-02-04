@@ -8,6 +8,7 @@ import sync from '@/services/sync';
 import { displayDate, toDateString } from '@/utils/date';
 import { MEASUREMENT_TYPE, MEASUREMENT_TYPE_UNIT } from '@/utils/i18n';
 import { PlusIcon } from '@heroicons/vue/24/outline';
+import { TrashIcon } from '@heroicons/vue/20/solid';
 import { nextTick, ref, shallowRef, triggerRef, watch } from 'vue';
 import { useRouter } from 'vue-router';
 
@@ -87,6 +88,14 @@ function setInputRef(el: HTMLInputElement | null, type: MeasurementType) {
     inputs.delete(type);
   }
 }
+
+async function deleteSet() {
+  if (confirm(`Delete measurements for ${displayDate(props.date)}?`)) {
+    await db.stageDeleteMeasurement(props.date);
+    sync.sync();
+    back(router, `/measurements`);
+  }
+}
 </script>
 
 <template>
@@ -157,17 +166,26 @@ function setInputRef(el: HTMLInputElement | null, type: MeasurementType) {
             v-else
             :id="`measurement-${ty}`"
             @click="addMeasurement(ty)"
-            class="w-16 py-1 rounded-lg flex justify-center relative"
+            class="w-16 py-1 rounded-lg flex justify-center relative dark:bg-neutral-800"
           >
             <!--
               border-radius doesn't apply to outlines in Safari so this was the
               next simplest thing.
             -->
-            <div class="absolute inset-0 rounded-lg border dark:border-neutral-300"></div>
+            <div class="absolute inset-0 rounded-lg border dark:border-neutral-600"></div>
             <PlusIcon class="w-6 h-6 dark:text-neutral-300"></PlusIcon>
           </button>
         </li>
       </template>
     </ul>
+
+    <button
+      @click="deleteSet"
+      class="relative py-2 rounded-lg text-red-500 font-bold mx-3 my-2 flex items-center justify-center gap-1 dark:bg-neutral-800"
+    >
+      <div class="absolute inset-0 rounded-lg border dark:border-neutral-600"></div>
+      <TrashIcon class="w-5 h-5" />
+      Delete
+    </button>
   </Main>
 </template>
