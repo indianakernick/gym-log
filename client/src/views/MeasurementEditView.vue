@@ -29,7 +29,11 @@ const measurementSet = shallowRef<MeasurementSet>({
 });
 
 db.getMeasurementSet(props.date).then(d => {
-  if (d) measurementSet.value = d;
+  if (d) {
+    measurementSet.value = d;
+  } else {
+    readOnly.value = false;
+  }
 });
 
 // Measurements for today are editable. They become read-only at midnight.
