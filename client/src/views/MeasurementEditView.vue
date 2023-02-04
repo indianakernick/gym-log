@@ -13,11 +13,8 @@ import { displayDate, toDateString } from '@/utils/date';
 import { MEASUREMENT_TYPE, MEASUREMENT_TYPE_UNIT } from '@/utils/i18n';
 import { TrashIcon } from '@heroicons/vue/20/solid';
 import { PlusIcon } from '@heroicons/vue/24/outline';
-import { nextTick, ref, shallowRef, triggerRef, watch } from 'vue';
+import { nextTick, onUnmounted, ref, shallowRef, triggerRef } from 'vue';
 import { useRouter } from 'vue-router';
-
-// TODO: prevent users from accidentally editing historic measurements. they
-// should still be able to do it if they want to, but don't make it too easy
 
 const props = defineProps<{
   date: string;
@@ -35,30 +32,36 @@ db.getMeasurementSet(props.date).then(d => {
   if (d) measurementSet.value = d;
 });
 
-const readOnly = ref(false);
+// Measurements for today are editable. They become read-only at midnight.
+const now = new Date();
+const readOnly = ref(props.date !== toDateString(now));
 let midnightTimer: number | undefined = undefined;
 
-watch(
-  () => props.date,
-  d => {
-    const now = new Date();
-    readOnly.value = d !== toDateString(now);
-    clearTimeout(midnightTimer);
+if (!readOnly.value) {
+  const midnight = new Date(now);
+  midnight.setDate(midnight.getDate() + 1);
+  midnight.setHours(0, 0, 0, 0);
+  midnightTimer = window.setTimeout(() => {
+    readOnly.value = true;
+  }, +midnight - +now);
+}
 
-    if (!readOnly.value) {
-      const midnight = new Date(now);
-      midnight.setDate(midnight.getDate() + 1);
-      midnight.setHours(0, 0, 0, 0);
-      midnightTimer = window.setTimeout(() => {
-        readOnly.value = true;
-      }, +midnight - +now);
-    }
-  },
-  { immediate: true }
-);
+onUnmounted(() => {
+  clearTimeout(midnightTimer);
+});
 
-async function save() {
-  await db.stageUpdateMeasurement(measurementSet.value);
+function edit() {
+  if (confirm(`Edit measurements for ${displayDate(props.date)}?`)) {
+    readOnly.value = false;
+  }
+}
+
+async function done() {
+  if (!measurementSet.value.notes && !Object.keys(measurementSet.value.measurements).length) {
+    await db.stageDeleteMeasurement(measurementSet.value.date);
+  } else {
+    await db.stageUpdateMeasurement(measurementSet.value);
+  }
   sync.sync();
   back(router, `/measurements`);
 }
@@ -105,12 +108,11 @@ async function deleteSet() {
 <template>
   <Header
     title="Edit Measurements"
-    :right-disabled="!Object.keys(measurementSet.measurements).length"
-    @left="back(router, `/measurements`)"
-    @right="save"
+    @left="edit"
+    @right="done"
   >
-    <template #left>Cancel</template>
-    <template #right>Save</template>
+    <template v-if="readOnly" #left>Edit</template>
+    <template #right>Done</template>
   </Header>
 
   <Main>

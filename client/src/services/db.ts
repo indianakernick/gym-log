@@ -695,13 +695,17 @@ export default new class {
       );
       const stagedItem = staged[stagedIdx];
 
-      if ('deleted' in stagedItem) {
-        canonKeys.splice(canonIdx, 1);
-        start = canonIdx;
-      } else if (canonIdx !== -1) {
-        start = canonIdx + 1;
+      if (canonIdx === -1) {
+        if (!('deleted' in stagedItem)) {
+          newDates.push(id);
+        }
       } else {
-        newDates.push(id);
+        if ('deleted' in stagedItem) {
+          canonKeys.splice(canonIdx, 1);
+          start = canonIdx;
+        } else {
+          start = canonIdx + 1;
+        }
       }
     }
 
@@ -879,14 +883,18 @@ export default new class {
       const canonIdx = binarySearch(canon, start, canon.length, item => compare(item, id));
       const stagedItem = staged[stagedIdx];
 
-      if ('deleted' in stagedItem) {
-        canon.splice(canonIdx, 1);
-        start = canonIdx;
-      } else if (canonIdx !== -1) {
-        canon[canonIdx] = stagedItem;
-        start = canonIdx + 1;
+      if (canonIdx === -1) {
+        if (!('deleted' in stagedItem)) {
+          newItems.push(stagedItem);
+        }
       } else {
-        newItems.push(stagedItem);
+        if ('deleted' in stagedItem) {
+          canon.splice(canonIdx, 1);
+          start = canonIdx;
+        } else {
+          canon[canonIdx] = stagedItem;
+          start = canonIdx + 1;
+        }
       }
     }
 
