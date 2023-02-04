@@ -34,6 +34,11 @@ db.getMeasurementSet(props.date).then(d => {
   } else {
     readOnly.value = false;
   }
+  nextTick(() => {
+    if (notesArea.value) {
+      setHeight(notesArea.value);
+    }
+  })
 });
 
 // Measurements for today are editable. They become read-only at midnight.
@@ -107,6 +112,17 @@ async function deleteSet() {
     back(router, `/measurements`);
   }
 }
+
+const notesArea = ref<HTMLTextAreaElement>();
+
+function updateHeight(event: Event) {
+  setHeight(event.target as HTMLTextAreaElement);
+}
+
+function setHeight(area: HTMLTextAreaElement) {
+  area.style.height = '';
+  area.style.height = area.scrollHeight + 'px';
+}
 </script>
 
 <template>
@@ -125,11 +141,12 @@ async function deleteSet() {
       <time :d="props.date">{{ displayDate(props.date) }}</time>
     </div>
 
-    <!-- TODO: make this grow and shrink based on its contents -->
     <textarea
       v-if="!readOnly"
       aria-label="Notes"
       placeholder="Notes"
+      ref="notesArea"
+      @input="updateHeight"
       v-model.lazy="measurementSet.notes"
       class="mx-3 my-2 px-2 py-1 resize-none rounded-lg dark:bg-neutral-700
         dark:placeholder-neutral-400 focus:outline-none"
