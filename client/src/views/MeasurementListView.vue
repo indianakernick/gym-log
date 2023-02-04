@@ -2,11 +2,10 @@
 import Header from '@/components/Header.vue';
 import Main from '@/components/Main.vue';
 import db from '@/services/db';
-import sync from '@/services/sync';
 import { displayDate, toDateString } from '@/utils/date';
 import { ChevronRightIcon } from '@heroicons/vue/20/solid';
-import { CalendarIcon, PlusIcon, TrashIcon } from '@heroicons/vue/24/solid';
-import { ref, shallowRef, triggerRef } from 'vue';
+import { CalendarIcon, PlusIcon } from '@heroicons/vue/24/solid';
+import { shallowRef } from 'vue';
 import { useRouter } from 'vue-router';
 
 const router = useRouter();
@@ -44,7 +43,7 @@ function addPast(event: Event) {
         date picker on top of the button.
       -->
       <input
-        class="opacity-0 absolute top-0 bottom-0 right-0"
+        class="absolute top-0 right-0 bottom-0 opacity-0"
         type="date"
         :max="toDateString(new Date())"
         @change="addPast"
@@ -56,14 +55,15 @@ function addPast(event: Event) {
   </Header>
 
   <Main>
-    <ol class="my-2">
+    <ol class="my-2 mx-3">
       <li
-        v-for="date, i in dates"
-        class="border-t last:border-b border-neutral-500"
+        v-for="date in dates"
+        class="border-t border-r last:border-b border-l first:rounded-t-lg
+          last:rounded-b-lg dark:border-neutral-600 dark:bg-neutral-800"
       >
         <button
-          class="px-3 py-2 w-full flex justify-between items-center"
           @click="router.push(`/measurements/${date}`)"
+          class="px-3 py-2 w-full flex justify-between items-center"
         >
           {{ displayDate(date) }}
           <ChevronRightIcon class="w-5 h-5 text-neutral-500" />
