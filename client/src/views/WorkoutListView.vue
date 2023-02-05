@@ -6,7 +6,7 @@ import Main from '@/components/Main.vue';
 import type { Workout } from '@/model/api';
 import db from '@/services/db';
 import { groupByFiltered } from '@/utils/array';
-import { displayDateTime } from '@/utils/date';
+import { displayDateTime, displayTime } from '@/utils/date';
 import { uuid } from '@/utils/uuid';
 import { PlusIcon } from '@heroicons/vue/24/outline';
 import { shallowRef } from 'vue';
@@ -72,15 +72,21 @@ function deleteWorkout(index: number) {
           >
             <div class="min-w-0">
               <div>
-                <time v-if="workout.start_time" :d="workout.start_time">{{
-                  displayDateTime(workout.start_time)
-                }}</time>
+                <template v-if="workout.start_time">
+                  <time :d="workout.start_time">{{
+                    displayDateTime(workout.start_time)
+                  }}</time>
+                  -
+                  <time v-if="workout.finish_time" :d="workout.finish_time">{{
+                    // If the workout started and finished on the same day,
+                    // don't show the date twice.
+                    workout.start_time.substring(0, 10) === workout.finish_time.substring(0, 10)
+                      ? displayTime(workout.finish_time)
+                      : displayDateTime(workout.finish_time)
+                  }}</time>
+                  <i v-else>Not finished</i>
+                </template>
                 <i v-else>Not started</i>
-                -
-                <time v-if="workout.finish_time" :d="workout.finish_time">{{
-                  displayDateTime(workout.finish_time)
-                }}</time>
-                <i v-else>Not finished</i>
               </div>
               <div
                 v-if="workout.notes"

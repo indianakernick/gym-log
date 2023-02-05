@@ -19,11 +19,16 @@ export function displayDateTime(dateTimeStr: string): string {
   return dateTimeFormatter.format(new Date(dateTimeStr));
 }
 
+export function displayTime(dateTimeStr: string): string {
+  return timeFormatter.format(new Date(dateTimeStr));
+}
+
 const dateFormatter = new Intl.DateTimeFormat(undefined, { dateStyle: 'long' });
 const dateTimeFormatter = new Intl.DateTimeFormat(undefined, {
   dateStyle: 'short',
   timeStyle: 'short'
 });
+const timeFormatter = new Intl.DateTimeFormat(undefined, { timeStyle: 'short' });
 
 function toString(date: Date): string {
   return date.toISOString().substring(0, 10);
