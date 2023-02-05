@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import Header from '@/components/Header.vue';
+import ListItem from '@/components/ListItem.vue';
 import Main from '@/components/Main.vue';
 import db from '@/services/db';
 import { displayDate, toDateString } from '@/utils/date';
@@ -75,23 +76,13 @@ function addPast(event: Event) {
     <ol>
       <li
         v-for="year in years"
-        class="py-2 mx-3"
         :aria-label="year[0].substring(0, 4)"
       >
-        <ol>
-          <li
+        <ol class="py-2 mx-3">
+          <ListItem
             v-for="date in year"
-            class="border-t border-r last:border-b border-l first:rounded-t-lg
-              last:rounded-b-lg dark:border-neutral-600 dark:bg-neutral-800"
-          >
-            <button
-              @click="router.push(`/measurements/${date}`)"
-              class="px-3 py-2 w-full flex justify-between items-center"
-            >
-              {{ displayDate(date) }}
-              <ChevronRightIcon class="w-5 h-5 text-neutral-500" />
-            </button>
-          </li>
+            @click="router.push(`/measurements/${date}`)"
+          >{{ displayDate(date) }}</ListItem>
         </ol>
       </li>
     </ol>

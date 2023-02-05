@@ -1,12 +1,12 @@
 <script setup lang="ts">
 import Header from '@/components/Header.vue';
+import ListItem from '@/components/ListItem.vue';
 import Main from '@/components/Main.vue';
 import type { Workout } from '@/model/api';
 import db from '@/services/db';
 import sync from '@/services/sync';
 import { displayDateTime } from '@/utils/date';
 import { uuid } from '@/utils/uuid';
-import { ChevronRightIcon } from '@heroicons/vue/20/solid';
 import { PlusIcon } from '@heroicons/vue/24/outline';
 import { shallowRef, triggerRef } from 'vue';
 import { useRouter } from 'vue-router';
@@ -43,36 +43,30 @@ function deleteWorkout(index: number) {
   </Header>
 
   <Main>
-    <ol class="mx-3 my-2">
-      <li
+    <ol class="py-2 mx-3">
+      <ListItem
         v-for="workout in workouts"
-        class="border-t border-r last:border-b border-l first:rounded-t-lg
-          last:rounded-b-lg dark:border-neutral-600 dark:bg-neutral-800"
+        @click="router.push(`/workouts/${workout.workout_id}`)"
       >
-        <button
-          @click="router.push(`/workouts/${workout.workout_id}`)"
-          class="px-3 py-2 w-full flex justify-between items-center"
-        >
-          <div class="min-w-0">
-            <div class="text-left">
-              <time v-if="workout.start_time" :d="workout.start_time">{{
-                displayDateTime(workout.start_time)
-              }}</time>
-              <i v-else>Not started</i>
-              -
-              <time v-if="workout.finish_time" :d="workout.finish_time">{{
-                displayDateTime(workout.finish_time)
-              }}</time>
-              <i v-else>Not finished</i>
-            </div>
-            <div
-              v-if="workout.notes"
-              class="dark:text-neutral-400 text-sm text-left text-ellipsis overflow-hidden whitespace-nowrap max-w-full min-w-0"
-            >{{ workout.notes }}</div>
+        <div class="min-w-0">
+          <div>
+            <time v-if="workout.start_time" :d="workout.start_time">{{
+              displayDateTime(workout.start_time)
+            }}</time>
+            <i v-else>Not started</i>
+            -
+            <time v-if="workout.finish_time" :d="workout.finish_time">{{
+              displayDateTime(workout.finish_time)
+            }}</time>
+            <i v-else>Not finished</i>
           </div>
-          <ChevronRightIcon class="w-5 h-5 shrink-0 dark:text-neutral-500"></ChevronRightIcon>
-        </button>
-      </li>
+          <div
+            v-if="workout.notes"
+            class="text-sm text-ellipsis overflow-hidden whitespace-nowrap
+              dark:text-neutral-400"
+          >{{ workout.notes }}</div>
+        </div>
+      </ListItem>
     </ol>
   </Main>
 </template>
