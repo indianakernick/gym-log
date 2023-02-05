@@ -25,7 +25,7 @@ import {
   type StoreNames
 } from 'idb';
 import { AsyncInit } from '@/utils/async-init';
-import { binarySearch, stringCompare } from '@/utils/binary-search';
+import { binarySearch, stringCompare } from '@/utils/array';
 
 // When the user is making changes to their data, the changes are written to a
 // staging area. The staging area stores the difference between the local copy

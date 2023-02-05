@@ -4,7 +4,7 @@ import ListGroup from '@/components/ListGroup.vue';
 import ListItem from '@/components/ListItem.vue';
 import Main from '@/components/Main.vue';
 import db from '@/services/db';
-import { groupBy } from '@/utils/binary-search';
+import { groupBy } from '@/utils/array';
 import { displayDate, toDateString } from '@/utils/date';
 import { CalendarIcon, PlusIcon } from '@heroicons/vue/24/solid';
 import { shallowRef } from 'vue';

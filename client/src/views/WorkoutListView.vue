@@ -5,7 +5,7 @@ import ListItem from '@/components/ListItem.vue';
 import Main from '@/components/Main.vue';
 import type { Workout } from '@/model/api';
 import db from '@/services/db';
-import { groupByFiltered } from '@/utils/binary-search';
+import { groupByFiltered } from '@/utils/array';
 import { displayDateTime } from '@/utils/date';
 import { uuid } from '@/utils/uuid';
 import { PlusIcon } from '@heroicons/vue/24/outline';
@@ -18,19 +18,11 @@ const workouts = shallowRef<Workout[][]>([]);
 let hasIncomplete = false;
 
 db.getWorkouts().then(d => {
-  const incomplete: Workout[] = [];
+  // For extracting out the incomplete workouts, we might get away with only
+  // looking at the first element because of the way they're sorted but merges
+  // could make things weird so we'll check the whole array.
 
-  // We might get away with just looking at the first one because of the way
-  // they're sorted but merges could make things weird.
-  for (const workout of d) {
-    if (!workout.start_time || !workout.finish_time) {
-      incomplete.push(workout);
-    }
-  }
-
-  hasIncomplete = !!incomplete.length;
-
-  const groups = groupByFiltered(d, workout => {
+  const { groups, filtered } = groupByFiltered(d, workout => {
     if (workout.start_time && workout.finish_time) {
       return workout.start_time.substring(0, 4);
     } else {
@@ -38,10 +30,8 @@ db.getWorkouts().then(d => {
     }
   });
 
-  if (incomplete.length) {
-    groups.unshift(incomplete);
-  }
-
+  hasIncomplete = !!filtered.length;
+  if (hasIncomplete) groups.unshift(filtered);
   workouts.value = groups;
 });
 

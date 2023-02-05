@@ -33,18 +33,20 @@ export function groupBy<T, U>(
 
   if (array.length > 0) {
     let previous = getKey(array[0]);
+    let shift = 0;
 
     for (let i = 1; i < array.length; ++i) {
       const current = getKey(array[i]);
 
       if (current !== previous) {
-        groups.push(array.splice(0, i));
+        const group = array.slice(shift, i);
+        groups.push(group);
+        shift += group.length;
         previous = current;
-        i = 0;
       }
     }
 
-    groups.push(array);
+    groups.push(array.slice(shift));
   }
 
   return groups;
@@ -53,24 +55,28 @@ export function groupBy<T, U>(
 export function groupByFiltered<T, U>(
   array: T[],
   getKey: (element: T) => U | undefined,
-): T[][] {
+): {
+  groups: T[][];
+  filtered: T[];
+} {
   const groups: T[][] = [];
+  const filtered: T[] = [];
 
   if (array.length > 0) {
     let previous = getKey(array[0]);
 
     while (previous === undefined) {
-      array.splice(0, 1);
+      filtered.push(...array.splice(0, 1));
       previous = getKey(array[0]);
     }
 
-    if (array.length === 0) return [];
+    if (array.length === 0) return { groups, filtered };
 
     for (let i = 1; i < array.length; ++i) {
       const current = getKey(array[i]);
 
       if (current === undefined) {
-        array.splice(i, 1);
+        filtered.push(...array.splice(0, 1));
         --i;
       } else if (current !== previous) {
         groups.push(array.splice(0, i));
@@ -82,5 +88,5 @@ export function groupByFiltered<T, U>(
     if (array.length) groups.push(array);
   }
 
-  return groups;
+  return { groups, filtered };
 }

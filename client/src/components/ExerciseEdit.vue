@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import type { Exercise, Workout } from '@/model/api';
 import db from '@/services/db';
-import { stringCompare } from '@/utils/binary-search';
+import { stringCompare } from '@/utils/array';
 import { displayDateTime } from '@/utils/date';
 import { EXERCISE_TYPE } from '@/utils/i18n';
 import { ref, shallowRef } from 'vue';
