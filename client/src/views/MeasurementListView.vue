@@ -1,10 +1,11 @@
 <script setup lang="ts">
 import Header from '@/components/Header.vue';
+import ListGroup from '@/components/ListGroup.vue';
 import ListItem from '@/components/ListItem.vue';
 import Main from '@/components/Main.vue';
 import db from '@/services/db';
+import { groupBy } from '@/utils/binary-search';
 import { displayDate, toDateString } from '@/utils/date';
-import { ChevronRightIcon } from '@heroicons/vue/20/solid';
 import { CalendarIcon, PlusIcon } from '@heroicons/vue/24/solid';
 import { shallowRef } from 'vue';
 import { useRouter } from 'vue-router';
@@ -14,24 +15,7 @@ const router = useRouter();
 const years = shallowRef<string[][]>([]);
 
 db.getMeasurementDates().then(d => {
-  const groups: string[][] = [];
-
-  if (d.length > 0) {
-    let previous = d[0].substring(0, 4);
-
-    for (let i = 1; i < d.length; ++i) {
-      const current = d[i].substring(0, 4);
-      if (current !== previous) {
-        groups.push(d.splice(0, i));
-        previous = current;
-        i = 0;
-      }
-    }
-
-    groups.push(d);
-  }
-
-  years.value = groups;
+  years.value = groupBy(d, date => date.substring(0, 4));
 });
 
 function addToday() {
@@ -78,12 +62,12 @@ function addPast(event: Event) {
         v-for="year in years"
         :aria-label="year[0].substring(0, 4)"
       >
-        <ol class="py-2 mx-3">
+        <ListGroup>
           <ListItem
             v-for="date in year"
             @click="router.push(`/measurements/${date}`)"
           >{{ displayDate(date) }}</ListItem>
-        </ol>
+        </ListGroup>
       </li>
     </ol>
   </Main>
