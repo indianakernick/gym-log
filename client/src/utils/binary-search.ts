@@ -5,7 +5,7 @@ export function binarySearch<T>(
   compare: (element: T) => number
 ): number {
   while (start < end) {
-    const middle = (start + (end - start) / 2) | 0;
+    const middle = start + ((end - start) >> 1);
     const diff = compare(array[middle])
 
     if (diff < 0) {
