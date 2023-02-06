@@ -126,7 +126,12 @@ async function deleteSet() {
       <time :d="props.date">{{ displayDate(props.date) }}</time>
     </div>
 
-    <TextArea v-model="measurementSet.notes" label="Notes" :read-only="readOnly"></TextArea>
+    <TextArea
+      v-model="measurementSet.notes"
+      label="Notes"
+      :read-only="readOnly"
+      class="mx-3 my-2"
+    ></TextArea>
 
     <ul>
       <template v-for="ty in MEASUREMENT_TYPES">

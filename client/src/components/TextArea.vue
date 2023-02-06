@@ -37,13 +37,12 @@ watch(
     :value="modelValue"
     @input="setHeight($event.target as HTMLTextAreaElement)"
     @change="$emit('update:modelValue', ($event.target as HTMLTextAreaElement).value)"
-    class="mx-3 my-2 px-2 py-1 resize-none rounded-lg dark:bg-neutral-700
+    class="px-2 py-1 resize-none rounded-lg dark:bg-neutral-700
       dark:placeholder-neutral-400 focus:outline-none"
   ></textarea>
 
   <div
     v-else-if="modelValue"
     :aria-label="label"
-    class="mx-3 my-2"
   >{{ modelValue }}</div>
 </template>

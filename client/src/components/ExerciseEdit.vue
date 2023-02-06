@@ -4,6 +4,7 @@ import db from '@/services/db';
 import { stringCompare } from '@/utils/array';
 import { displayDateTime } from '@/utils/date';
 import { EXERCISE_TYPE } from '@/utils/i18n';
+import { ChevronDownIcon, ChevronUpIcon } from '@heroicons/vue/24/outline';
 import { ref, shallowRef } from 'vue';
 import SetEdit from './SetEdit.vue';
 
@@ -40,15 +41,29 @@ db.getExercisesOfType(props.exercise.type).then(d => {
 </script>
 
 <template>
-  <div>
-    <strong>{{ EXERCISE_TYPE[exercise.type] }}</strong>
-    <div>
-      <strong>History</strong>
-      <br/>
-      <i v-if="historyIdx === -1">You've never done this exercise before</i>
-      <template v-else>
-        <button @click="--historyIdx" :disabled="historyIdx < 1">Previous</button>
-        <button @click="++historyIdx" :disabled="historyIdx === history.length - 1">Next</button>
+  <div class="mx-3 rounded-lg dark:bg-neutral-800 border dark:border-neutral-600">
+    <h2 class="p-2 font-bold border-b dark:border-neutral-600">{{ EXERCISE_TYPE[exercise.type] }}</h2>
+
+    <div v-if="historyIdx === -1" class="p-2 border-b dark:border-neutral-600">
+      <i>You've never done this exercise before</i>
+    </div>
+
+    <template v-else>
+      <div class="p-2 border-b dark:border-neutral-600 flex items-center">
+        <button
+          @click="--historyIdx"
+          :disabled="historyIdx < 1"
+          class="mr-3 disabled:text-neutral-600"
+        >
+          <ChevronUpIcon class="w-6 h-6"></ChevronUpIcon>
+        </button>
+        <button
+          @click="++historyIdx"
+          :disabled="historyIdx === history.length - 1"
+          class="mr-auto disabled:text-neutral-600"
+        >
+          <ChevronDownIcon class="w-6 h-6"></ChevronDownIcon>
+        </button>
         <!--
           The only way for a historic workout to not have a start_time is if
           there was a merge.
@@ -57,20 +72,15 @@ db.getExercisesOfType(props.exercise.type).then(d => {
           displayDateTime(history[historyIdx].workout.start_time!)
         }}</time>
         <i v-else>Not started</i>
-        <SetEdit :exercise="history[historyIdx]"></SetEdit>
-        <div>{{ history[historyIdx].notes }}</div>
-      </template>
-    </div>
-
-    <div>
-      <strong>Current</strong>
-
-      <SetEdit :exercise="exercise" :history="readOnly ? undefined : history"></SetEdit>
-
-      <div v-if="readOnly">{{ exercise.notes }}</div>
-      <div v-else>
-        <textarea v-model.lazy="exercise.notes"></textarea>
       </div>
+
+      <div v-if="historyIdx !== -1" class="pt-2 border-b dark:border-neutral-600">
+        <SetEdit :exercise="history[historyIdx]"></SetEdit>
+      </div>
+    </template>
+
+    <div class="pt-2">
+      <SetEdit :exercise="exercise" :history="readOnly ? undefined : history"></SetEdit>
     </div>
   </div>
 </template>

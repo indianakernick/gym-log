@@ -83,7 +83,12 @@ function addExercise(event: Event) {
   </Header>
 
   <Main>
-    <TextArea v-model="workout.notes" label="Notes"></TextArea>
+    <TextArea
+      v-model="workout.notes"
+      label="Notes"
+      :read-only="!!workout.finish_time"
+      class="mx-3 my-2"
+    ></TextArea>
 
     <div
       v-if="workout.start_time"
@@ -103,7 +108,7 @@ function addExercise(event: Event) {
       <time :d="workout.finish_time">{{ displayDateTime(workout.finish_time) }}</time>
     </div>
 
-    <ol>
+    <ol class="flex flex-col gap-3 my-2">
       <li v-for="exercise, i in exercises">
         <ExerciseEdit
           :exercise="exercise"

@@ -11,6 +11,7 @@ import {
 } from '@/model/api';
 import { uuid } from '@/utils/uuid';
 import { ref, watchEffect } from 'vue';
+import TextArea from './TextArea.vue';
 
 const props = defineProps<{
   exercise: Exercise;
@@ -74,60 +75,118 @@ function addFixedSet(sets: FixedSet[]) {
 
 <template>
   <template v-if="repeatingSets">
-    <table>
-      <thead><tr>
-        <th>Reps</th>
-        <th>Weight (kg)</th>
-      </tr></thead>
-      <tbody>
-        <tr v-for="set in repeatingSets">
-          <td><input type="number" v-model.lazy="set.repetitions" :readonly="!history" /></td>
-          <td><input type="number" v-model.lazy="set.resistance" :readonly="!history" /></td>
-        </tr>
-      </tbody>
-    </table>
+    <div class="px-2 flex flex-col">
+      <table class="table">
+        <thead><tr>
+          <th>Reps</th>
+          <th>Weight (kg)</th>
+        </tr></thead>
+        <tbody>
+          <tr v-for="set in repeatingSets">
+            <td><input type="number" v-model.lazy="set.repetitions" :readonly="!history" /></td>
+            <td><input type="number" v-model.lazy="set.resistance" :readonly="!history" /></td>
+          </tr>
+        </tbody>
+      </table>
 
-    <button v-if="history" @click="addRepeatingSet(repeatingSets!)">Add Set</button>
+      <TextArea
+        v-model="exercise.notes"
+        label="Notes"
+        :read-only="!history"
+        class="my-2 w-full"
+      ></TextArea>
+    </div>
+
+    <button v-if="history" @click="addRepeatingSet(repeatingSets!)" class="set-button">Add Set</button>
   </template>
 
   <template v-else-if="variableSets">
-    <table>
-      <thead><tr>
-        <th>Resistance</th>
-        <th>Distance (km)</th>
-        <th>Duration</th>
-      </tr></thead>
-      <tbody>
-        <tr v-for="set in variableSets">
-          <td><input type="number" v-model.lazy="set.resistance" :readonly="!history" /></td>
-          <td><input type="number" v-model.lazy="set.distance" :readonly="!history" /></td>
-          <td><input type="number" v-model.lazy="set.duration" :readonly="!history" /></td>
-        </tr>
-      </tbody>
-    </table>
+    <div class="px-2">
+      <table class="table">
+        <thead><tr>
+          <th>Resistance</th>
+          <th>Distance (km)</th>
+          <th>Duration</th>
+        </tr></thead>
+        <tbody>
+          <tr v-for="set in variableSets">
+            <td><input type="number" v-model.lazy="set.resistance" :readonly="!history" /></td>
+            <td><input type="number" v-model.lazy="set.distance" :readonly="!history" /></td>
+            <td><input type="number" v-model.lazy="set.duration" :readonly="!history" /></td>
+          </tr>
+        </tbody>
+      </table>
 
-    <button v-if="history" @click="addVariableSet(variableSets!)">Add Set</button>
+      <TextArea
+        v-model="exercise.notes"
+        label="Notes"
+        :read-only="!history"
+        class="my-2 w-full"
+      ></TextArea>
+    </div>
+
+    <button v-if="history" @click="addVariableSet(variableSets!)" class="set-button">Add Set</button>
   </template>
 
   <template v-else-if="fixedSets">
-    <table>
-      <thead><tr>
-        <th>Resistance</th>
-        <th>Speed (km/h)</th>
-        <th>Distance (km)</th>
-        <th>Duration</th>
-      </tr></thead>
+    <div class="px-2">
+      <table class="table">
+        <thead><tr>
+          <th>Resistance</th>
+          <th>Speed (km/h)</th>
+          <th>Distance (km)</th>
+          <th>Duration</th>
+        </tr></thead>
 
-      <tbody>
-        <tr v-for="set in fixedSets">
-          <td><input type="number" v-model.lazy="set.resistance" :readonly="!history" /></td>
-          <td><input type="number" v-model.lazy="set.speed" :readonly="!history" /></td>
-          <td><input type="number" v-model.lazy="set.distance" :readonly="!history" /></td>
-          <td><input type="number" v-model.lazy="set.duration" :readonly="!history" /></td>
-        </tr>
-      </tbody>
-    </table>
+        <tbody>
+          <tr v-for="set in fixedSets">
+            <td><input type="number" v-model.lazy="set.resistance" :readonly="!history" /></td>
+            <td><input type="number" v-model.lazy="set.speed" :readonly="!history" /></td>
+            <td><input type="number" v-model.lazy="set.distance" :readonly="!history" /></td>
+            <td><input type="number" v-model.lazy="set.duration" :readonly="!history" /></td>
+          </tr>
+        </tbody>
+      </table>
 
-    <button v-if="history" @click="addFixedSet(fixedSets!)">Add Set</button>
+      <TextArea
+        v-model="exercise.notes"
+        label="Notes"
+        :read-only="!history"
+        class="my-2 w-full"
+      ></TextArea>
+    </div>
+
+    <button v-if="history" @click="addFixedSet(fixedSets!)" class="set-button">Add Set</button>
   </template>
 </template>
+
+<style lang="postcss">
+.table {
+  @apply table-fixed w-full;
+}
+
+.table td, .table th {
+  @apply pt-0 pr-1 pl-1 first:pl-0 last:pr-0;
+}
+
+.table th {
+  @apply pb-1 text-center text-sm;
+}
+
+.table td {
+  @apply pb-2;
+}
+
+.table tr:last-child td {
+  @apply pb-0;
+}
+
+.table input {
+  @apply max-w-full px-2 py-1 text-right rounded-lg dark:bg-neutral-700
+    dark:focus-visible:outline-blue-500;
+}
+
+.set-button {
+  @apply p-2 w-full font-bold dark:text-blue-500 border-t dark:border-neutral-600;
+}
+</style>
