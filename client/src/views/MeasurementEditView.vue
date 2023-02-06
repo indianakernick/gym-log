@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import Header from '@/components/Header.vue';
 import Main from '@/components/Main.vue';
+import TextArea from '@/components/TextArea.vue';
 import {
   MEASUREMENT_TYPES,
   type MeasurementSet,
@@ -34,11 +35,6 @@ db.getMeasurementSet(props.date).then(d => {
   } else {
     readOnly.value = false;
   }
-  nextTick(() => {
-    if (notesArea.value) {
-      setHeight(notesArea.value);
-    }
-  })
 });
 
 // Measurements for today are editable. They become read-only at midnight.
@@ -112,17 +108,6 @@ async function deleteSet() {
     back(router, `/measurements`);
   }
 }
-
-const notesArea = ref<HTMLTextAreaElement>();
-
-function updateHeight(event: Event) {
-  setHeight(event.target as HTMLTextAreaElement);
-}
-
-function setHeight(area: HTMLTextAreaElement) {
-  area.style.height = '';
-  area.style.height = area.scrollHeight + 'px';
-}
 </script>
 
 <template>
@@ -141,22 +126,7 @@ function setHeight(area: HTMLTextAreaElement) {
       <time :d="props.date">{{ displayDate(props.date) }}</time>
     </div>
 
-    <textarea
-      v-if="!readOnly"
-      aria-label="Notes"
-      placeholder="Notes"
-      ref="notesArea"
-      @input="updateHeight"
-      v-model.lazy="measurementSet.notes"
-      class="mx-3 my-2 px-2 py-1 resize-none rounded-lg dark:bg-neutral-700
-        dark:placeholder-neutral-400 focus:outline-none"
-    ></textarea>
-
-    <div
-      v-else-if="measurementSet.notes"
-      aria-label="Notes"
-      class="mx-3 my-2"
-    >{{ measurementSet.notes }}</div>
+    <TextArea v-model="measurementSet.notes" label="Notes" :read-only="readOnly"></TextArea>
 
     <ul>
       <template v-for="ty in MEASUREMENT_TYPES">
@@ -212,11 +182,8 @@ function setHeight(area: HTMLTextAreaElement) {
 
     <button
       @click="deleteSet"
-      class="relative py-2 rounded-lg text-red-500 font-bold mx-3 my-2 flex
-        items-center justify-center gap-1 dark:bg-neutral-800"
+      class="button-danger flex items-center justify-center gap-1"
     >
-      <div class="absolute inset-0 rounded-lg border
-        dark:border-neutral-600"></div>
       <TrashIcon class="w-5 h-5" />
       Delete
     </button>

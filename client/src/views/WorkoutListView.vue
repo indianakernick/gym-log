@@ -36,8 +36,6 @@ db.getWorkouts().then(d => {
 });
 
 function add() {
-  // We might get away with just looking at the first one because of the way
-  // they're sorted but merges could make things weird.
   if (hasIncomplete) {
     alert('You have incomplete workouts!');
     return;
