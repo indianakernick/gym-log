@@ -40,10 +40,15 @@ Promise.all([
   exercises.value = e;
 });
 
-async function save() {
-  await db.stageUpdateWorkout(workout.value);
-  await Promise.all(exercises.value.map(e => db.stageUpdateExercise(e)));
-  await Promise.all(deletedExercises.map(e => db.stageDeleteExercise(e)));
+async function done() {
+  if (!workout.value.notes && !exercises.value.length) {
+    await db.stageDeleteWorkout(props.id);
+    await Promise.all(deletedExercises.map(e => db.stageDeleteExercise(e)));
+  } else {
+    await db.stageUpdateWorkout(workout.value);
+    await Promise.all(exercises.value.map(e => db.stageUpdateExercise(e)));
+    await Promise.all(deletedExercises.map(e => db.stageDeleteExercise(e)));
+  }
   sync.sync();
   back(router, `/workouts`);
 }
@@ -86,7 +91,7 @@ async function deleteWorkout() {
 <template>
   <Header
     title="Edit Workout"
-    @right="back(router, '/workouts')"
+    @right="done"
   >
     <template #right>Done</template>
   </Header>
