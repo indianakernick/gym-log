@@ -186,8 +186,12 @@ function addFixedSet(sets: FixedSet[]) {
 }
 
 .table input {
-  @apply max-w-full px-2 py-1 text-right rounded-lg dark:bg-neutral-700
+  @apply max-w-full px-2 py-1 text-center rounded-lg dark:bg-neutral-700
     dark:focus-visible:outline-blue-500;
+}
+
+.table input:read-only {
+  @apply bg-transparent py-0;
 }
 
 .set-button {

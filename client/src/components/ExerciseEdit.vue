@@ -28,6 +28,7 @@ db.getExercisesOfType(props.exercise.type).then(d => {
     }
   }
 
+  // TODO: remove workouts later than the current workout from the history.
   db.joinWorkoutWithExercises(d).then(d => {
     d.sort((a, b) => {
       const time = stringCompare(a.workout.start_time || '', b.workout.start_time || '');
