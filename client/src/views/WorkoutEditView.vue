@@ -16,6 +16,7 @@ import { useRouter } from 'vue-router';
 
 // TODO: support creating workouts in the past.
 // TODO: add an escape hatch to edit exercises after the workout has finished.
+// TODO: delete sets
 
 const props = defineProps<{
   id: string;

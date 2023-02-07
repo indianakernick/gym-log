@@ -165,6 +165,10 @@ function addFixedSet(sets: FixedSet[]) {
   @apply table-fixed w-full mb-2;
 }
 
+.table:has(tbody:empty) {
+  @apply hidden;
+}
+
 .table td, .table th {
   @apply pt-0 pr-1 pl-1 first:pl-0 last:pr-0;
 }
