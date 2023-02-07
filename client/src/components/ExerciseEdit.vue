@@ -50,20 +50,6 @@ db.getExercisesOfType(props.exercise.type).then(d => {
 
     <template v-else>
       <div class="p-2 border-b dark:border-neutral-600 flex items-center">
-        <button
-          @click="--historyIdx"
-          :disabled="historyIdx < 1"
-          class="mr-3 disabled:text-neutral-600"
-        >
-          <ChevronUpIcon class="w-6 h-6"></ChevronUpIcon>
-        </button>
-        <button
-          @click="++historyIdx"
-          :disabled="historyIdx === history.length - 1"
-          class="mr-auto disabled:text-neutral-600"
-        >
-          <ChevronDownIcon class="w-6 h-6"></ChevronDownIcon>
-        </button>
         <!--
           The only way for a historic workout to not have a start_time is if
           there was a merge.
@@ -72,14 +58,29 @@ db.getExercisesOfType(props.exercise.type).then(d => {
           displayDateTime(history[historyIdx].workout.start_time!)
         }}</time>
         <i v-else>Not started</i>
+
+        <button
+          @click="--historyIdx"
+          :disabled="historyIdx < 1"
+          class="ml-auto disabled:text-neutral-600"
+        >
+          <ChevronUpIcon class="w-6 h-6"></ChevronUpIcon>
+        </button>
+        <button
+          @click="++historyIdx"
+          :disabled="historyIdx === history.length - 1"
+          class="ml-3 disabled:text-neutral-600"
+        >
+          <ChevronDownIcon class="w-6 h-6"></ChevronDownIcon>
+        </button>
       </div>
 
-      <div v-if="historyIdx !== -1" class="pt-2 border-b dark:border-neutral-600">
+      <div v-if="historyIdx !== -1" class="border-b dark:border-neutral-600">
         <SetEdit :exercise="history[historyIdx]"></SetEdit>
       </div>
     </template>
 
-    <div class="pt-2">
+    <div>
       <SetEdit :exercise="exercise" :history="readOnly ? undefined : history"></SetEdit>
     </div>
   </div>

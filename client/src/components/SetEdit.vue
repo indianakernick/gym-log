@@ -76,6 +76,13 @@ function addFixedSet(sets: FixedSet[]) {
 <template>
   <template v-if="repeatingSets">
     <div class="px-2 flex flex-col">
+      <TextArea
+        v-model="exercise.notes"
+        label="Notes"
+        :read-only="!history"
+        class="my-2 w-full"
+      ></TextArea>
+
       <table class="table">
         <thead><tr>
           <th>Reps</th>
@@ -88,13 +95,6 @@ function addFixedSet(sets: FixedSet[]) {
           </tr>
         </tbody>
       </table>
-
-      <TextArea
-        v-model="exercise.notes"
-        label="Notes"
-        :read-only="!history"
-        class="my-2 w-full"
-      ></TextArea>
     </div>
 
     <button v-if="history" @click="addRepeatingSet(repeatingSets!)" class="set-button">Add Set</button>
@@ -102,6 +102,13 @@ function addFixedSet(sets: FixedSet[]) {
 
   <template v-else-if="variableSets">
     <div class="px-2">
+      <TextArea
+        v-model="exercise.notes"
+        label="Notes"
+        :read-only="!history"
+        class="my-2 w-full"
+      ></TextArea>
+
       <table class="table">
         <thead><tr>
           <th>Resistance</th>
@@ -116,13 +123,6 @@ function addFixedSet(sets: FixedSet[]) {
           </tr>
         </tbody>
       </table>
-
-      <TextArea
-        v-model="exercise.notes"
-        label="Notes"
-        :read-only="!history"
-        class="my-2 w-full"
-      ></TextArea>
     </div>
 
     <button v-if="history" @click="addVariableSet(variableSets!)" class="set-button">Add Set</button>
@@ -130,6 +130,13 @@ function addFixedSet(sets: FixedSet[]) {
 
   <template v-else-if="fixedSets">
     <div class="px-2">
+      <TextArea
+        v-model="exercise.notes"
+        label="Notes"
+        :read-only="!history"
+        class="my-2 w-full"
+      ></TextArea>
+
       <table class="table">
         <thead><tr>
           <th>Resistance</th>
@@ -147,13 +154,6 @@ function addFixedSet(sets: FixedSet[]) {
           </tr>
         </tbody>
       </table>
-
-      <TextArea
-        v-model="exercise.notes"
-        label="Notes"
-        :read-only="!history"
-        class="my-2 w-full"
-      ></TextArea>
     </div>
 
     <button v-if="history" @click="addFixedSet(fixedSets!)" class="set-button">Add Set</button>
@@ -162,7 +162,7 @@ function addFixedSet(sets: FixedSet[]) {
 
 <style lang="postcss">
 .table {
-  @apply table-fixed w-full;
+  @apply table-fixed w-full mb-2;
 }
 
 .table td, .table th {
