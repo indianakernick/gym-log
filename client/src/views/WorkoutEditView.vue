@@ -10,6 +10,7 @@ import sync from '@/services/sync';
 import { displayDateTime, toDateTimeString } from '@/utils/date';
 import { EXERCISE_TYPE, EXERCISE_TYPE_GROUP } from '@/utils/i18n';
 import { uuid } from '@/utils/uuid';
+import { TrashIcon } from '@heroicons/vue/20/solid';
 import { shallowRef, triggerRef } from 'vue';
 import { useRouter } from 'vue-router';
 
@@ -70,6 +71,14 @@ function addExercise(event: Event) {
       sets: []
     });
     triggerRef(exercises);
+  }
+}
+
+async function deleteWorkout() {
+  if (confirm(`Delete this workout?`)) {
+    await db.stageDeleteWorkout(props.id);
+    sync.sync();
+    back(router, `/workouts`);
   }
 }
 </script>
@@ -148,5 +157,13 @@ function addExercise(event: Event) {
         class="button-primary"
       >Finish</button>
     </template>
+
+    <button
+      @click="deleteWorkout"
+      class="button-danger flex items-center justify-center gap-1"
+    >
+      <TrashIcon class="w-5 h-5" />
+      Delete
+    </button>
   </Main>
 </template>

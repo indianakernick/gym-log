@@ -42,15 +42,6 @@ function add() {
   }
   router.push(`/workouts/${uuid()}`);
 }
-
-// Do this from the individual workout page.
-/*
-function deleteWorkout(index: number) {
-  db.stageDeleteWorkout(workouts.value[index].workout_id).then(() => sync.sync());
-  workouts.value.splice(index);
-  triggerRef(workouts);
-}
-*/
 </script>
 
 <template>
