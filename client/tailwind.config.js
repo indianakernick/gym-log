@@ -6,6 +6,9 @@ module.exports = {
   ],
   theme: {
     extend: {},
+    transitionDuration: {
+      DEFAULT: '200ms'
+    }
   },
   plugins: [],
 }

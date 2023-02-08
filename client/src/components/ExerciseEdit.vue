@@ -6,6 +6,7 @@ import { displayDateTime } from '@/utils/date';
 import { EXERCISE_TYPE } from '@/utils/i18n';
 import { ChevronDownIcon, ChevronUpIcon } from '@heroicons/vue/24/outline';
 import { ref, shallowRef } from 'vue';
+import Menu from './Menu.vue';
 import SetEdit from './SetEdit.vue';
 
 const props = defineProps<{
@@ -43,7 +44,17 @@ db.getExercisesOfType(props.exercise.type).then(d => {
 
 <template>
   <div class="mx-3 rounded-lg dark:bg-neutral-800 border dark:border-neutral-600">
-    <h2 class="p-2 font-bold border-b dark:border-neutral-600">{{ EXERCISE_TYPE[exercise.type] }}</h2>
+    <div class="p-2 border-b dark:border-neutral-600 flex justify-between">
+      <h2 class="font-bold">{{ EXERCISE_TYPE[exercise.type] }}</h2>
+      <Menu
+        title="Exercise Options"
+        :items="[
+          { title: 'Change Exercise type', handler: () => {} },
+          { title: 'Delete Exercise', theme: 'danger', handler: () => {} },
+          { title: 'Delete Last Set', theme: 'danger', handler: () => {} },
+        ]"
+      ></Menu>
+    </div>
 
     <div v-if="historyIdx === -1" class="p-2 border-b dark:border-neutral-600">
       <i>You've never done this exercise before</i>
