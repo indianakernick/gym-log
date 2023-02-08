@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { getIdGenerator } from '@/utils/id';
 import { EllipsisHorizontalIcon } from '@heroicons/vue/24/outline';
-import { ref } from 'vue';
+import { ref, type FunctionalComponent } from 'vue';
 import Backdrop from './Backdrop.vue';
 
 defineProps<{
@@ -10,6 +10,7 @@ defineProps<{
     title: string;
     handler: () => void;
     theme?: 'default' | 'primary' | 'danger';
+    icon?: FunctionalComponent;
   }[];
 }>();
 
@@ -27,7 +28,6 @@ const expanded = ref(false);
       :aria-controls="id"
       :aria-expanded="expanded"
       @click="expanded = !expanded"
-      class="relative z-10"
     >
       <EllipsisHorizontalIcon class="w-6 h-6" />
     </button>
@@ -36,7 +36,7 @@ const expanded = ref(false);
       role="menu"
       :id="id"
       :aria-label="title"
-      class="absolute top-full pt-2 right-0 z-10 transition-[opacity,transform]
+      class="absolute top-full pt-2 right-0 z-20 transition-[opacity,transform]
         origin-top-right"
       :class="{
         'pointer-events-none opacity-0 scale-50': !expanded
@@ -51,12 +51,19 @@ const expanded = ref(false);
         <button
           role="menuitem"
           @click="expanded = false; item.handler()"
-          class="p-2 whitespace-nowrap font-bold"
+          class="p-2 whitespace-nowrap font-bold button-flex"
           :class="{
             'text-blue-500': item.theme === 'primary',
             'text-red-500': item.theme === 'danger'
           }"
-        >{{ item.title }}</button>
+        >
+          <component
+            v-if="item.icon"
+            :is="item.icon"
+            class="w-5 h-5"
+          ></component>
+          {{ item.title }}
+        </button>
       </li>
     </ul>
   </div>

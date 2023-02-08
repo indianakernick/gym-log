@@ -4,6 +4,7 @@ import db from '@/services/db';
 import { stringCompare } from '@/utils/array';
 import { displayDateTime } from '@/utils/date';
 import { EXERCISE_TYPE } from '@/utils/i18n';
+import { TrashIcon } from '@heroicons/vue/20/solid';
 import { ChevronDownIcon, ChevronUpIcon } from '@heroicons/vue/24/outline';
 import { ref, shallowRef } from 'vue';
 import Menu from './Menu.vue';
@@ -50,8 +51,8 @@ db.getExercisesOfType(props.exercise.type).then(d => {
         title="Exercise Options"
         :items="[
           { title: 'Change Exercise type', handler: () => {} },
-          { title: 'Delete Exercise', theme: 'danger', handler: () => {} },
-          { title: 'Delete Last Set', theme: 'danger', handler: () => {} },
+          { title: 'Delete Exercise', theme: 'danger', icon: TrashIcon, handler: () => {} },
+          { title: 'Delete Last Set', theme: 'danger', icon: TrashIcon, handler: () => {} },
         ]"
       ></Menu>
     </div>

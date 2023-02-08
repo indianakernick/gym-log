@@ -6,7 +6,7 @@ defineProps<{
 
 <template>
   <div
-    class="fixed inset-0 bg-black transition-opacity"
+    class="fixed z-10 inset-0 bg-black transition-opacity"
     :class="{
       'opacity-0 pointer-events-none': !show,
       'opacity-50': show,
