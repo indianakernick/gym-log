@@ -86,6 +86,12 @@ async function deleteWorkout() {
     back(router, `/workouts`);
   }
 }
+
+function deleteExercise(index: number) {
+  deletedExercises.push(exercises.value[index].workout_exercise_id);
+  exercises.value.splice(index, 1);
+  triggerRef(exercises);
+}
 </script>
 
 <template>
@@ -127,6 +133,7 @@ async function deleteWorkout() {
         <ExerciseEdit
           :exercise="exercise"
           :read-only="!!workout.finish_time || i < exercises.length - 1"
+          @delete-exercise="deleteExercise(i)"
         ></ExerciseEdit>
       </li>
     </ol>

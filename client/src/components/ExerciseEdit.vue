@@ -15,6 +15,10 @@ const props = defineProps<{
   readOnly?: boolean;
 }>();
 
+const emit = defineEmits<{
+  (e: 'deleteExercise'): void;
+}>();
+
 const history = shallowRef<(Exercise & { workout: Workout })[]>([]);
 const historyIdx = ref<number>(-1);
 
@@ -47,7 +51,7 @@ const setsKey = ref<number>(0);
 const options = computed(() => {
   const items: InstanceType<typeof Menu>['items'] = [
     { title: 'Change Exercise type', handler: () => {} },
-    { title: 'Delete Exercise', theme: 'danger', icon: TrashIcon, handler: () => {} },
+    { title: 'Delete Exercise', theme: 'danger', icon: TrashIcon, handler: deleteExercise },
     { title: 'Delete Last Set', theme: 'danger', icon: TrashIcon, handler: deleteLastSet },
   ];
   // Recomputing if the sets change.
@@ -56,11 +60,19 @@ const options = computed(() => {
   return items;
 });
 
+function deleteExercise() {
+  if (confirm('Delete this exercise?')) {
+    emit('deleteExercise');
+  }
+}
+
 function deleteLastSet() {
-  props.exercise.sets.pop();
-  // Vue doesn't see the above mutation so we're manually triggering a
-  // re-render. Maybe a little hacky but I don't see a simpler way.
-  ++setsKey.value;
+  if (confirm('Delete the last set in this exercise?')) {
+    props.exercise.sets.pop();
+    // Vue doesn't see the above mutation so we're manually triggering a
+    // re-render. Maybe a little hacky but I don't see a simpler way.
+    ++setsKey.value;
+  }
 }
 </script>
 
