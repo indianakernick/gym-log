@@ -51,7 +51,7 @@ const expanded = ref(false);
         <button
           role="menuitem"
           @click="expanded = false; item.handler()"
-          class="p-2 whitespace-nowrap font-bold button-flex"
+          class="w-full p-2 whitespace-nowrap font-bold flex gap-1 items-center"
           :class="{
             'text-blue-500': item.theme === 'primary',
             'text-red-500': item.theme === 'danger'

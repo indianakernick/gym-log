@@ -6,7 +6,7 @@ import { displayDateTime } from '@/utils/date';
 import { EXERCISE_TYPE } from '@/utils/i18n';
 import { TrashIcon } from '@heroicons/vue/20/solid';
 import { ChevronDownIcon, ChevronUpIcon } from '@heroicons/vue/24/outline';
-import { ref, shallowRef } from 'vue';
+import { computed, ref, shallowRef } from 'vue';
 import Menu from './Menu.vue';
 import SetEdit from './SetEdit.vue';
 
@@ -15,8 +15,8 @@ const props = defineProps<{
   readOnly?: boolean;
 }>();
 
-let history = shallowRef<(Exercise & { workout: Workout })[]>([]);
-let historyIdx = ref<number>(-1);
+const history = shallowRef<(Exercise & { workout: Workout })[]>([]);
+const historyIdx = ref<number>(-1);
 
 db.getExercisesOfType(props.exercise.type).then(d => {
   // TODO: this can be done in O(log n) because it's ordered by ID
@@ -41,20 +41,34 @@ db.getExercisesOfType(props.exercise.type).then(d => {
     historyIdx.value = d.length - 1;
   });
 });
+
+const setsKey = ref<number>(0);
+
+const options = computed(() => {
+  const items: InstanceType<typeof Menu>['items'] = [
+    { title: 'Change Exercise type', handler: () => {} },
+    { title: 'Delete Exercise', theme: 'danger', icon: TrashIcon, handler: () => {} },
+    { title: 'Delete Last Set', theme: 'danger', icon: TrashIcon, handler: deleteLastSet },
+  ];
+  // Recomputing if the sets change.
+  setsKey.value;
+  if (!props.exercise.sets.length) items.pop();
+  return items;
+});
+
+function deleteLastSet() {
+  props.exercise.sets.pop();
+  // Vue doesn't see the above mutation so we're manually triggering a
+  // re-render. Maybe a little hacky but I don't see a simpler way.
+  ++setsKey.value;
+}
 </script>
 
 <template>
   <div class="mx-3 rounded-lg dark:bg-neutral-800 border dark:border-neutral-600">
     <div class="p-2 border-b dark:border-neutral-600 flex justify-between">
       <h2 class="font-bold">{{ EXERCISE_TYPE[exercise.type] }}</h2>
-      <Menu
-        title="Exercise Options"
-        :items="[
-          { title: 'Change Exercise type', handler: () => {} },
-          { title: 'Delete Exercise', theme: 'danger', icon: TrashIcon, handler: () => {} },
-          { title: 'Delete Last Set', theme: 'danger', icon: TrashIcon, handler: () => {} },
-        ]"
-      ></Menu>
+      <Menu title="Exercise Options" :items="options"></Menu>
     </div>
 
     <div v-if="historyIdx === -1" class="p-2 border-b dark:border-neutral-600">
@@ -94,7 +108,12 @@ db.getExercisesOfType(props.exercise.type).then(d => {
     </template>
 
     <div>
-      <SetEdit :exercise="exercise" :history="readOnly ? undefined : history"></SetEdit>
+      <SetEdit
+        :exercise="exercise"
+        :history="readOnly ? undefined : history"
+        :key="setsKey"
+        @set-created="++setsKey"
+      ></SetEdit>
     </div>
   </div>
 </template>

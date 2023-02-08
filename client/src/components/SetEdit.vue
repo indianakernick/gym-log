@@ -19,6 +19,10 @@ const props = defineProps<{
   history?: (Exercise & { workout: Workout })[];
 }>();
 
+const emit = defineEmits<{
+  (e: 'setCreated'): void;
+}>();
+
 let repeatingSets = ref<RepeatingSet[]>();
 let variableSets = ref<VariableSet[]>();
 let fixedSets = ref<FixedSet[]>();
@@ -36,14 +40,17 @@ function addSet<T>(sets: T[], set: T) {
     const previous = props.history![props.history!.length - 1].sets as T[];
     if (sets.length < previous.length) {
       sets.push({ ...previous[sets.length] });
+      emit('setCreated');
       return;
     }
   }
   if (sets.length > 0) {
     sets.push({ ...sets[sets.length - 1] });
+    emit('setCreated');
     return;
   }
   sets.push(set);
+  emit('setCreated');
 }
 
 function addRepeatingSet(sets: RepeatingSet[]) {
