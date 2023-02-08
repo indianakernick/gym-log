@@ -10,7 +10,7 @@ import sync from '@/services/sync';
 import { displayDateTime, toDateTimeString } from '@/utils/date';
 import { EXERCISE_TYPE, EXERCISE_TYPE_GROUP } from '@/utils/i18n';
 import { uuid } from '@/utils/uuid';
-import { TrashIcon } from '@heroicons/vue/20/solid';
+import { PlusIcon, TrashIcon } from '@heroicons/vue/20/solid';
 import { shallowRef, triggerRef } from 'vue';
 import { useRouter } from 'vue-router';
 
@@ -140,7 +140,7 @@ async function deleteWorkout() {
       -->
       <div
         class="relative mx-3 my-2 rounded-lg dark:bg-neutral-800 border
-        dark:border-neutral-600"
+          dark:border-neutral-600"
       >
         <select
           @change="addExercise"
@@ -153,9 +153,12 @@ async function deleteWorkout() {
         </select>
 
         <div
-          class="absolute inset-0 pointer-events-none font-bold text-center
-            flex items-center justify-center dark:text-blue-500"
-        >Add Exercise</div>
+          class="absolute inset-0 pointer-events-none font-bold
+            button-flex dark:text-blue-500"
+        >
+          <PlusIcon class="w-5 h-5" />
+          Add Exercise
+        </div>
       </div>
 
       <button
@@ -166,10 +169,10 @@ async function deleteWorkout() {
 
     <button
       @click="deleteWorkout"
-      class="button-danger flex items-center justify-center gap-1"
+      class="button-danger button-flex"
     >
       <TrashIcon class="w-5 h-5" />
-      Delete
+      Delete Workout
     </button>
   </Main>
 </template>

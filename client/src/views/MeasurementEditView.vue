@@ -187,10 +187,10 @@ async function deleteSet() {
 
     <button
       @click="deleteSet"
-      class="button-danger flex items-center justify-center gap-1"
+      class="button-danger button-flex"
     >
       <TrashIcon class="w-5 h-5" />
-      Delete
+      Delete Measurements
     </button>
   </Main>
 </template>

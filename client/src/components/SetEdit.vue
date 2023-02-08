@@ -10,6 +10,7 @@ import {
   type Workout
 } from '@/model/api';
 import { uuid } from '@/utils/uuid';
+import { PlusIcon } from '@heroicons/vue/20/solid';
 import { ref, watchEffect } from 'vue';
 import TextArea from './TextArea.vue';
 
@@ -97,7 +98,10 @@ function addFixedSet(sets: FixedSet[]) {
       </table>
     </div>
 
-    <button v-if="history" @click="addRepeatingSet(repeatingSets!)" class="set-button">Add Set</button>
+    <button v-if="history" @click="addRepeatingSet(repeatingSets!)" class="set-button">
+      <PlusIcon class="w-5 h-5" />
+      Add Set
+    </button>
   </template>
 
   <template v-else-if="variableSets">
@@ -125,7 +129,10 @@ function addFixedSet(sets: FixedSet[]) {
       </table>
     </div>
 
-    <button v-if="history" @click="addVariableSet(variableSets!)" class="set-button">Add Set</button>
+    <button v-if="history" @click="addVariableSet(variableSets!)" class="set-button">
+      <PlusIcon class="w-5 h-5" />
+      Add Set
+    </button>
   </template>
 
   <template v-else-if="fixedSets">
@@ -156,7 +163,10 @@ function addFixedSet(sets: FixedSet[]) {
       </table>
     </div>
 
-    <button v-if="history" @click="addFixedSet(fixedSets!)" class="set-button">Add Set</button>
+    <button v-if="history" @click="addFixedSet(fixedSets!)" class="set-button">
+      <PlusIcon class="w-5 h-5" />
+      Add Set
+    </button>
   </template>
 </template>
 
@@ -195,6 +205,7 @@ function addFixedSet(sets: FixedSet[]) {
 }
 
 .set-button {
-  @apply p-2 w-full font-bold dark:text-blue-500 border-t dark:border-neutral-600;
+  @apply p-2 w-full font-bold dark:text-blue-500 border-t
+    dark:border-neutral-600 button-flex;
 }
 </style>
