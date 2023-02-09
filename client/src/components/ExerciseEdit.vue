@@ -6,7 +6,7 @@ import { displayDateTime } from '@/utils/date';
 import { EXERCISE_TYPE } from '@/utils/i18n';
 import { TrashIcon } from '@heroicons/vue/20/solid';
 import { ChevronDownIcon, ChevronUpIcon } from '@heroicons/vue/24/outline';
-import { computed, ref, shallowRef } from 'vue';
+import { computed, shallowRef } from 'vue';
 import Menu from './Menu.vue';
 import SetEdit from './SetEdit.vue';
 
@@ -20,7 +20,7 @@ const emit = defineEmits<{
 }>();
 
 const history = shallowRef<(Exercise & { workout: Workout })[]>([]);
-const historyIdx = ref<number>(-1);
+const historyIdx = shallowRef(-1);
 
 db.getExercisesOfType(props.exercise.type).then(d => {
   // TODO: this can be done in O(log n) because it's ordered by ID
@@ -46,19 +46,21 @@ db.getExercisesOfType(props.exercise.type).then(d => {
   });
 });
 
-const setsKey = ref<number>(0);
+const setsKey = shallowRef(0);
 
 const options = computed(() => {
-  const items: InstanceType<typeof Menu>['items'] = [
-    { title: 'Change Exercise type', handler: () => {} },
-    { title: 'Delete Exercise', theme: 'danger', icon: TrashIcon, handler: deleteExercise },
-    { title: 'Delete Last Set', theme: 'danger', icon: TrashIcon, handler: deleteLastSet },
-  ];
+  const items: InstanceType<typeof Menu>['items'] = [];
+
+  items.push({ title: 'Change Exercise type', handler: () => {} });
 
   // Recomputing if the sets change.
   setsKey.value;
 
-  if (!props.exercise.sets.length) items.pop();
+  if (props.exercise.sets.length) {
+    items.push({ title: 'Delete Last Set', theme: 'danger', icon: TrashIcon, handler: deleteLastSet });
+  }
+
+  items.push({ title: 'Delete Exercise', theme: 'danger', icon: TrashIcon, handler: deleteExercise });
 
   return items;
 });

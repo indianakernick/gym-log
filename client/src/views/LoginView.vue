@@ -2,7 +2,7 @@
 import cognito from '@/services/cognito';
 import db from '@/services/db';
 import { getCognitoErrorMessage } from '@/utils/error';
-import { ref } from 'vue';
+import { shallowRef } from 'vue';
 import { useRouter, type RouteLocationRaw } from 'vue-router';
 
 const props = defineProps<{
@@ -13,8 +13,8 @@ const router = useRouter();
 
 let email = '';
 let password = '';
-let loading = ref(false);
-let error = ref<string | undefined>(undefined);
+let loading = shallowRef(false);
+let error = shallowRef<string>();
 
 async function login() {
   if (loading.value) return;

@@ -2,7 +2,7 @@
 import cognito from '@/services/cognito';
 import db from '@/services/db';
 import { getCognitoErrorMessage } from '@/utils/error';
-import { ref } from 'vue';
+import { shallowRef } from 'vue';
 import { useRouter } from 'vue-router';
 
 const router = useRouter();
@@ -10,9 +10,9 @@ const router = useRouter();
 let email = '';
 let password = '';
 let confirmationCode = '';
-let confirming = ref(false);
-let loading = ref(false);
-let error = ref<string | undefined>(undefined);
+let confirming = shallowRef(false);
+let loading = shallowRef(false);
+let error = shallowRef<string>();
 
 async function signUp() {
   if (loading.value) return;

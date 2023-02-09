@@ -14,7 +14,7 @@ import { displayDate, toDateString } from '@/utils/date';
 import { MEASUREMENT_TYPE, MEASUREMENT_TYPE_UNIT } from '@/utils/i18n';
 import { TrashIcon } from '@heroicons/vue/20/solid';
 import { PlusIcon } from '@heroicons/vue/24/outline';
-import { nextTick, onUnmounted, ref, shallowRef, triggerRef } from 'vue';
+import { nextTick, onUnmounted, shallowRef, triggerRef } from 'vue';
 import { useRouter } from 'vue-router';
 
 const props = defineProps<{
@@ -39,7 +39,7 @@ db.getMeasurementSet(props.date).then(d => {
 
 // Measurements for today are editable. They become read-only at midnight.
 const now = new Date();
-const readOnly = ref(props.date !== toDateString(now));
+const readOnly = shallowRef(props.date !== toDateString(now));
 let midnightTimer: number | undefined = undefined;
 
 if (!readOnly.value) {

@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { getIdGenerator } from '@/utils/id';
 import { EllipsisHorizontalIcon } from '@heroicons/vue/24/outline';
-import { ref, type FunctionalComponent } from 'vue';
+import { shallowRef, type FunctionalComponent } from 'vue';
 import Backdrop from './Backdrop.vue';
 
 defineProps<{
@@ -16,7 +16,7 @@ defineProps<{
 }>();
 
 const id = getIdGenerator('menu')();
-const expanded = ref(false);
+const expanded = shallowRef(false);
 </script>
 
 <template>
