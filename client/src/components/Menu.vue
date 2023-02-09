@@ -12,6 +12,7 @@ defineProps<{
     theme?: 'default' | 'primary' | 'danger';
     icon?: FunctionalComponent;
   }[];
+  theme?: 'default' | 'primary';
 }>();
 
 const id = getIdGenerator('menu')();
@@ -28,6 +29,9 @@ const expanded = ref(false);
       :aria-controls="id"
       :aria-expanded="expanded"
       @click="expanded = !expanded"
+      :class="{
+        'dark:text-blue-500 text-blue-600': theme === 'primary'
+      }"
     >
       <EllipsisHorizontalIcon class="w-6 h-6" />
     </button>
@@ -53,8 +57,8 @@ const expanded = ref(false);
           @click="expanded = false; item.handler()"
           class="w-full p-2 whitespace-nowrap font-bold flex gap-1 items-center"
           :class="{
-            'text-blue-500': item.theme === 'primary',
-            'text-red-500': item.theme === 'danger'
+            'dark:text-blue-500 text-blue-600': item.theme === 'primary',
+            'text-red-500': item.theme === 'danger',
           }"
         >
           <component

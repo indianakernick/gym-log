@@ -54,9 +54,12 @@ const options = computed(() => {
     { title: 'Delete Exercise', theme: 'danger', icon: TrashIcon, handler: deleteExercise },
     { title: 'Delete Last Set', theme: 'danger', icon: TrashIcon, handler: deleteLastSet },
   ];
+
   // Recomputing if the sets change.
   setsKey.value;
+
   if (!props.exercise.sets.length) items.pop();
+
   return items;
 });
 

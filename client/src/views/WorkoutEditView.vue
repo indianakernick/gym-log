@@ -2,6 +2,7 @@
 import ExerciseEdit from '@/components/ExerciseEdit.vue';
 import Header from '@/components/Header.vue';
 import Main from '@/components/Main.vue';
+import Menu from '@/components/Menu.vue';
 import TextArea from '@/components/TextArea.vue';
 import { EXERCISE_TYPE_GROUPS, type Exercise, type ExerciseType, type Workout } from '@/model/api';
 import { back } from '@/router/back';
@@ -11,6 +12,7 @@ import { displayDateTime, toDateTimeString } from '@/utils/date';
 import { EXERCISE_TYPE, EXERCISE_TYPE_GROUP } from '@/utils/i18n';
 import { uuid } from '@/utils/uuid';
 import { PlusIcon, TrashIcon } from '@heroicons/vue/20/solid';
+import { ChevronLeftIcon } from '@heroicons/vue/24/outline';
 import { shallowRef, triggerRef } from 'vue';
 import { useRouter } from 'vue-router';
 
@@ -80,7 +82,7 @@ function addExercise(event: Event) {
 }
 
 async function deleteWorkout() {
-  if (confirm(`Delete this workout?`)) {
+  if (confirm('Delete this workout?')) {
     await db.stageDeleteWorkout(props.id);
     sync.sync();
     back(router, `/workouts`);
@@ -96,10 +98,23 @@ function deleteExercise(index: number) {
 
 <template>
   <Header
-    title="Edit Workout"
-    @right="done"
+    title="Workout Details"
+    @left="done"
   >
-    <template #right>Done</template>
+    <template #left>
+      <ChevronLeftIcon class="w-6 h-6" />
+    </template>
+    <template #full-right>
+      <Menu
+        title="Workout Options"
+        :items="[
+          { title: 'Edit', handler: () => {} },
+          { title: 'Adjust Dates', handler: () => {} },
+          { title: 'Delete Workout', theme: 'danger', icon: TrashIcon, handler: deleteWorkout },
+        ]"
+        theme="primary"
+      ></Menu>
+    </template>
   </Header>
 
   <Main>
@@ -172,13 +187,5 @@ function deleteExercise(index: number) {
         class="button-primary"
       >Finish</button>
     </template>
-
-    <button
-      @click="deleteWorkout"
-      class="button-danger button-flex"
-    >
-      <TrashIcon class="w-5 h-5" />
-      Delete Workout
-    </button>
   </Main>
 </template>

@@ -735,7 +735,9 @@ export default new class {
     });
 
     // Workouts without a start time first, followed by workouts with a start
-    // time from most recent to least recent.
+    // time from most recent to least recent. Note that `sort` is stable so if
+    // two workouts somehow have the same start time, they will be ordered by
+    // the ID.
     canon.sort((a, b) => {
       return stringCompare(b.start_time || 'Z', a.start_time || 'Z');
     });
