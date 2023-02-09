@@ -13,7 +13,7 @@ import { EXERCISE_TYPE, EXERCISE_TYPE_GROUP } from '@/utils/i18n';
 import { uuid } from '@/utils/uuid';
 import { PlusIcon, TrashIcon } from '@heroicons/vue/20/solid';
 import { ChevronLeftIcon } from '@heroicons/vue/24/outline';
-import { shallowRef, triggerRef } from 'vue';
+import { computed, shallowRef, triggerRef } from 'vue';
 import { useRouter } from 'vue-router';
 
 // TODO: support creating workouts in the past.
@@ -33,6 +33,7 @@ const workout = shallowRef<Workout>({
 });
 const exercises = shallowRef<Exercise[]>([]);
 const deletedExercises: Exercise['workout_exercise_id'][] = [];
+const editing = shallowRef(false);
 
 Promise.all([
   db.getWorkout(props.id),
@@ -43,15 +44,17 @@ Promise.all([
 });
 
 async function done() {
-  if (!workout.value.notes && !exercises.value.length) {
-    await db.stageDeleteWorkout(props.id);
-    await Promise.all(deletedExercises.map(e => db.stageDeleteExercise(e)));
-  } else {
-    await db.stageUpdateWorkout(workout.value);
-    await Promise.all(exercises.value.map(e => db.stageUpdateExercise(e)));
-    await Promise.all(deletedExercises.map(e => db.stageDeleteExercise(e)));
+  if (!editing.value || confirm('Keep edits?')) {
+    if (!workout.value.notes && !exercises.value.length) {
+      await db.stageDeleteWorkout(props.id);
+      await Promise.all(deletedExercises.map(e => db.stageDeleteExercise(e)));
+    } else {
+      await db.stageUpdateWorkout(workout.value);
+      await Promise.all(exercises.value.map(e => db.stageUpdateExercise(e)));
+      await Promise.all(deletedExercises.map(e => db.stageDeleteExercise(e)));
+    }
+    sync.sync();
   }
-  sync.sync();
   back(router, `/workouts`);
 }
 
@@ -81,6 +84,22 @@ function addExercise(event: Event) {
   }
 }
 
+const options = computed(() => {
+  const items: InstanceType<typeof Menu>['items'] = [];
+
+  if (workout.value.finish_time && !editing.value) {
+    items.push({ title: 'Edit', handler: () => editing.value = true });
+  }
+
+  if (workout.value.start_time && workout.value.finish_time) {
+    items.push({ title: 'Adjust Dates', handler: () => {} });
+  }
+
+  items.push({ title: 'Delete Workout', theme: 'danger', icon: TrashIcon, handler: deleteWorkout });
+
+  return items;
+});
+
 async function deleteWorkout() {
   if (confirm('Delete this workout?')) {
     await db.stageDeleteWorkout(props.id);
@@ -107,11 +126,7 @@ function deleteExercise(index: number) {
     <template #full-right>
       <Menu
         title="Workout Options"
-        :items="[
-          { title: 'Edit', handler: () => {} },
-          { title: 'Adjust Dates', handler: () => {} },
-          { title: 'Delete Workout', theme: 'danger', icon: TrashIcon, handler: deleteWorkout },
-        ]"
+        :items="options"
         theme="primary"
       ></Menu>
     </template>
@@ -121,7 +136,7 @@ function deleteExercise(index: number) {
     <TextArea
       v-model="workout.notes"
       label="Notes"
-      :read-only="!!workout.finish_time"
+      :read-only="!!workout.finish_time && !editing"
       class="mx-3 my-2"
     ></TextArea>
 
@@ -147,7 +162,7 @@ function deleteExercise(index: number) {
       <li v-for="exercise, i in exercises">
         <ExerciseEdit
           :exercise="exercise"
-          :read-only="!!workout.finish_time || i < exercises.length - 1"
+          :read-only="(!!workout.finish_time || i < exercises.length - 1) && !editing"
           @delete-exercise="deleteExercise(i)"
         ></ExerciseEdit>
       </li>
