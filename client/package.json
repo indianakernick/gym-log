@@ -14,6 +14,7 @@
     "@heroicons/vue": "^2.0.14",
     "idb": "^7.1.1",
     "vue": "^3.2.45",
+    "vue-final-modal": "^4.0.1",
     "vue-router": "^4.1.6"
   },
   "devDependencies": {

@@ -4,6 +4,7 @@ import Header from '@/components/Header.vue';
 import Main from '@/components/Main.vue';
 import Menu from '@/components/Menu.vue';
 import TextArea from '@/components/TextArea.vue';
+import TestModal from '@/modals/TestModal.vue';
 import { EXERCISE_TYPE_GROUPS, type Exercise, type ExerciseType, type Workout } from '@/model/api';
 import { back } from '@/router/back';
 import db from '@/services/db';
@@ -14,6 +15,7 @@ import { uuid } from '@/utils/uuid';
 import { PlusIcon, TrashIcon } from '@heroicons/vue/20/solid';
 import { ChevronLeftIcon } from '@heroicons/vue/24/outline';
 import { computed, shallowRef, triggerRef } from 'vue';
+import { useModal } from 'vue-final-modal';
 import { useRouter } from 'vue-router';
 
 // TODO: support creating workouts in the past.
@@ -23,6 +25,16 @@ const props = defineProps<{
 }>();
 
 const router = useRouter();
+const testModal = useModal({
+  component: TestModal,
+  attrs: {
+    title: 'Title',
+    onDone: () => {
+      console.log('done');
+      testModal.close();
+    }
+  }
+});
 
 const workout = shallowRef<Workout>({
   workout_id: props.id,
@@ -92,7 +104,7 @@ const options = computed(() => {
   }
 
   if (workout.value.start_time && workout.value.finish_time) {
-    items.push({ title: 'Adjust Dates', handler: () => {} });
+    items.push({ title: 'Adjust Dates', handler: () => testModal.open() });
   }
 
   items.push({ title: 'Delete Workout', theme: 'danger', icon: TrashIcon, handler: deleteWorkout });
