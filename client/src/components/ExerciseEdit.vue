@@ -12,11 +12,13 @@ import SetEdit from './SetEdit.vue';
 
 const props = defineProps<{
   exercise: Exercise;
-  readOnly?: boolean;
+  editingWorkout?: boolean;
+  editing?: boolean;
 }>();
 
 const emit = defineEmits<{
   (e: 'deleteExercise'): void;
+  (e: 'editExercise'): void;
 }>();
 
 const history = shallowRef<(Exercise & { workout: Workout })[]>([]);
@@ -50,6 +52,10 @@ const setsKey = shallowRef(0);
 
 const options = computed(() => {
   const items: InstanceType<typeof Menu>['items'] = [];
+
+  if (!props.editing) {
+    items.push({ title: 'Edit', handler: () => emit('editExercise') });
+  }
 
   items.push({ title: 'Change Exercise type', handler: () => {} });
 
@@ -85,7 +91,11 @@ function deleteLastSet() {
   <div class="mx-3 rounded-lg dark:bg-neutral-800 border dark:border-neutral-600">
     <div class="p-2 border-b dark:border-neutral-600 flex justify-between">
       <h2 class="font-bold">{{ EXERCISE_TYPE[exercise.type] }}</h2>
-      <Menu title="Exercise Options" :items="options"></Menu>
+      <Menu
+        v-if="editingWorkout"
+        title="Exercise Options"
+        :items="options"
+      ></Menu>
     </div>
 
     <div v-if="historyIdx === -1" class="p-2 border-b dark:border-neutral-600">
@@ -124,13 +134,11 @@ function deleteLastSet() {
       </div>
     </template>
 
-    <div>
-      <SetEdit
-        :exercise="exercise"
-        :history="readOnly ? undefined : history"
-        :key="setsKey"
-        @set-created="++setsKey"
-      ></SetEdit>
-    </div>
+    <SetEdit
+      :exercise="exercise"
+      :history="editingWorkout && editing ? history : undefined"
+      :key="setsKey"
+      @set-created="++setsKey"
+    ></SetEdit>
   </div>
 </template>

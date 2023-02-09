@@ -17,7 +17,6 @@ import { computed, shallowRef, triggerRef } from 'vue';
 import { useRouter } from 'vue-router';
 
 // TODO: support creating workouts in the past.
-// TODO: add an escape hatch to edit exercises after the workout has finished.
 
 const props = defineProps<{
   id: string;
@@ -34,6 +33,7 @@ const workout = shallowRef<Workout>({
 const exercises = shallowRef<Exercise[]>([]);
 const deletedExercises: Exercise['workout_exercise_id'][] = [];
 const editing = shallowRef(false);
+const editingExercise = shallowRef<number>();
 
 Promise.all([
   db.getWorkout(props.id),
@@ -162,8 +162,10 @@ function deleteExercise(index: number) {
       <li v-for="exercise, i in exercises">
         <ExerciseEdit
           :exercise="exercise"
-          :read-only="(!!workout.finish_time || i < exercises.length - 1) && !editing"
+          :editing-workout="!workout.finish_time || editing"
+          :editing="i === (editingExercise ?? (exercises.length - 1))"
           @delete-exercise="deleteExercise(i)"
+          @edit-exercise="editingExercise = i === exercises.length - 1 ? undefined : i"
         ></ExerciseEdit>
       </li>
     </ol>
