@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import Header from '@/components/Header.vue';
 import Main from '@/components/Main.vue';
+import Menu from '@/components/Menu.vue';
 import TextArea from '@/components/TextArea.vue';
 import {
   MEASUREMENT_TYPES,
@@ -13,8 +14,8 @@ import sync from '@/services/sync';
 import { displayDate, toDateString } from '@/utils/date';
 import { MEASUREMENT_TYPE, MEASUREMENT_TYPE_UNIT } from '@/utils/i18n';
 import { TrashIcon } from '@heroicons/vue/20/solid';
-import { PlusIcon } from '@heroicons/vue/24/outline';
-import { nextTick, onUnmounted, shallowRef, triggerRef } from 'vue';
+import { ChevronLeftIcon, PlusIcon } from '@heroicons/vue/24/outline';
+import { computed, nextTick, onUnmounted, shallowRef, triggerRef } from 'vue';
 import { useRouter } from 'vue-router';
 
 const props = defineProps<{
@@ -55,19 +56,17 @@ onUnmounted(() => {
   clearTimeout(midnightTimer);
 });
 
-function edit() {
-  if (confirm(`Edit measurements for ${displayDate(props.date)}?`)) {
-    readOnly.value = false;
-  }
-}
+const editing = shallowRef(false);
 
 async function done() {
-  if (!measurementSet.value.notes && !Object.keys(measurementSet.value.measurements).length) {
-    await db.stageDeleteMeasurement(measurementSet.value.date);
-  } else {
-    await db.stageUpdateMeasurement(measurementSet.value);
+  if (!editing.value || confirm('Keep edits?')) {
+    if (!measurementSet.value.notes && !Object.keys(measurementSet.value.measurements).length) {
+      await db.stageDeleteMeasurement(measurementSet.value.date);
+    } else {
+      await db.stageUpdateMeasurement(measurementSet.value);
+    }
+    sync.sync();
   }
-  sync.sync();
   back(router, `/measurements`);
 }
 
@@ -101,6 +100,18 @@ function setInputRef(el: HTMLInputElement | null, type: MeasurementType) {
   }
 }
 
+const options = computed(() => {
+  const items: InstanceType<typeof Menu>['items'] = [];
+
+  if (readOnly.value && !editing.value) {
+    items.push({ title: 'Edit', handler: () => editing.value = true });
+  }
+
+  items.push({ title: 'Delete Measurements', theme: 'danger', icon: TrashIcon, handler: deleteSet });
+
+  return items;
+});
+
 async function deleteSet() {
   if (confirm(`Delete measurements for ${displayDate(props.date)}?`)) {
     await db.stageDeleteMeasurement(props.date);
@@ -112,12 +123,19 @@ async function deleteSet() {
 
 <template>
   <Header
-    title="Edit Measurements"
-    @left="edit"
-    @right="done"
+    title="Measurement Details"
+    @left="done"
   >
-    <template v-if="readOnly" #left>Edit</template>
-    <template #right>Done</template>
+    <template #left>
+      <ChevronLeftIcon class="w-6 h-6" />
+    </template>
+    <template #full-right>
+      <Menu
+        title="Measurement Options"
+        :items="options"
+        theme="primary"
+      ></Menu>
+    </template>
   </Header>
 
   <Main>
@@ -129,14 +147,14 @@ async function deleteSet() {
     <TextArea
       v-model="measurementSet.notes"
       label="Notes"
-      :read-only="readOnly"
+      :read-only="readOnly && !editing"
       class="mx-3 my-2"
     ></TextArea>
 
     <ul>
       <template v-for="ty in MEASUREMENT_TYPES">
         <li
-          v-if="!readOnly || measurementSet.measurements[ty] !== undefined"
+          v-if="!readOnly || editing || measurementSet.measurements[ty] !== undefined"
           class="px-3 py-2 flex flex-row items-center"
         >
           <label
@@ -148,7 +166,7 @@ async function deleteSet() {
           </label>
 
           <input
-            v-if="!readOnly && measurementSet.measurements[ty] !== undefined"
+            v-if="(!readOnly || editing) && measurementSet.measurements[ty] !== undefined"
             :id="`measurement-${ty}`"
             type="number"
             inputmode="decimal"
@@ -162,7 +180,7 @@ async function deleteSet() {
           />
 
           <div
-            v-else-if="readOnly"
+            v-else-if="readOnly && !editing"
             class="text-right"
           >{{ measurementSet.measurements[ty] }}</div>
 
@@ -184,13 +202,5 @@ async function deleteSet() {
         </li>
       </template>
     </ul>
-
-    <button
-      @click="deleteSet"
-      class="button-danger button-flex"
-    >
-      <TrashIcon class="w-5 h-5" />
-      Delete Measurements
-    </button>
   </Main>
 </template>
