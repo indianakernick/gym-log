@@ -4,7 +4,7 @@ import Header from '@/components/Header.vue';
 import Main from '@/components/Main.vue';
 import Menu from '@/components/Menu.vue';
 import TextArea from '@/components/TextArea.vue';
-import TestModal from '@/modals/TestModal.vue';
+import AdjustDatesModal from '@/modals/AdjustDatesModal.vue';
 import { EXERCISE_TYPE_GROUPS, type Exercise, type ExerciseType, type Workout } from '@/model/api';
 import { back } from '@/router/back';
 import db from '@/services/db';
@@ -18,22 +18,13 @@ import { computed, shallowRef, triggerRef } from 'vue';
 import { useModal } from 'vue-final-modal';
 import { useRouter } from 'vue-router';
 
-// TODO: support creating workouts in the past.
-
 const props = defineProps<{
   id: string;
 }>();
 
 const router = useRouter();
-const testModal = useModal({
-  component: TestModal,
-  attrs: {
-    title: 'Title',
-    onDone: () => {
-      console.log('done');
-      testModal.close();
-    }
-  }
+const adjustDatesModal = useModal({
+  component: AdjustDatesModal
 });
 
 const workout = shallowRef<Workout>({
@@ -104,7 +95,23 @@ const options = computed(() => {
   }
 
   if (workout.value.start_time && workout.value.finish_time) {
-    items.push({ title: 'Adjust Dates', handler: () => testModal.open() });
+    items.push({ title: 'Adjust Dates', handler: () => {
+      adjustDatesModal.patchOptions({
+        attrs: {
+          start: workout.value.start_time!,
+          finish: workout.value.finish_time!,
+          // I shouldn't need to specify the types for start and finish.
+          onSave: (start: string, finish: string) => {
+            workout.value.start_time = start;
+            workout.value.finish_time = finish;
+            triggerRef(workout);
+            adjustDatesModal.close();
+          },
+          onCancel: () => adjustDatesModal.close()
+        }
+      });
+      adjustDatesModal.open();
+    }});
   }
 
   items.push({ title: 'Delete Workout', theme: 'danger', icon: TrashIcon, handler: deleteWorkout });
