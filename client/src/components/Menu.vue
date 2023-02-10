@@ -52,10 +52,17 @@ const expanded = shallowRef(false);
           last:rounded-b-lg dark:border-neutral-600 dark:bg-neutral-800
           shadow-lg"
       >
+        <!--
+          An empty ontouchstart listener is required to make :active work on iOS
+          Safari. This isn't necessary for the modal for some reason.
+          https://stackoverflow.com/a/33681490/4093378
+        -->
         <button
           role="menuitem"
           @click="expanded = false; item.handler()"
-          class="w-full p-2 whitespace-nowrap font-bold flex gap-1 items-center"
+          ontouchstart
+          class="w-full p-2 whitespace-nowrap font-bold flex gap-1 items-center
+            dark:active:bg-neutral-700"
           :class="{
             'dark:text-blue-500 text-blue-600': item.theme === 'primary',
             'text-red-500': item.theme === 'danger',

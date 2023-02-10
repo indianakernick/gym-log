@@ -49,7 +49,8 @@ defineProps<{
           'dark:text-blue-500 text-blue-600': !button.theme || button.theme === 'primary',
           'text-red-500': button.theme === 'danger',
         }"
-        class="p-2 dark:bg-neutral-800 disabled:text-neutral-500"
+        class="p-2 dark:bg-neutral-800 disabled:text-neutral-500
+          dark:active:bg-neutral-700"
       >{{ button.title }}</button>
     </div>
   </VueFinalModal>

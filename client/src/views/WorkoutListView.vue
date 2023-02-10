@@ -3,6 +3,7 @@ import Header from '@/components/Header.vue';
 import ListGroup from '@/components/ListGroup.vue';
 import ListItem from '@/components/ListItem.vue';
 import Main from '@/components/Main.vue';
+import AlertModal from '@/modals/AlertModal.vue';
 import type { Workout } from '@/model/api';
 import db from '@/services/db';
 import { groupByFiltered } from '@/utils/array';
@@ -10,9 +11,19 @@ import { displayDateTime, displayTime } from '@/utils/date';
 import { uuid } from '@/utils/uuid';
 import { PlusIcon } from '@heroicons/vue/24/outline';
 import { shallowRef } from 'vue';
+import { useModal } from 'vue-final-modal';
 import { useRouter } from 'vue-router';
 
 const router = useRouter();
+
+const alertModal = useModal({
+  component: AlertModal,
+  attrs: {
+    title: 'You have incomplete workouts',
+    message: 'Finish your current workout before starting a new one.',
+    onOk: () => alertModal.close()
+  }
+});
 
 const workouts = shallowRef<Workout[][]>([]);
 let hasIncomplete = false;
@@ -37,7 +48,7 @@ db.getWorkouts().then(d => {
 
 function add() {
   if (hasIncomplete) {
-    alert('You have incomplete workouts!');
+    alertModal.open();
     return;
   }
   router.push(`/workouts/${uuid()}`);
