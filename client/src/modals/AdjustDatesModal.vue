@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { shallowRef, watchEffect } from 'vue';
-import { VueFinalModal } from 'vue-final-modal';
+import Modal from './Modal.vue';
 
 const props = defineProps<{
   start: string;
@@ -52,27 +52,24 @@ function save() {
 </script>
 
 <template>
-  <VueFinalModal
-    class="flex justify-center items-center"
-    content-class="w-full m-6 flex flex-col gap-3 bg-neutral-800 rounded-lg border border-neutral-600"
-    :overlay-transition="{
-      enterActiveClass: 'transition-opacity',
-      enterFromClass: 'opacity-0',
-      leaveActiveClass: 'transition-opacity',
-      leaveToClass: 'opacity-0'
-    }"
-    :content-transition="{
-      enterActiveClass: 'transition-[opacity,transform]',
-      enterFromClass: 'scale-50 opacity-0',
-      leaveActiveClass: 'transition-[opacity,transform]',
-      leaveToClass: 'scale-50 opacity-0'
-    }"
+  <Modal
+    title="Adjust Dates"
+    :buttons="[
+      {
+        title: 'Cancel',
+        handler: () => $emit('cancel')
+      },
+      {
+        title: 'Save',
+        bold: true,
+        disabled: !!error,
+        handler: save
+      }
+    ]"
   >
-    <h2 class="text-lg font-bold px-3 pt-2">Adjust Dates</h2>
-
     <div
       v-if="error"
-      class="mx-3 p-2 rounded-lg border border-red-500 border-opacity-50
+      class="p-2 rounded-lg border border-red-500 border-opacity-50
         text-red-500 bg-red-500 bg-opacity-10"
     >
       <template v-if="error === 'start-before-finish'">
@@ -83,7 +80,7 @@ function save() {
       </template>
     </div>
 
-    <div class="px-3 flex items-center justify-between">
+    <div class="flex items-center justify-between">
       <label for="start">Started</label>
       <input
         id="started"
@@ -94,7 +91,7 @@ function save() {
       />
     </div>
 
-    <div class="px-3 flex items-center justify-between">
+    <div class="flex items-center justify-between">
       <label for="finished">Finished</label>
       <input
         id="finished"
@@ -104,17 +101,5 @@ function save() {
         class="appearance-none px-2 py-1 rounded-lg dark:bg-neutral-700"
       />
     </div>
-
-    <div class="grid grid-cols-2 border-t border-neutral-600 text-blue-500">
-      <button
-        @click="$emit('cancel')"
-        class="p-2 border-r border-neutral-600"
-      >Cancel</button>
-      <button
-        @click="save"
-        :disabled="!!error"
-        class="p-2 font-bold disabled:text-neutral-500"
-      >Save</button>
-    </div>
-  </VueFinalModal>
+  </Modal>
 </template>
