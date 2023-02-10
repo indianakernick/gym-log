@@ -1,8 +1,6 @@
 <script setup lang="ts">
-import { shallowRef } from 'vue';
+import { shallowRef, watchEffect } from 'vue';
 import { VueFinalModal } from 'vue-final-modal';
-
-// TODO: validate that start is before finish and they're both in the past.
 
 const props = defineProps<{
   start: string;
@@ -28,16 +26,35 @@ function fromInputDateTime(iso: string): string {
 
 const start = shallowRef(toInputDateTime(props.start));
 const finish = shallowRef(toInputDateTime(props.finish));
+const error = shallowRef<'start-before-finish' | 'past'>();
+
+// Safari doesn't support min, max or step attributes.
+
+watchEffect(() => {
+  const startTime = new Date(start.value);
+  const finishTime = new Date(finish.value);
+  const now = Date.now();
+
+  if (startTime >= finishTime) {
+    error.value = 'start-before-finish';
+  } else if (+startTime >= now || +finishTime > now) { // finish now is fine
+    error.value = 'past';
+  } else {
+    error.value = undefined;
+  }
+});
 
 function save() {
-  emit('save', fromInputDateTime(start.value), fromInputDateTime(finish.value));
+  if (!error.value) {
+    emit('save', fromInputDateTime(start.value), fromInputDateTime(finish.value));
+  }
 }
 </script>
 
 <template>
   <VueFinalModal
     class="flex justify-center items-center"
-    content-class="w-full m-6 bg-neutral-800 rounded-lg border border-neutral-600"
+    content-class="w-full m-6 flex flex-col gap-3 bg-neutral-800 rounded-lg border border-neutral-600"
     :overlay-transition="{
       enterActiveClass: 'transition-opacity',
       enterFromClass: 'opacity-0',
@@ -51,9 +68,22 @@ function save() {
       leaveToClass: 'scale-50 opacity-0'
     }"
   >
-    <h2 class="text-lg font-bold mb-3 px-3 pt-2">Adjust Dates</h2>
+    <h2 class="text-lg font-bold px-3 pt-2">Adjust Dates</h2>
 
-    <div class="mb-3 px-3 flex items-center justify-between">
+    <div
+      v-if="error"
+      class="mx-3 p-2 rounded-lg border border-red-500 border-opacity-50
+        text-red-500 bg-red-500 bg-opacity-10"
+    >
+      <template v-if="error === 'start-before-finish'">
+        Start time must be before finish time.
+      </template>
+      <template v-else-if="error === 'past'">
+        Start and finish times must be in the past.
+      </template>
+    </div>
+
+    <div class="px-3 flex items-center justify-between">
       <label for="start">Started</label>
       <input
         id="started"
@@ -75,9 +105,16 @@ function save() {
       />
     </div>
 
-    <div class="mt-3 grid grid-cols-2 border-t border-neutral-600 text-blue-500">
-      <button @click="$emit('cancel')" class="p-2 border-r border-neutral-600">Cancel</button>
-      <button @click="save" class="p-2 font-bold">Save</button>
+    <div class="grid grid-cols-2 border-t border-neutral-600 text-blue-500">
+      <button
+        @click="$emit('cancel')"
+        class="p-2 border-r border-neutral-600"
+      >Cancel</button>
+      <button
+        @click="save"
+        :disabled="!!error"
+        class="p-2 font-bold disabled:text-neutral-500"
+      >Save</button>
     </div>
   </VueFinalModal>
 </template>
