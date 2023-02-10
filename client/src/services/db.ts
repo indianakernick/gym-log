@@ -98,6 +98,9 @@ type StagedStores = {
   exercise: 'stagedExercise',
 };
 
+// start_time must be present if the workout has exercises.
+type ExerciseWorkoutJoin = (Exercise & { workout: Workout & { start_time: string } });
+
 export default new class {
   // It would probably be more efficient to use an async factory function
   // instead of checking and waiting for the initialisation of this object every
@@ -695,7 +698,7 @@ export default new class {
       );
       const stagedItem = staged[stagedIdx];
 
-      if (canonIdx === -1) {
+      if (canonIdx < 0) {
         if (!('deleted' in stagedItem)) {
           newDates.push(id);
         }
@@ -836,7 +839,7 @@ export default new class {
    */
   async joinWorkoutWithExercises(
     exercises: Exercise[]
-  ): Promise<(Exercise & { workout: Workout })[]> {
+  ): Promise<ExerciseWorkoutJoin[]> {
     const db = await this.db.get();
     const tx = db.transaction(['workout', 'stagedWorkout']);
     const canonStore = tx.objectStore('workout');
@@ -864,7 +867,7 @@ export default new class {
       if (workout) result.push({ ...exercise, workout });
     }
 
-    return result;
+    return result as ExerciseWorkoutJoin[];
   }
 
   /**
@@ -885,7 +888,7 @@ export default new class {
       const canonIdx = binarySearch(canon, start, canon.length, item => compare(item, id));
       const stagedItem = staged[stagedIdx];
 
-      if (canonIdx === -1) {
+      if (canonIdx < 0) {
         if (!('deleted' in stagedItem)) {
           newItems.push(stagedItem);
         }

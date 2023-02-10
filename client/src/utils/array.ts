@@ -5,19 +5,22 @@ export function binarySearch<T>(
   compare: (element: T) => number,
 ): number {
   while (start < end) {
-    const middle = start + ((end - start) >> 1);
-    const diff = compare(array[middle])
+    let middle = start + ((end - start) >> 1);
+    const diff = compare(array[middle]);
 
     if (diff < 0) {
       start = middle + 1;
     } else if (diff > 0) {
       end = middle;
     } else {
+      while (middle > start && compare(array[middle - 1]) === 0) {
+        --middle;
+      }
       return middle;
     }
   }
 
-  return -1;
+  return -1 - start;
 }
 
 // Much faster than localeCompare

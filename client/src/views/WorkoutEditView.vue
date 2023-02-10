@@ -180,6 +180,7 @@ function deleteExercise(index: number) {
     <ol class="flex flex-col gap-3 my-2">
       <li v-for="exercise, i in exercises">
         <ExerciseEdit
+          :workout-start="workout.start_time!"
           :exercise="exercise"
           :editing-workout="!workout.finish_time || editing"
           :editing="i === (editingExercise ?? (exercises.length - 1))"

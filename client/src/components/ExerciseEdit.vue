@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import type { Exercise, Workout } from '@/model/api';
 import db from '@/services/db';
-import { stringCompare } from '@/utils/array';
+import { binarySearch, stringCompare } from '@/utils/array';
 import { displayDateTime } from '@/utils/date';
 import { EXERCISE_TYPE } from '@/utils/i18n';
 import { TrashIcon } from '@heroicons/vue/20/solid';
@@ -11,6 +11,7 @@ import Menu from './Menu.vue';
 import SetEdit from './SetEdit.vue';
 
 const props = defineProps<{
+  workoutStart: string;
   exercise: Exercise;
   editingWorkout?: boolean;
   editing?: boolean;
@@ -24,27 +25,41 @@ const emit = defineEmits<{
 const history = shallowRef<(Exercise & { workout: Workout })[]>([]);
 const historyIdx = shallowRef(-1);
 
-db.getExercisesOfType(props.exercise.type).then(d => {
-  // TODO: this can be done in O(log n) because it's ordered by ID
-  // also consider whether it makes sense to do this.
-  // should we remove this exercise or all exercises in the current workout?
-  const workoutId = props.exercise.workout_exercise_id.substring(0, 36);
-  for (let i = 0; i < d.length; ++i) {
-    if (d[i].workout_exercise_id.startsWith(workoutId)) {
-      d.splice(i, 1);
-      --i;
-    }
-  }
+db.getExercisesOfType(props.exercise.type).then(exercises => {
+  // Removing exercises from the current workout.
 
-  // TODO: remove workouts later than the current workout from the history.
-  db.joinWorkoutWithExercises(d).then(d => {
-    d.sort((a, b) => {
-      const time = stringCompare(a.workout.start_time || '', b.workout.start_time || '');
+  const workoutId = props.exercise.workout_exercise_id.substring(0, 36);
+  const start = -binarySearch(exercises, 0, exercises.length, e => {
+    return stringCompare(e.workout_exercise_id, workoutId);
+  }) - 1;
+  let end = start;
+
+  while (
+    end < exercises.length
+    && exercises[end].workout_exercise_id.startsWith(workoutId)
+  ) ++end;
+
+  if (end > start) exercises.splice(start, end - start);
+
+  db.joinWorkoutWithExercises(exercises).then(joinedExercises => {
+    joinedExercises.sort((a, b) => {
+      const time = stringCompare(a.workout.start_time, b.workout.start_time);
       if (time !== 0) return time;
       return a.order - b.order;
     });
-    history.value = d;
-    historyIdx.value = d.length - 1;
+
+    // Removing exercises whose workout start time is equal to or greater than
+    // the start time of the current workout.
+
+    let index = binarySearch(joinedExercises, 0, joinedExercises.length, e => {
+      return stringCompare(e.workout.start_time, props.workoutStart);
+    });
+
+    if (index < 0) index = -index - 1;
+    joinedExercises.splice(index, joinedExercises.length - index);
+
+    history.value = joinedExercises;
+    historyIdx.value = joinedExercises.length - 1;
   });
 });
 
