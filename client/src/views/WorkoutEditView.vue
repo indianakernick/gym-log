@@ -11,6 +11,7 @@ import db from '@/services/db';
 import sync from '@/services/sync';
 import { displayDateTime, toDateTimeString } from '@/utils/date';
 import { EXERCISE_TYPE, EXERCISE_TYPE_GROUP } from '@/utils/i18n';
+import { useConfirmModal } from '@/utils/modal';
 import { uuid } from '@/utils/uuid';
 import { PlusIcon, TrashIcon } from '@heroicons/vue/20/solid';
 import { ChevronLeftIcon } from '@heroicons/vue/24/outline';
@@ -26,6 +27,7 @@ const router = useRouter();
 const adjustDatesModal = useModal({
   component: AdjustDatesModal
 });
+const confirmModal = useConfirmModal();
 
 const workout = shallowRef<Workout>({
   workout_id: props.id,
@@ -47,7 +49,11 @@ Promise.all([
 });
 
 async function done() {
-  if (!editing.value || confirm('Keep edits?')) {
+  if (!editing.value || await confirmModal({
+    title: 'Keep edits',
+    message: 'Do you want to keep the changes made to this workout?',
+    buttons: 'keep-discard'
+  })) {
     if (!workout.value.notes && !exercises.value.length) {
       await db.stageDeleteWorkout(props.id);
       await Promise.all(deletedExercises.map(e => db.stageDeleteExercise(e)));
@@ -120,7 +126,11 @@ const options = computed(() => {
 });
 
 async function deleteWorkout() {
-  if (confirm('Delete this workout?')) {
+  if (await confirmModal({
+    title: 'Delete workout',
+    message: 'Are you sure you want to delete this workout?',
+    buttons: 'delete-cancel'
+  })) {
     await db.stageDeleteWorkout(props.id);
     sync.sync();
     back(router, `/workouts`);

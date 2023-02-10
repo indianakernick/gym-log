@@ -4,6 +4,7 @@ import db from '@/services/db';
 import { binarySearch, stringCompare } from '@/utils/array';
 import { displayDateTime } from '@/utils/date';
 import { EXERCISE_TYPE } from '@/utils/i18n';
+import { useConfirmModal } from '@/utils/modal';
 import { TrashIcon } from '@heroicons/vue/20/solid';
 import { ChevronDownIcon, ChevronUpIcon } from '@heroicons/vue/24/outline';
 import { computed, shallowRef } from 'vue';
@@ -21,6 +22,10 @@ const emit = defineEmits<{
   (e: 'deleteExercise'): void;
   (e: 'editExercise'): void;
 }>();
+
+const confirmModal = useConfirmModal({
+  buttons: 'delete-cancel'
+});
 
 const history = shallowRef<(Exercise & { workout: Workout })[]>([]);
 const historyIdx = shallowRef(-1);
@@ -86,14 +91,20 @@ const options = computed(() => {
   return items;
 });
 
-function deleteExercise() {
-  if (confirm('Delete this exercise?')) {
+async function deleteExercise() {
+  if (await confirmModal({
+    title: 'Delete exercise',
+    message: 'Are you sure you want to delete this exercise?'
+  })) {
     emit('deleteExercise');
   }
 }
 
-function deleteLastSet() {
-  if (confirm('Delete the last set in this exercise?')) {
+async function deleteLastSet() {
+  if (await confirmModal({
+    title: 'Delete last set',
+    message: 'Are you sure you want to delete the last set in this exercise?'
+  })) {
     props.exercise.sets.pop();
     // Vue doesn't see the above mutation so we're manually triggering a
     // re-render. Maybe a little hacky but I don't see a simpler way.

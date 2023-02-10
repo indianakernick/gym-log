@@ -13,6 +13,7 @@ import db from '@/services/db';
 import sync from '@/services/sync';
 import { displayDate, toDateString } from '@/utils/date';
 import { MEASUREMENT_TYPE, MEASUREMENT_TYPE_UNIT } from '@/utils/i18n';
+import { useConfirmModal } from '@/utils/modal';
 import { TrashIcon } from '@heroicons/vue/20/solid';
 import { ChevronLeftIcon, PlusIcon } from '@heroicons/vue/24/outline';
 import { computed, nextTick, onUnmounted, shallowRef, triggerRef } from 'vue';
@@ -23,6 +24,7 @@ const props = defineProps<{
 }>();
 
 const router = useRouter();
+const confirmModal = useConfirmModal();
 
 const measurementSet = shallowRef<MeasurementSet>({
   date: props.date,
@@ -59,7 +61,11 @@ onUnmounted(() => {
 const editing = shallowRef(false);
 
 async function done() {
-  if (!editing.value || confirm('Keep edits?')) {
+  if (!editing.value || await confirmModal({
+    title: 'Keep edits',
+    message: 'Do you want to keep the changes made to these measurements?',
+    buttons: 'keep-discard'
+  })) {
     if (!measurementSet.value.notes && !Object.keys(measurementSet.value.measurements).length) {
       await db.stageDeleteMeasurement(measurementSet.value.date);
     } else {
@@ -113,7 +119,11 @@ const options = computed(() => {
 });
 
 async function deleteSet() {
-  if (confirm(`Delete measurements for ${displayDate(props.date)}?`)) {
+  if (await confirmModal({
+    title: 'Delete measurements',
+    message: `Are you sure you want to delete measurements for ${displayDate(props.date)}?`,
+    buttons: 'delete-cancel'
+  })) {
     await db.stageDeleteMeasurement(props.date);
     sync.sync();
     back(router, `/measurements`);
