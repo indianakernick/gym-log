@@ -142,6 +142,7 @@ async function deleteLastSet() {
         <button
           @click="--historyIdx"
           :disabled="historyIdx < 1"
+          aria-label="Previous"
           class="ml-auto disabled:text-neutral-600"
         >
           <ChevronUpIcon class="w-6 h-6"></ChevronUpIcon>
@@ -149,6 +150,7 @@ async function deleteLastSet() {
         <button
           @click="++historyIdx"
           :disabled="historyIdx === history.length - 1"
+          aria-label="Next"
           class="ml-3 disabled:text-neutral-600"
         >
           <ChevronDownIcon class="w-6 h-6"></ChevronDownIcon>

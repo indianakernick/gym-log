@@ -48,9 +48,10 @@ const expanded = shallowRef(false);
     >
       <li
         v-for="item in items"
+        role="presentation"
         class="border-t border-r last:border-b border-l first:rounded-t-lg
           last:rounded-b-lg dark:border-neutral-600 dark:bg-neutral-800
-          shadow-lg"
+          shadow-lg overflow-hidden"
       >
         <!--
           An empty ontouchstart listener is required to make :active work on iOS
@@ -60,7 +61,7 @@ const expanded = shallowRef(false);
         <button
           role="menuitem"
           @click="expanded = false; item.handler()"
-          ontouchstart
+          @touchstart=""
           class="w-full p-2 whitespace-nowrap font-bold flex gap-1 items-center
             dark:active:bg-neutral-700"
           :class="{
