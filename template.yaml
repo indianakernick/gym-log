@@ -40,11 +40,62 @@ Resources:
       Tags:
         - Key: project:gym-log
 
+  LambdaExecutionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+            Action: sts:AssumeRole
+      Description: Execution role for Lambda
+      Policies:
+        - PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action: logs:CreateLogGroup
+                Resource: arn:aws:logs:ap-southeast-2:*:*
+              - Effect: Allow
+                Action:
+                  - logs:CreateLogStream
+                  - logs:PutLogEvents
+                Resource: arn:aws:logs:ap-southeast-2:*:log-group:/aws/lambda/gym-log:*"
+          PolicyName: gym-log.lambda.log
+        - PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action:
+                  - dynamodb:BatchGetItem
+                  - dynamodb:ConditionCheckItem
+                  - dynamodb:PutItem
+                  - dynamodb:DeleteItem
+                  - dynamodb:Scan
+                  - dynamodb:Query
+                  - dynamodb:UpdateItem
+                  - dynamodb:DescribeTable
+                  - dynamodb:GetItem
+                Resource:
+                  - arn:aws:dynamodb:ap-southeast-2:*:table/gym-log.User
+                  - arn:aws:dynamodb:ap-southeast-2:*:table/gym-log.User/index/LSI-ModifiedVersion
+          PolicyName: gym-log.lambda.dynamodb
+      MaxSessionDuration: 3600
+      RoleName: gym-log.lambda
+      Tags:
+        - Key: project:gym-log
+
   LambdaProxy:
     Type: AWS::Lambda::Function
     Properties:
       Architectures:
         - arm64
+      Code:
+        # wondering if I can run CloudFormation and then run
+        # update-function-code to avoid creating another S3 bucket
+        ZipFile: ""
       Environment:
         Variables:
           RUST_BACKTRACE: "1"
@@ -52,6 +103,8 @@ Resources:
       Handler: bootstrap
       MemorySize: 128
       PackageType: Zip
+      Role: !GetAtt LambdaExecutionRole.Arn
+      Runtime: provided.al2
       Tags:
         - Key: project:gym-log
       Timeout: 3
