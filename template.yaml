@@ -2,8 +2,9 @@ AWSTemplateFormatVersion: "2010-09-09"
 
 Resources:
   # A bucket that hosts the website.
-  Bucket:
+  S3BucketWebsite:
     Type: AWS::S3::Bucket
+    DeletionPolicy: Retain
     Properties:
       AccessControl: PublicRead
       BucketName: gymlog.indianakernick.com
@@ -13,8 +14,9 @@ Resources:
         IndexDocument: index.html
 
   # The main database for all user data.
-  Table:
+  DynamoDbTableUser:
     Type: AWS::DynamoDB::Table
+    DeletionPolicy: Retain
     Properties:
       AttributeDefinitions:
         - AttributeName: UserId
@@ -46,6 +48,7 @@ Resources:
   # A Cognito user pool using a fairly basic email and password configuration.
   CognitoUserPool:
     Type: AWS::Cognito::UserPool
+    DeletionPolicy: Retain
     Properties:
       AccountRecoverySetting:
         RecoveryMechanisms:
@@ -75,11 +78,11 @@ Resources:
 
   CognitoUserPoolClient:
     Type: AWS::Cognito::UserPoolClient
+    DeletionPolicy: Retain
     Properties:
       AccessTokenValidity: 60
       AllowedOAuthFlows:
         - code
-        - implicit
       AllowedOAuthFlowsUserPoolClient: true
       AuthSessionValidity: 3 # minutes
       ClientName: gym-log
@@ -99,8 +102,9 @@ Resources:
 
   # The execution role for the proxy Lambda function. This allows the Lambda to
   # write CloudWatch logs and access the database.
-  LambdaExecutionRole:
+  IamRoleLambdaProxyExecution:
     Type: AWS::IAM::Role
+    DeletionPolicy: Retain
     Properties:
       AssumeRolePolicyDocument:
         Version: "2012-10-17"
@@ -109,7 +113,7 @@ Resources:
             Principal:
               Service: lambda.amazonaws.com
             Action: sts:AssumeRole
-      Description: Execution role for Lambda
+      Description: Execution role for proxy Lambda
       Policies:
         - PolicyDocument:
             Version: "2012-10-17"
@@ -149,6 +153,7 @@ Resources:
   # The proxy Lambda function processes all API requests from API Gateway.
   LambdaProxy:
     Type: AWS::Lambda::Function
+    DeletionPolicy: Retain
     Properties:
       Architectures:
         - arm64
@@ -163,7 +168,7 @@ Resources:
       Handler: bootstrap
       MemorySize: 128 # MB
       PackageType: Zip
-      Role: !GetAtt LambdaExecutionRole.Arn
+      Role: !GetAtt IamRoleLambdaProxyExecution.Arn
       Runtime: provided.al2
       Tags:
         - Key: project:gym-log
@@ -171,6 +176,7 @@ Resources:
 
   Api:
     Type: AWS::ApiGatewayV2::Api
+    DeletionPolicy: Retain
     Properties:
       FailOnWarnings: true
       Name: gym-log
@@ -180,6 +186,7 @@ Resources:
 
   ApiStageDefault:
     Type: AWS::ApiGatewayV2::Stage
+    DeletionPolicy: Retain
     Properties:
       ApiId: !Ref Api
       AutoDeploy: true
@@ -190,6 +197,7 @@ Resources:
 
   ApiDeployment:
     Type: AWS::ApiGatewayV2::Deployment
+    DeletionPolicy: Retain
     Properties:
       ApiId: !Ref Api
 
@@ -198,6 +206,7 @@ Resources:
   # will also check the issuer, audience and expiry claims.
   ApiAuthorizer:
     Type: AWS::ApiGatewayV2::Authorizer
+    DeletionPolicy: Retain
     Properties:
       ApiId: !Ref Api
       AuthorizerType: JWT
@@ -212,6 +221,7 @@ Resources:
   # proxy Lambda.
   ApiIntegrationProxy:
     Type: AWS::ApiGatewayV2::Integration
+    DeletionPolicy: Retain
     Properties:
       ApiId: !Ref Api
       IntegrationType: AWS_PROXY
@@ -228,6 +238,7 @@ Resources:
 
   ApiRouteUserGet:
     Type: AWS::ApiGatewayV2::Route
+    DeletionPolicy: Retain
     Properties:
       ApiId: !Ref Api
       AuthorizerId: !Ref ApiAuthorizer
@@ -239,6 +250,7 @@ Resources:
 
   ApiRouteUserOptions:
     Type: AWS::ApiGatewayV2::Route
+    DeletionPolicy: Retain
     Properties:
       ApiId: !Ref Api
       RouteKey: OPTIONS /user
@@ -249,6 +261,7 @@ Resources:
 
   ApiRouteUserMeasurementDelete:
     Type: AWS::ApiGatewayV2::Route
+    DeletionPolicy: Retain
     Properties:
       ApiId: !Ref Api
       AuthorizerId: !Ref ApiAuthorizer
@@ -260,6 +273,7 @@ Resources:
 
   ApiRouteUserMeasurementOptions:
     Type: AWS::ApiGatewayV2::Route
+    DeletionPolicy: Retain
     Properties:
       ApiId: !Ref Api
       RouteKey: OPTIONS /user/measurement/{measurementId}
@@ -270,6 +284,7 @@ Resources:
 
   ApiRouteUserMeasurementPut:
     Type: AWS::ApiGatewayV2::Route
+    DeletionPolicy: Retain
     Properties:
       ApiId: !Ref Api
       AuthorizerId: !Ref ApiAuthorizer
@@ -281,6 +296,7 @@ Resources:
 
   ApiRouteUserWorkoutDelete:
     Type: AWS::ApiGatewayV2::Route
+    DeletionPolicy: Retain
     Properties:
       ApiId: !Ref Api
       AuthorizerId: !Ref ApiAuthorizer
@@ -292,6 +308,7 @@ Resources:
 
   ApiRouteUserWorkoutOptions:
     Type: AWS::ApiGatewayV2::Route
+    DeletionPolicy: Retain
     Properties:
       ApiId: !Ref Api
       RouteKey: OPTIONS /user/workout/{workoutId}
@@ -302,6 +319,7 @@ Resources:
 
   ApiRouteUserWorkoutPut:
     Type: AWS::ApiGatewayV2::Route
+    DeletionPolicy: Retain
     Properties:
       ApiId: !Ref Api
       AuthorizerId: !Ref ApiAuthorizer
@@ -313,6 +331,7 @@ Resources:
 
   ApiRouteUserWorkoutExerciseDelete:
     Type: AWS::ApiGatewayV2::Route
+    DeletionPolicy: Retain
     Properties:
       ApiId: !Ref Api
       AuthorizerId: !Ref ApiAuthorizer
@@ -324,6 +343,7 @@ Resources:
 
   ApiRouteUserWorkoutExerciseOptions:
     Type: AWS::ApiGatewayV2::Route
+    DeletionPolicy: Retain
     Properties:
       ApiId: !Ref Api
       RouteKey: OPTIONS /user/workout/{workoutId}/exercise/{exerciseId}
@@ -334,6 +354,7 @@ Resources:
 
   ApiRouteUserWorkoutExercisePut:
     Type: AWS::ApiGatewayV2::Route
+    DeletionPolicy: Retain
     Properties:
       ApiId: !Ref Api
       AuthorizerId: !Ref ApiAuthorizer
@@ -345,6 +366,7 @@ Resources:
 
   ApiRouteUserWorkoutOrderOptions:
     Type: AWS::ApiGatewayV2::Route
+    DeletionPolicy: Retain
     Properties:
       ApiId: !Ref Api
       RouteKey: OPTIONS /user/workout/{workoutId}/order
@@ -355,6 +377,7 @@ Resources:
 
   ApiRouteUserWorkoutOrderPut:
     Type: AWS::ApiGatewayV2::Route
+    DeletionPolicy: Retain
     Properties:
       ApiId: !Ref Api
       AuthorizerId: !Ref ApiAuthorizer
@@ -363,3 +386,7 @@ Resources:
         - /
         - - integrations
           - !Ref ApiIntegrationProxy
+
+Outputs:
+  CognitoUserPoolClientId:
+    Value: !Ref CognitoUserPoolClient
