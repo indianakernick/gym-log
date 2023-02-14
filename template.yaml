@@ -24,7 +24,7 @@ Resources:
         - AttributeName: Id
           AttributeType: S
         - AttributeName: ModifiedVersion
-          AttributeType: N
+          AttributeType: "N"
       BillingMode: PAY_PER_REQUEST
       KeySchema:
         - AttributeName: UserId
@@ -113,19 +113,20 @@ Resources:
             Principal:
               Service: lambda.amazonaws.com
             Action: sts:AssumeRole
-      Description: Execution role for proxy Lambda
       Policies:
         - PolicyDocument:
             Version: "2012-10-17"
             Statement:
               - Effect: Allow
                 Action: logs:CreateLogGroup
-                Resource: arn:aws:logs:ap-southeast-2:*:*
+                Resource: !Sub arn:aws:logs:${AWS::Region}:${AWS::AccountId}:*
               - Effect: Allow
                 Action:
                   - logs:CreateLogStream
                   - logs:PutLogEvents
-                Resource: arn:aws:logs:ap-southeast-2:*:log-group:/aws/lambda/gym-log:*"
+                # We can't !Sub the Lambda name because that creates a circular
+                # dependency.
+                Resource: arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/lambda/gym-log.proxy:*
           PolicyName: gym-log.lambda.log
         - PolicyDocument:
             Version: "2012-10-17"
@@ -142,8 +143,12 @@ Resources:
                   - dynamodb:DescribeTable
                   - dynamodb:GetItem
                 Resource:
-                  - arn:aws:dynamodb:ap-southeast-2:*:table/gym-log.User
-                  - arn:aws:dynamodb:ap-southeast-2:*:table/gym-log.User/index/LSI-ModifiedVersion
+                  - !Sub
+                    - arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${Table}
+                    - Table: !Ref DynamoDbTableUser
+                  - !Sub
+                    - arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${Table}/index/*
+                    - Table: !Ref DynamoDbTableUser
           PolicyName: gym-log.lambda.dynamodb
       MaxSessionDuration: 3600 # seconds
       RoleName: gym-log.lambda
@@ -164,7 +169,7 @@ Resources:
       Environment:
         Variables:
           RUST_BACKTRACE: "1"
-      FunctionName: gym-log
+      FunctionName: gym-log.proxy
       Handler: bootstrap
       MemorySize: 128 # MB
       PackageType: Zip
@@ -388,5 +393,9 @@ Resources:
           - !Ref ApiIntegrationProxy
 
 Outputs:
-  CognitoUserPoolClientId:
+  CognitoClientId:
     Value: !Ref CognitoUserPoolClient
+  ApiBaseUrl:
+    Value: !Sub
+      - https://${Id}.execute-api.${AWS::Region}.amazonaws.com
+      - Id: !Ref Api
