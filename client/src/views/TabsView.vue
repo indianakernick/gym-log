@@ -3,9 +3,11 @@ import { DocumentTextIcon, UserIcon } from '@heroicons/vue/24/outline';
 import { shallowRef, watchEffect } from 'vue';
 import { RouterView, useRouter } from 'vue-router';
 
+// TODO: better icons
 // Really struggling to find appropriate icons. Might need to choose a different
 // icon library.
 
+// TODO: navigation overhaul
 // We're navigating to the root of each tab rather than maintaining state for
 // each tab. If you go to an individual workout, then go to the measurements
 // tab, navigating to the workouts tab should take you back to that same
