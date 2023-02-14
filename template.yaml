@@ -43,6 +43,60 @@ Resources:
       Tags:
         - Key: project:gym-log
 
+  # A Cognito user pool using a fairly basic email and password configuration.
+  CognitoUserPool:
+    Type: AWS::Cognito::UserPool
+    Properties:
+      AccountRecoverySetting:
+        RecoveryMechanisms:
+          - Name: verified_email
+            Priority: 1
+      AliasAttributes:
+        - email
+      EmailConfiguration:
+        EmailSendingAccount: COGNITO_DEFAULT
+      MfaConfiguration: "OFF"
+      Policies:
+        PasswordPolicy:
+          MinimumLength: 8
+          RequireLowercase: true
+          RequireNumbers: true
+          RequireSymbols: true
+          RequireUppercase: true
+          TemporaryPasswordValidityDays: 7
+      Schema:
+        - AttributeDataType: String
+          Mutable: false
+          Name: email
+          Required: true
+      UserPoolName: gym-log
+      UserPoolTags:
+        - Key: project:gym-log
+
+  CognitoUserPoolClient:
+    Type: AWS::Cognito::UserPoolClient
+    Properties:
+      AccessTokenValidity: 60
+      AllowedOAuthFlows:
+        - code
+        - implicit
+      AllowedOAuthFlowsUserPoolClient: true
+      AuthSessionValidity: 3 # minutes
+      ClientName: gym-log
+      EnableTokenRevocation: false
+      ExplicitAuthFlows:
+        - ALLOW_REFRESH_TOKEN_AUTH
+        - ALLOW_USER_PASSWORD_AUTH
+      GenerateSecret: false
+      IdTokenValidity: 60
+      RefreshTokenValidity: 30
+      SupportedIdentityProviders:
+        - COGNITO
+      TokenValidityUnits:
+        AccessToken: minutes
+        IdToken: minutes
+        RefreshToken: days
+
   # The execution role for the proxy Lambda function. This allows the Lambda to
   # write CloudWatch logs and access the database.
   LambdaExecutionRole:
@@ -87,7 +141,7 @@ Resources:
                   - arn:aws:dynamodb:ap-southeast-2:*:table/gym-log.User
                   - arn:aws:dynamodb:ap-southeast-2:*:table/gym-log.User/index/LSI-ModifiedVersion
           PolicyName: gym-log.lambda.dynamodb
-      MaxSessionDuration: 3600
+      MaxSessionDuration: 3600 # seconds
       RoleName: gym-log.lambda
       Tags:
         - Key: project:gym-log
@@ -107,7 +161,7 @@ Resources:
           RUST_BACKTRACE: "1"
       FunctionName: gym-log
       Handler: bootstrap
-      MemorySize: 128
+      MemorySize: 128 # MB
       PackageType: Zip
       Role: !GetAtt LambdaExecutionRole.Arn
       Runtime: provided.al2
@@ -150,8 +204,8 @@ Resources:
       IdentitySource: $request.header.Authorization
       JwtConfiguration:
         Audience:
-          - "" # client id
-        Issuer: "" # cognito issuer URI
+          - !Ref CognitoUserPoolClient
+        Issuer: !GetAtt CognitoUserPool.ProviderURL
       Name: gym-log
 
   # An integration that forms the bridge between an API Gateway route and the
