@@ -1,15 +1,18 @@
 AWSTemplateFormatVersion: "2010-09-09"
 
 Resources:
+  # A bucket that hosts the website.
   Bucket:
     Type: AWS::S3::Bucket
     Properties:
+      AccessControl: PublicRead
       BucketName: gymlog.indianakernick.com
       Tags:
         - Key: project:gym-log
       WebsiteConfiguration:
         IndexDocument: index.html
 
+  # The main database for all user data.
   Table:
     Type: AWS::DynamoDB::Table
     Properties:
@@ -40,6 +43,8 @@ Resources:
       Tags:
         - Key: project:gym-log
 
+  # The execution role for the proxy Lambda function. This allows the Lambda to
+  # write CloudWatch logs and access the database.
   LambdaExecutionRole:
     Type: AWS::IAM::Role
     Properties:
@@ -87,6 +92,7 @@ Resources:
       Tags:
         - Key: project:gym-log
 
+  # The proxy Lambda function processes all API requests from API Gateway.
   LambdaProxy:
     Type: AWS::Lambda::Function
     Properties:
@@ -123,28 +129,183 @@ Resources:
     Properties:
       ApiId: !Ref Api
       AutoDeploy: true
+      DeploymentId: !Ref ApiDeployment
       StageName: $default
       Tags:
         - Key: project:gym-log
 
-  ApiRouteUserOptions:
-    Type: AWS::ApiGatewayV2::Route
+  ApiDeployment:
+    Type: AWS::ApiGatewayV2::Deployment
     Properties:
       ApiId: !Ref Api
-      RouteKey: OPTIONS /user
 
-  ApiRouteUserGet:
-    Type: AWS::ApiGatewayV2::Route
+  # An authorizer that will parse the Authorization HTTP header as a JWT. It
+  # will use the issuer URI to get the public key and verify the signature. It
+  # will also check the issuer, audience and expiry claims.
+  ApiAuthorizer:
+    Type: AWS::ApiGatewayV2::Authorizer
     Properties:
       ApiId: !Ref Api
-      AuthorizationType: JWT
-      RouteKey: GET /user
+      AuthorizerType: JWT
+      IdentitySource: $request.header.Authorization
+      JwtConfiguration:
+        Audience:
+          - "" # client id
+        Issuer: "" # cognito issuer URI
+      Name: gym-log
 
+  # An integration that forms the bridge between an API Gateway route and the
+  # proxy Lambda.
   ApiIntegrationProxy:
     Type: AWS::ApiGatewayV2::Integration
     Properties:
       ApiId: !Ref Api
       IntegrationType: AWS_PROXY
       IntegrationUri: !GetAtt LambdaProxy.Arn
+      # The documentation doesn't say that there's a Name property but I can set
+      # a name in the console.
+      Name: gym-log
       PayloadFormatVersion: "2.0"
       TimeoutInMillis: 30000
+
+  # Below are the route definitions for the whole API. There are OPTIONS routes
+  # that are handled by the proxy Lambda for CORS. API Gateway has a built-in
+  # mechanism for dealing with CORS but it didn't seem to work.
+
+  ApiRouteUserGet:
+    Type: AWS::ApiGatewayV2::Route
+    Properties:
+      ApiId: !Ref Api
+      AuthorizerId: !Ref ApiAuthorizer
+      RouteKey: GET /user
+      Target: !Join
+        - /
+        - - integrations
+          - !Ref ApiIntegrationProxy
+
+  ApiRouteUserOptions:
+    Type: AWS::ApiGatewayV2::Route
+    Properties:
+      ApiId: !Ref Api
+      RouteKey: OPTIONS /user
+      Target: !Join
+        - /
+        - - integrations
+          - !Ref ApiIntegrationProxy
+
+  ApiRouteUserMeasurementDelete:
+    Type: AWS::ApiGatewayV2::Route
+    Properties:
+      ApiId: !Ref Api
+      AuthorizerId: !Ref ApiAuthorizer
+      RouteKey: DELETE /user/measurement/{measurementId}
+      Target: !Join
+        - /
+        - - integrations
+          - !Ref ApiIntegrationProxy
+
+  ApiRouteUserMeasurementOptions:
+    Type: AWS::ApiGatewayV2::Route
+    Properties:
+      ApiId: !Ref Api
+      RouteKey: OPTIONS /user/measurement/{measurementId}
+      Target: !Join
+        - /
+        - - integrations
+          - !Ref ApiIntegrationProxy
+
+  ApiRouteUserMeasurementPut:
+    Type: AWS::ApiGatewayV2::Route
+    Properties:
+      ApiId: !Ref Api
+      AuthorizerId: !Ref ApiAuthorizer
+      RouteKey: PUT /user/measurement/{measurementId}
+      Target: !Join
+        - /
+        - - integrations
+          - !Ref ApiIntegrationProxy
+
+  ApiRouteUserWorkoutDelete:
+    Type: AWS::ApiGatewayV2::Route
+    Properties:
+      ApiId: !Ref Api
+      AuthorizerId: !Ref ApiAuthorizer
+      RouteKey: DELETE /user/workout/{workoutId}
+      Target: !Join
+        - /
+        - - integrations
+          - !Ref ApiIntegrationProxy
+
+  ApiRouteUserWorkoutOptions:
+    Type: AWS::ApiGatewayV2::Route
+    Properties:
+      ApiId: !Ref Api
+      RouteKey: OPTIONS /user/workout/{workoutId}
+      Target: !Join
+        - /
+        - - integrations
+          - !Ref ApiIntegrationProxy
+
+  ApiRouteUserWorkoutPut:
+    Type: AWS::ApiGatewayV2::Route
+    Properties:
+      ApiId: !Ref Api
+      AuthorizerId: !Ref ApiAuthorizer
+      RouteKey: PUT /user/workout/{workoutId}
+      Target: !Join
+        - /
+        - - integrations
+          - !Ref ApiIntegrationProxy
+
+  ApiRouteUserWorkoutExerciseDelete:
+    Type: AWS::ApiGatewayV2::Route
+    Properties:
+      ApiId: !Ref Api
+      AuthorizerId: !Ref ApiAuthorizer
+      RouteKey: DELETE /user/workout/{workoutId}/exercise/{exerciseId}
+      Target: !Join
+        - /
+        - - integrations
+          - !Ref ApiIntegrationProxy
+
+  ApiRouteUserWorkoutExerciseOptions:
+    Type: AWS::ApiGatewayV2::Route
+    Properties:
+      ApiId: !Ref Api
+      RouteKey: OPTIONS /user/workout/{workoutId}/exercise/{exerciseId}
+      Target: !Join
+        - /
+        - - integrations
+          - !Ref ApiIntegrationProxy
+
+  ApiRouteUserWorkoutExercisePut:
+    Type: AWS::ApiGatewayV2::Route
+    Properties:
+      ApiId: !Ref Api
+      AuthorizerId: !Ref ApiAuthorizer
+      RouteKey: PUT /user/workout/{workoutId}/exercise/{exerciseId}
+      Target: !Join
+        - /
+        - - integrations
+          - !Ref ApiIntegrationProxy
+
+  ApiRouteUserWorkoutOrderOptions:
+    Type: AWS::ApiGatewayV2::Route
+    Properties:
+      ApiId: !Ref Api
+      RouteKey: OPTIONS /user/workout/{workoutId}/order
+      Target: !Join
+        - /
+        - - integrations
+          - !Ref ApiIntegrationProxy
+
+  ApiRouteUserWorkoutOrderPut:
+    Type: AWS::ApiGatewayV2::Route
+    Properties:
+      ApiId: !Ref Api
+      AuthorizerId: !Ref ApiAuthorizer
+      RouteKey: PUT /user/workout/{workoutId}/order
+      Target: !Join
+        - /
+        - - integrations
+          - !Ref ApiIntegrationProxy
