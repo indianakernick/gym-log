@@ -1,6 +1,7 @@
 import type { MergeConflictResolutions, StagedChange } from '@/model/db';
 import db from '@/services/db';
 import user, { CacheOutdatedError } from '@/services/user';
+import auth from './auth';
 
 // Do we gain anything by moving this into the service worker?
 
@@ -19,6 +20,7 @@ export default new class {
   sync() {
     clearTimeout(this.debounceId);
     this.debounceId = window.setTimeout(async () => {
+      if (!await auth.isLoggedIn()) return;
       if (this.syncing) {
         this.sync();
       } else {

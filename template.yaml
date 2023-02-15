@@ -4,7 +4,6 @@ Resources:
   # A bucket that hosts the website.
   S3BucketWebsite:
     Type: AWS::S3::Bucket
-    DeletionPolicy: Retain
     Properties:
       AccessControl: PublicRead
       BucketName: gymlog.indianakernick.com
@@ -12,6 +11,20 @@ Resources:
         - Key: project:gym-log
       WebsiteConfiguration:
         IndexDocument: index.html
+
+  S3BucketPolicyWebsite:
+    Type: AWS::S3::BucketPolicy
+    Properties:
+      Bucket: !Ref S3BucketWebsite
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal: "*"
+            Action: s3:GetObject
+            Resource: !Sub
+              - arn:aws:s3:::${Bucket}/*
+              - Bucket: !Ref S3BucketWebsite
 
   # The main database for all user data.
   DynamoDbTableUser:
@@ -55,8 +68,6 @@ Resources:
         RecoveryMechanisms:
           - Name: verified_email
             Priority: 1
-      AliasAttributes:
-        - email
       EmailConfiguration:
         EmailSendingAccount: COGNITO_DEFAULT
       MfaConfiguration: "OFF"
@@ -104,7 +115,6 @@ Resources:
   # write CloudWatch logs and access the database.
   IamRoleLambdaProxyExecution:
     Type: AWS::IAM::Role
-    DeletionPolicy: Retain
     Properties:
       AssumeRolePolicyDocument:
         Version: "2012-10-17"
@@ -159,7 +169,6 @@ Resources:
   # The proxy Lambda function processes all API requests from API Gateway.
   LambdaProxy:
     Type: AWS::Lambda::Function
-    DeletionPolicy: Retain
     Properties:
       Architectures:
         - arm64
@@ -179,9 +188,19 @@ Resources:
         - Key: project:gym-log
       Timeout: 3 # seconds
 
+  # A permission that allows API Gateway to invoke the proxy Lambda function.
+  LambdaPermissionProxyApi:
+    Type: AWS::Lambda::Permission
+    Properties:
+      Action: lambda:InvokeFunction
+      FunctionName: !GetAtt LambdaProxy.Arn
+      Principal: apigateway.amazonaws.com
+      SourceArn: !Sub
+        - arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${Api}/*
+        - Api: !Ref Api
+
   Api:
     Type: AWS::ApiGatewayV2::Api
-    DeletionPolicy: Retain
     Properties:
       Name: gym-log
       ProtocolType: HTTP
@@ -190,7 +209,6 @@ Resources:
 
   ApiStageDefault:
     Type: AWS::ApiGatewayV2::Stage
-    DeletionPolicy: Retain
     Properties:
       ApiId: !Ref Api
       AutoDeploy: true
@@ -201,7 +219,6 @@ Resources:
 
   ApiDeployment:
     Type: AWS::ApiGatewayV2::Deployment
-    DeletionPolicy: Retain
     DependsOn:
      - ApiRouteUserGet
      - ApiRouteUserOptions
@@ -224,7 +241,6 @@ Resources:
   # will also check the issuer, audience and expiry claims.
   ApiAuthorizer:
     Type: AWS::ApiGatewayV2::Authorizer
-    DeletionPolicy: Retain
     Properties:
       ApiId: !Ref Api
       AuthorizerType: JWT
@@ -240,11 +256,12 @@ Resources:
   # proxy Lambda.
   ApiIntegrationProxy:
     Type: AWS::ApiGatewayV2::Integration
-    DeletionPolicy: Retain
     Properties:
       ApiId: !Ref Api
       IntegrationType: AWS_PROXY
-      IntegrationUri: !GetAtt LambdaProxy.Arn
+      IntegrationUri: !Sub
+        - arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${Lambda}/invocations
+        - Lambda: !GetAtt LambdaProxy.Arn
       PayloadFormatVersion: "2.0"
       TimeoutInMillis: 30000
 
@@ -254,9 +271,9 @@ Resources:
 
   ApiRouteUserGet:
     Type: AWS::ApiGatewayV2::Route
-    DeletionPolicy: Retain
     Properties:
       ApiId: !Ref Api
+      AuthorizationType: JWT
       AuthorizerId: !Ref ApiAuthorizer
       RouteKey: GET /user
       Target: !Join
@@ -266,7 +283,6 @@ Resources:
 
   ApiRouteUserOptions:
     Type: AWS::ApiGatewayV2::Route
-    DeletionPolicy: Retain
     Properties:
       ApiId: !Ref Api
       RouteKey: OPTIONS /user
@@ -277,9 +293,9 @@ Resources:
 
   ApiRouteUserMeasurementDelete:
     Type: AWS::ApiGatewayV2::Route
-    DeletionPolicy: Retain
     Properties:
       ApiId: !Ref Api
+      AuthorizationType: JWT
       AuthorizerId: !Ref ApiAuthorizer
       RouteKey: DELETE /user/measurement/{measurementId}
       Target: !Join
@@ -289,7 +305,6 @@ Resources:
 
   ApiRouteUserMeasurementOptions:
     Type: AWS::ApiGatewayV2::Route
-    DeletionPolicy: Retain
     Properties:
       ApiId: !Ref Api
       RouteKey: OPTIONS /user/measurement/{measurementId}
@@ -300,9 +315,9 @@ Resources:
 
   ApiRouteUserMeasurementPut:
     Type: AWS::ApiGatewayV2::Route
-    DeletionPolicy: Retain
     Properties:
       ApiId: !Ref Api
+      AuthorizationType: JWT
       AuthorizerId: !Ref ApiAuthorizer
       RouteKey: PUT /user/measurement/{measurementId}
       Target: !Join
@@ -312,9 +327,9 @@ Resources:
 
   ApiRouteUserWorkoutDelete:
     Type: AWS::ApiGatewayV2::Route
-    DeletionPolicy: Retain
     Properties:
       ApiId: !Ref Api
+      AuthorizationType: JWT
       AuthorizerId: !Ref ApiAuthorizer
       RouteKey: DELETE /user/workout/{workoutId}
       Target: !Join
@@ -324,7 +339,6 @@ Resources:
 
   ApiRouteUserWorkoutOptions:
     Type: AWS::ApiGatewayV2::Route
-    DeletionPolicy: Retain
     Properties:
       ApiId: !Ref Api
       RouteKey: OPTIONS /user/workout/{workoutId}
@@ -335,9 +349,9 @@ Resources:
 
   ApiRouteUserWorkoutPut:
     Type: AWS::ApiGatewayV2::Route
-    DeletionPolicy: Retain
     Properties:
       ApiId: !Ref Api
+      AuthorizationType: JWT
       AuthorizerId: !Ref ApiAuthorizer
       RouteKey: PUT /user/workout/{workoutId}
       Target: !Join
@@ -347,9 +361,9 @@ Resources:
 
   ApiRouteUserWorkoutExerciseDelete:
     Type: AWS::ApiGatewayV2::Route
-    DeletionPolicy: Retain
     Properties:
       ApiId: !Ref Api
+      AuthorizationType: JWT
       AuthorizerId: !Ref ApiAuthorizer
       RouteKey: DELETE /user/workout/{workoutId}/exercise/{exerciseId}
       Target: !Join
@@ -359,7 +373,6 @@ Resources:
 
   ApiRouteUserWorkoutExerciseOptions:
     Type: AWS::ApiGatewayV2::Route
-    DeletionPolicy: Retain
     Properties:
       ApiId: !Ref Api
       RouteKey: OPTIONS /user/workout/{workoutId}/exercise/{exerciseId}
@@ -370,9 +383,9 @@ Resources:
 
   ApiRouteUserWorkoutExercisePut:
     Type: AWS::ApiGatewayV2::Route
-    DeletionPolicy: Retain
     Properties:
       ApiId: !Ref Api
+      AuthorizationType: JWT
       AuthorizerId: !Ref ApiAuthorizer
       RouteKey: PUT /user/workout/{workoutId}/exercise/{exerciseId}
       Target: !Join
@@ -382,7 +395,6 @@ Resources:
 
   ApiRouteUserWorkoutOrderOptions:
     Type: AWS::ApiGatewayV2::Route
-    DeletionPolicy: Retain
     Properties:
       ApiId: !Ref Api
       RouteKey: OPTIONS /user/workout/{workoutId}/order
@@ -393,9 +405,9 @@ Resources:
 
   ApiRouteUserWorkoutOrderPut:
     Type: AWS::ApiGatewayV2::Route
-    DeletionPolicy: Retain
     Properties:
       ApiId: !Ref Api
+      AuthorizationType: JWT
       AuthorizerId: !Ref ApiAuthorizer
       RouteKey: PUT /user/workout/{workoutId}/order
       Target: !Join
@@ -410,3 +422,5 @@ Outputs:
     Value: !Sub
       - https://${Id}.execute-api.${AWS::Region}.amazonaws.com
       - Id: !Ref Api
+  WebsiteUrl:
+    Value: !GetAtt S3BucketWebsite.WebsiteURL

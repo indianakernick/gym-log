@@ -70,10 +70,9 @@ export function groupByFiltered<T, U>(
 
     while (previous === undefined) {
       filtered.push(...array.splice(0, 1));
+      if (array.length === 0) return { groups, filtered };
       previous = getKey(array[0]);
     }
-
-    if (array.length === 0) return { groups, filtered };
 
     for (let i = 1; i < array.length; ++i) {
       const current = getKey(array[i]);

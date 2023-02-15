@@ -11,7 +11,7 @@ export function useConfirmModal<O extends Partial<Options>>(
 export function useConfirmModal(options?: Partial<Options>) {
   const modal = useModal({
     component: ConfirmModal,
-    ...(options ? { attrs: options } : undefined)
+    ...((options ? { attrs: options } : undefined) as any)
   });
 
   return (options?: Partial<Options>) => {

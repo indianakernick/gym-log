@@ -7,7 +7,7 @@ import {
 } from '@/model/api';
 import auth from './auth';
 
-const BASE_URL = 'https://pa36mmpygd.execute-api.ap-southeast-2.amazonaws.com/';
+const BASE_URL = 'https://as36t81xcl.execute-api.ap-southeast-2.amazonaws.com/';
 
 export class CacheOutdatedError extends Error {}
 
