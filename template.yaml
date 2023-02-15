@@ -44,6 +44,7 @@ Resources:
       TableName: gym-log.User
       Tags:
         - Key: project:gym-log
+          Value: ""
 
   # A Cognito user pool using a fairly basic email and password configuration.
   CognitoUserPool:
@@ -74,16 +75,14 @@ Resources:
           Required: true
       UserPoolName: gym-log
       UserPoolTags:
-        - Key: project:gym-log
+        project:gym-log: ""
 
   CognitoUserPoolClient:
     Type: AWS::Cognito::UserPoolClient
     DeletionPolicy: Retain
     Properties:
-      AccessTokenValidity: 60
-      AllowedOAuthFlows:
-        - code
-      AllowedOAuthFlowsUserPoolClient: true
+      AccessTokenValidity: 60 # see TokenValidityUnits
+      AllowedOAuthFlowsUserPoolClient: false
       AuthSessionValidity: 3 # minutes
       ClientName: gym-log
       EnableTokenRevocation: false
@@ -91,14 +90,15 @@ Resources:
         - ALLOW_REFRESH_TOKEN_AUTH
         - ALLOW_USER_PASSWORD_AUTH
       GenerateSecret: false
-      IdTokenValidity: 60
-      RefreshTokenValidity: 30
+      IdTokenValidity: 60 # see TokenValidityUnits
+      RefreshTokenValidity: 30 # see TokenValidityUnits
       SupportedIdentityProviders:
         - COGNITO
       TokenValidityUnits:
         AccessToken: minutes
         IdToken: minutes
         RefreshToken: days
+      UserPoolId: !Ref CognitoUserPool
 
   # The execution role for the proxy Lambda function. This allows the Lambda to
   # write CloudWatch logs and access the database.
@@ -126,7 +126,7 @@ Resources:
                   - logs:PutLogEvents
                 # We can't !Sub the Lambda name because that creates a circular
                 # dependency.
-                Resource: arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/lambda/gym-log.proxy:*
+                Resource: !Sub arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/lambda/gym-log:*
           PolicyName: gym-log.lambda.log
         - PolicyDocument:
             Version: "2012-10-17"
@@ -154,6 +154,7 @@ Resources:
       RoleName: gym-log.lambda
       Tags:
         - Key: project:gym-log
+          Value: ""
 
   # The proxy Lambda function processes all API requests from API Gateway.
   LambdaProxy:
@@ -163,13 +164,12 @@ Resources:
       Architectures:
         - arm64
       Code:
-        # wondering if I can run CloudFormation and then run
-        # update-function-code to avoid creating another S3 bucket
-        ZipFile: ""
+        S3Bucket: indianakernick-lambda
+        S3Key: gym-log.zip
       Environment:
         Variables:
           RUST_BACKTRACE: "1"
-      FunctionName: gym-log.proxy
+      FunctionName: gym-log
       Handler: bootstrap
       MemorySize: 128 # MB
       PackageType: Zip
@@ -177,17 +177,16 @@ Resources:
       Runtime: provided.al2
       Tags:
         - Key: project:gym-log
-      Timeout: 3
+      Timeout: 3 # seconds
 
   Api:
     Type: AWS::ApiGatewayV2::Api
     DeletionPolicy: Retain
     Properties:
-      FailOnWarnings: true
       Name: gym-log
       ProtocolType: HTTP
       Tags:
-        - Key: project:gym-log
+        project:gym-log: ""
 
   ApiStageDefault:
     Type: AWS::ApiGatewayV2::Stage
@@ -198,11 +197,25 @@ Resources:
       DeploymentId: !Ref ApiDeployment
       StageName: $default
       Tags:
-        - Key: project:gym-log
+        project:gym-log: ""
 
   ApiDeployment:
     Type: AWS::ApiGatewayV2::Deployment
     DeletionPolicy: Retain
+    DependsOn:
+     - ApiRouteUserGet
+     - ApiRouteUserOptions
+     - ApiRouteUserMeasurementDelete
+     - ApiRouteUserMeasurementOptions
+     - ApiRouteUserMeasurementPut
+     - ApiRouteUserWorkoutDelete
+     - ApiRouteUserWorkoutOptions
+     - ApiRouteUserWorkoutPut
+     - ApiRouteUserWorkoutExerciseDelete
+     - ApiRouteUserWorkoutExerciseOptions
+     - ApiRouteUserWorkoutExercisePut
+     - ApiRouteUserWorkoutOrderOptions
+     - ApiRouteUserWorkoutOrderPut
     Properties:
       ApiId: !Ref Api
 
@@ -215,7 +228,8 @@ Resources:
     Properties:
       ApiId: !Ref Api
       AuthorizerType: JWT
-      IdentitySource: $request.header.Authorization
+      IdentitySource:
+        - $request.header.Authorization
       JwtConfiguration:
         Audience:
           - !Ref CognitoUserPoolClient
@@ -231,9 +245,6 @@ Resources:
       ApiId: !Ref Api
       IntegrationType: AWS_PROXY
       IntegrationUri: !GetAtt LambdaProxy.Arn
-      # The documentation doesn't say that there's a Name property but I can set
-      # a name in the console.
-      Name: gym-log
       PayloadFormatVersion: "2.0"
       TimeoutInMillis: 30000
 
