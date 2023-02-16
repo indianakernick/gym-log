@@ -8,8 +8,12 @@ pub fn with_cors(builder: Builder) -> Builder {
     // don't think that matters much.
 
     builder
-        // TODO: don't forgot to change this later
-        // .header("Access-Control-Allow-Origin", "http://gymlog.indianakernick.com.s3-website-ap-southeast-2.amazonaws.com")
+        // TODO: don't forgot to remove the *
+        // This environment variable isn't going to exist until the
+        // infrastructure is deployed. The Lambda must be compiled before the
+        // infrastructure can be deployed. So I guess some manual intervention
+        // would be required when deploying for the first time.
+        // .header("Access-Control-Allow-Origin", dotenv_codegen::dotenv!("CFN_WebsiteUrl"))
         .header("Access-Control-Allow-Origin", "*")
         .header("Access-Control-Allow-Methods", "OPTIONS,PUT,GET,DELETE")
         .header("Access-Control-Allow-Headers", "Authorization,Content-Type")

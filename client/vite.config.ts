@@ -22,5 +22,7 @@ export default defineConfig({
   },
   worker: {
     format: 'es'
-  }
+  },
+  envDir: '..',
+  envPrefix: 'CFN_',
 });

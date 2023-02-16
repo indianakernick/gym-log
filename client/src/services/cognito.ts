@@ -6,7 +6,7 @@ import {
   type AuthenticationResultType
 } from '@aws-sdk/client-cognito-identity-provider';
 
-const CLIENT_ID = '2r54l3lbjrr7qqrl7baof7qkng';
+const CLIENT_ID: string = import.meta.env.CFN_CognitoClientId;
 
 export default new class {
   private client: CognitoIdentityProviderClient;

@@ -7,7 +7,7 @@ import {
 } from '@/model/api';
 import auth from './auth';
 
-const BASE_URL = 'https://as36t81xcl.execute-api.ap-southeast-2.amazonaws.com/';
+const BASE_URL = import.meta.env.CFN_ApiBaseUrl + '/';
 
 export class CacheOutdatedError extends Error {}
 
