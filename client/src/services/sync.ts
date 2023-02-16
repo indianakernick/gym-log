@@ -1,7 +1,8 @@
 import type { MergeConflictResolutions, StagedChange } from '@/model/db';
 import db from '@/services/db';
 import user, { CacheOutdatedError } from '@/services/user';
-import auth from './auth';
+import type { Router } from 'vue-router';
+import { UnauthenticatedError } from './auth';
 
 // Do we gain anything by moving this into the service worker?
 
@@ -11,16 +12,20 @@ const SYNC_PERIOD = 10 * 60 * 1000;
 export default new class {
   private syncing: boolean = false;
   private debounceId?: number;
+  private router?: Router;
 
   constructor() {
     setInterval(this.sync.bind(this), SYNC_PERIOD);
     this.sync();
   }
 
+  setRouter(router: Router) {
+    this.router = router;
+  }
+
   sync() {
     clearTimeout(this.debounceId);
     this.debounceId = window.setTimeout(async () => {
-      if (!await auth.isLoggedIn()) return;
       if (this.syncing) {
         this.sync();
       } else {
@@ -28,6 +33,10 @@ export default new class {
         try {
           if (!await this.doSync()) {
             await this.pullChanges(await db.getCurrentVersion());
+          }
+        } catch (e) {
+          if (!this.handleAuthRedirect(e)) {
+            console.error('Pulling changes', e);
           }
         } finally {
           this.syncing = false;
@@ -52,13 +61,16 @@ export default new class {
           try {
             await this.pullChanges(change.version);
           } catch (e) {
-            console.error('Pulling changes', e);
+            if (!this.handleAuthRedirect(e)) {
+              console.error('Pulling changes', e);
+            }
             return true;
           }
-        } else {
-          console.error('Pushing changes', e);
-          return true;
         }
+        if (!this.handleAuthRedirect(e)) {
+          console.error('Pushing changes', e);
+        }
+        return true;
       }
     }
   }
@@ -109,5 +121,18 @@ export default new class {
         return;
       }
     }
+  }
+
+  private handleAuthRedirect(e: unknown): boolean {
+    if (e instanceof UnauthenticatedError) {
+      // There's no way initializing the app is going to take up the full
+      // debounce duration so the router would have been set by then.
+      this.router!.push({
+        path: '/login',
+        query: { redirect: this.router!.currentRoute.value.path }
+      });
+      return true;
+    }
+    return false;
   }
 }

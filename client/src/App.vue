@@ -1,6 +1,9 @@
 <script setup lang="ts">
 import { ModalsContainer } from 'vue-final-modal';
-import { RouterView } from 'vue-router';
+import { RouterView, useRouter } from 'vue-router';
+import sync from './services/sync';
+
+sync.setRouter(useRouter());
 </script>
 
 <template>
