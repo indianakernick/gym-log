@@ -38,17 +38,46 @@ async function login() {
 </script>
 
 <template>
-  <main>
-    <label for="email">Email:</label>
-    <input type="email" id="email" v-model.lazy="email" :disabled="loading" />
-    <br/>
-    <label for="password">Password:</label>
-    <input type="password" id="password" v-model.lazy="password" :disabled="loading" />
-    <br/>
-    <button @click="login" :disabled="loading">Login</button>
+  <main class="flex items-center justify-center">
+    <div class="grow flex flex-col max-w-md p-4 m-4 dark:bg-neutral-800
+      rounded-lg border dark:border-neutral-700"
+    >
+      <label for="email" class="text-sm">Email</label>
+      <input
+        type="email"
+        id="email"
+        v-model.lazy="email"
+        :disabled="loading"
+        class="mt-1 max-w-full p-2 rounded-lg dark:bg-neutral-700
+          dark:focus-visible:outline-blue-500"
+      />
 
-    <p v-if="error && !loading">Error: {{ error }}</p>
+      <label for="password" class="text-sm mt-4">Password</label>
+      <input
+        type="password"
+        id="password"
+        v-model.lazy="password"
+        :disabled="loading"
+        class="mt-1 max-w-full p-2 rounded-lg dark:bg-neutral-700
+          dark:focus-visible:outline-blue-500"
+      />
 
-    <router-link :to="'/signup'">Create account</router-link>
+      <button
+        @click="login"
+        :disabled="loading"
+        class="mt-5 py-2 rounded-lg font-bold dark:bg-blue-700 border
+          dark:border-blue-500"
+      >Login</button>
+
+      <p v-if="error && !loading" class="mt-2 text-center text-red-500">{{ error }}</p>
+
+      <p class="text-center mt-2">
+        Don't have an account?
+        <router-link
+          to="/signup"
+          class="text-blue-500 hover:underline"
+        >Sign up</router-link>
+      </p>
+    </div>
   </main>
 </template>
