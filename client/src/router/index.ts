@@ -6,12 +6,13 @@ import SignUpView from '@/views/SignUpView.vue';
 import TabsView from '@/views/TabsView.vue';
 import WorkoutEditView from '@/views/WorkoutEditView.vue';
 import WorkoutListView from '@/views/WorkoutListView.vue';
+import { nextTick } from 'vue';
 import { createRouter, createWebHistory } from 'vue-router';
 import { authGuard } from './auth-guard';
 import { dateGuard } from './date-guard';
 import { uuidGuard } from './uuid-guard';
 
-export default createRouter({
+const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
   strict: true,
   sensitive: true,
@@ -20,16 +21,19 @@ export default createRouter({
       name: 'confirm-signup',
       path: '/confirm-signup',
       component: ConfirmSignUpView,
-      props: route => ({ email: route.query.email })
+      props: route => ({ email: route.query.email }),
+      meta: { title: 'Confirm Sign-up' },
     },
     {
       path: '/login',
       component: LoginView,
-      props: route => ({ redirect: route.query.redirect })
+      props: route => ({ redirect: route.query.redirect }),
+      meta: { title: 'Login' },
     },
     {
       path: '/signup',
-      component: SignUpView
+      component: SignUpView,
+      meta: { title: 'Sign-up' },
     },
     {
       path: '/',
@@ -42,25 +46,38 @@ export default createRouter({
         },
         {
           path: 'measurements',
-          component: MeasurementListView
+          component: MeasurementListView,
+          meta: { title: 'Measurement List' },
         },
         {
           path: 'measurements/:date',
           component: MeasurementEditView,
           beforeEnter: dateGuard,
-          props: true
+          props: true,
+          meta: { title: 'Measurement Details' },
         },
         {
           path: 'workouts',
-          component: WorkoutListView
+          component: WorkoutListView,
+          meta: { title: 'Workout List' },
         },
         {
           path: 'workouts/:id',
           component: WorkoutEditView,
           beforeEnter: uuidGuard,
-          props: true
+          props: true,
+          meta: { title: 'Workout Details' },
         },
       ]
     },
   ]
 });
+
+router.afterEach(to => {
+  nextTick(() => {
+    const app = 'Gym Log';
+    document.title = to.meta.title ? `${to.meta.title} - ${app}` : app;
+  });
+});
+
+export default router;
