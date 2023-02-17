@@ -61,6 +61,13 @@ async function signUp() {
         :disabled="loading"
         class="form-submit mt-5"
       >Sign Up</button>
+
+      <p class="text-center mt-3">
+        Already have an account?
+        <router-link to="/login" class="link">Login</router-link>
+      </p>
+
+      <p v-if="error && !loading" class="form-error mt-3">{{ error }}</p>
     </form>
   </main>
 </template>

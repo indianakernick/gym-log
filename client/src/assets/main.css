@@ -2,32 +2,34 @@
 @tailwind components;
 @tailwind utilities;
 
-html {
-  @apply bg-neutral-900 text-white;
-  color-scheme: dark;
-}
+@layer base {
+  html {
+    @apply bg-neutral-900 text-white;
+    color-scheme: dark;
+  }
 
-button, a {
-  user-select: none;
-}
+  button, a {
+    user-select: none;
+  }
 
-#app {
-  height: 100dvh;
-  display: flex;
-  flex-direction: column;
-}
+  #app {
+    height: 100dvh;
+    display: flex;
+    flex-direction: column;
+  }
 
-#app > header {
-  flex-shrink: 0;
-}
+  #app > header {
+    flex-shrink: 0;
+  }
 
-#app > main {
-  flex-grow: 1;
-  overflow: hidden scroll;
-}
+  #app > main {
+    flex-grow: 1;
+    overflow: hidden scroll;
+  }
 
-button, input {
-  @apply disabled:opacity-60 transition-opacity focus-visible:outline-amber-500;
+  button, input, select {
+    @apply disabled:opacity-60 transition-opacity focus-visible:outline-amber-500;
+  }
 }
 
 @layer components {
@@ -36,7 +38,7 @@ button, input {
   }
 
   .card {
-    @apply bg-neutral-800 rounded-lg border border-neutral-700;
+    @apply bg-neutral-800 rounded-lg border border-neutral-600;
   }
 
   .form-card {
@@ -54,7 +56,7 @@ button, input {
 
   .form-submit {
     @apply py-2 rounded-lg font-bold text-white bg-blue-700 border
-      border-blue-500 focus-visible:outline-amber-500
+      border-blue-500 focus-visible:outline-amber-500 active:bg-blue-600;
   }
 
   .form-error {

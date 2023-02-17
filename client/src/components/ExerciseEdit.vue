@@ -114,7 +114,7 @@ async function deleteLastSet() {
 </script>
 
 <template>
-  <div class="mx-3 rounded-lg bg-neutral-800 border border-neutral-600">
+  <div class="mx-3 card">
     <div class="p-2 border-b border-neutral-600 flex justify-between">
       <h2 class="font-bold">{{ EXERCISE_TYPE[exercise.type] }}</h2>
       <Menu
