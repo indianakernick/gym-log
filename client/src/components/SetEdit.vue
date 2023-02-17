@@ -203,8 +203,7 @@ function addFixedSet(sets: FixedSet[]) {
 }
 
 .table input {
-  @apply max-w-full px-2 py-1 text-center rounded-lg dark:bg-neutral-700
-    dark:focus-visible:outline-blue-500;
+  @apply max-w-full px-2 py-1 text-center rounded-lg bg-neutral-700;
 }
 
 .table input:read-only {
@@ -212,7 +211,7 @@ function addFixedSet(sets: FixedSet[]) {
 }
 
 .set-button {
-  @apply p-2 w-full font-bold dark:text-blue-500 border-t
-    dark:border-neutral-600 button-flex;
+  @apply p-2 w-full font-bold text-blue-500 border-t border-neutral-600
+    button-flex;
 }
 </style>

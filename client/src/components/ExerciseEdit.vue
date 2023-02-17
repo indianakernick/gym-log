@@ -114,8 +114,8 @@ async function deleteLastSet() {
 </script>
 
 <template>
-  <div class="mx-3 rounded-lg dark:bg-neutral-800 border dark:border-neutral-600">
-    <div class="p-2 border-b dark:border-neutral-600 flex justify-between">
+  <div class="mx-3 rounded-lg bg-neutral-800 border border-neutral-600">
+    <div class="p-2 border-b border-neutral-600 flex justify-between">
       <h2 class="font-bold">{{ EXERCISE_TYPE[exercise.type] }}</h2>
       <Menu
         v-if="editingWorkout"
@@ -124,12 +124,12 @@ async function deleteLastSet() {
       ></Menu>
     </div>
 
-    <div v-if="historyIdx === -1" class="p-2 border-b dark:border-neutral-600">
+    <div v-if="historyIdx === -1" class="p-2 border-b border-neutral-600">
       <i>You've never done this exercise before</i>
     </div>
 
     <template v-else>
-      <div class="p-2 border-b dark:border-neutral-600 flex items-center">
+      <div class="p-2 border-b border-neutral-600 flex items-center">
         <!--
           The only way for a historic workout to not have a start_time is if
           there was a merge.
@@ -157,7 +157,7 @@ async function deleteLastSet() {
         </button>
       </div>
 
-      <div v-if="historyIdx !== -1" class="border-b dark:border-neutral-600">
+      <div v-if="historyIdx !== -1" class="border-b border-neutral-600">
         <SetEdit :exercise="history[historyIdx]"></SetEdit>
       </div>
     </template>

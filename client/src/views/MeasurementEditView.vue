@@ -185,8 +185,7 @@ async function deleteSet() {
             @change="setMeasurement($event, ty)"
             @focus="($event.target as HTMLInputElement | null)?.select()"
             :ref="el => setInputRef(el as any, ty)"
-            class="w-16 px-2 py-1 text-right rounded-lg dark:bg-neutral-700
-              dark:focus-visible:outline-blue-500"
+            class="w-16 px-2 py-1 text-right rounded-lg bg-neutral-700"
           />
 
           <div
@@ -199,15 +198,15 @@ async function deleteSet() {
             :id="`measurement-${ty}`"
             @click="addMeasurement(ty)"
             class="relative w-16 py-1 rounded-lg flex justify-center
-              dark:bg-neutral-800"
+              bg-neutral-800"
           >
             <!--
               border-radius doesn't apply to outlines in Safari so this was the
               next simplest thing.
             -->
             <div class="absolute inset-0 rounded-lg border
-              dark:border-neutral-600"></div>
-            <PlusIcon class="w-6 h-6 dark:text-neutral-300"></PlusIcon>
+              border-neutral-600"></div>
+            <PlusIcon class="w-6 h-6 text-neutral-300"></PlusIcon>
           </button>
         </li>
       </template>

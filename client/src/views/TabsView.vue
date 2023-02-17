@@ -51,7 +51,8 @@ watchEffect(() => {
   <footer>
     <div
       role="tablist"
-      class="p-1 border-t dark:border-neutral-500 grid grid-flow-col auto-cols-fr items-center"
+      class="p-1 border-t border-neutral-500 grid grid-flow-col auto-cols-fr
+        items-center"
     >
       <button
         v-for="tab in tabs"

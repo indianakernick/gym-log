@@ -16,8 +16,8 @@ defineProps<{
 <template>
   <VueFinalModal
     class="flex justify-center items-center"
-    content-class="w-full m-6 dark:bg-neutral-800 rounded-lg border
-      dark:border-neutral-600 overflow-hidden"
+    content-class="w-full m-6 bg-neutral-800 rounded-lg border
+      border-neutral-600 overflow-hidden"
     :overlay-transition="{
       enterActiveClass: 'transition-opacity',
       enterFromClass: 'opacity-0',
@@ -38,7 +38,7 @@ defineProps<{
     </div>
 
     <div v-if="buttons" class="grid grid-flow-col auto-cols-fr gap-[1px]
-      pt-[1px] dark:bg-neutral-600"
+      pt-[1px] bg-neutral-600"
     >
       <button
         v-for="button in buttons"
@@ -46,11 +46,11 @@ defineProps<{
         :disabled="button.disabled"
         :class="{
           'font-bold': button.bold,
-          'dark:text-blue-500 text-blue-600': !button.theme || button.theme === 'primary',
+          'text-blue-500': !button.theme || button.theme === 'primary',
           'text-red-500': button.theme === 'danger',
         }"
-        class="p-2 dark:bg-neutral-800 disabled:text-neutral-500
-          dark:active:bg-neutral-700"
+        class="p-2 bg-neutral-800 disabled:text-neutral-500
+          active:bg-neutral-700"
       >{{ button.title }}</button>
     </div>
   </VueFinalModal>

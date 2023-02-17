@@ -91,7 +91,7 @@ function add() {
               <div
                 v-if="workout.notes"
                 class="text-sm text-ellipsis overflow-hidden whitespace-nowrap
-                  dark:text-neutral-400"
+                  text-neutral-400"
               >{{ workout.notes }}</div>
             </div>
           </ListItem>

@@ -30,7 +30,7 @@ const expanded = shallowRef(false);
       :aria-expanded="expanded"
       @click="expanded = !expanded"
       :class="{
-        'dark:text-blue-500 text-blue-600': theme === 'primary'
+        'text-blue-500': theme === 'primary'
       }"
     >
       <EllipsisHorizontalIcon class="w-6 h-6" />
@@ -50,11 +50,11 @@ const expanded = shallowRef(false);
         v-for="item in items"
         role="presentation"
         class="border-t border-r last:border-b border-l first:rounded-t-lg
-          last:rounded-b-lg dark:border-neutral-600 dark:bg-neutral-800
+          last:rounded-b-lg border-neutral-600 bg-neutral-800
           shadow-lg overflow-hidden"
       >
         <!--
-          An empty ontouchstart listener is required to make :active work on iOS
+          An empty touchstart listener is required to make :active work on iOS
           Safari. This isn't necessary for the modal for some reason.
           https://stackoverflow.com/a/33681490/4093378
         -->
@@ -63,9 +63,9 @@ const expanded = shallowRef(false);
           @click="expanded = false; item.handler()"
           @touchstart=""
           class="w-full p-2 whitespace-nowrap font-bold flex gap-1 items-center
-            dark:active:bg-neutral-700"
+            active:bg-neutral-700"
           :class="{
-            'dark:text-blue-500 text-blue-600': item.theme === 'primary',
+            'text-blue-500': item.theme === 'primary',
             'text-red-500': item.theme === 'danger',
           }"
         >

@@ -87,7 +87,7 @@ function save() {
         type="datetime-local"
         v-model="start"
         step="1"
-        class="appearance-none px-2 py-1 rounded-lg dark:bg-neutral-700"
+        class="appearance-none px-2 py-1 rounded-lg bg-neutral-700"
       />
     </div>
 
@@ -98,7 +98,7 @@ function save() {
         type="datetime-local"
         v-model="finish"
         step="1"
-        class="appearance-none px-2 py-1 rounded-lg dark:bg-neutral-700"
+        class="appearance-none px-2 py-1 rounded-lg bg-neutral-700"
       />
     </div>
   </Modal>

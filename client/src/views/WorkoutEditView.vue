@@ -207,8 +207,8 @@ function deleteExercise(index: number) {
         button that opens a dialog so maybe it doesn't matter.
       -->
       <div
-        class="relative mx-3 my-2 rounded-lg dark:bg-neutral-800 border
-          dark:border-neutral-600"
+        class="relative mx-3 my-2 rounded-lg bg-neutral-800 border
+          border-neutral-600"
       >
         <select
           @change="addExercise"
@@ -222,7 +222,7 @@ function deleteExercise(index: number) {
 
         <div
           class="absolute inset-0 pointer-events-none font-bold
-            button-flex dark:text-blue-500"
+            button-flex text-blue-500"
         >
           <PlusIcon class="w-5 h-5" />
           Add Exercise

@@ -37,8 +37,8 @@ watch(
     :value="modelValue"
     @input="setHeight($event.target as HTMLTextAreaElement)"
     @change="$emit('update:modelValue', ($event.target as HTMLTextAreaElement).value)"
-    class="px-2 py-1 resize-none rounded-lg dark:bg-neutral-700
-      dark:placeholder-neutral-400 focus:outline-none"
+    class="px-2 py-1 resize-none rounded-lg bg-neutral-700
+      placeholder-neutral-400 focus:outline-none"
   ></textarea>
 
   <div

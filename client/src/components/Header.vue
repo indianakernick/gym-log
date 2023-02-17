@@ -12,10 +12,10 @@ defineEmits<{
 </script>
 
 <template>
-  <header class="p-3 border-b dark:border-neutral-500 border-neutral-700 grid items-center">
+  <header class="p-3 border-b border-neutral-500 grid items-center">
     <slot name="full-left">
       <button
-        class="dark:text-blue-500 text-blue-600 relative"
+        class="text-blue-500 relative"
         @click="$emit('left')"
         :disabled="leftDisabled"
       >
@@ -27,7 +27,7 @@ defineEmits<{
 
     <slot name="full-right">
       <button
-        class="font-bold dark:text-blue-500 text-blue-600 relative"
+        class="font-bold text-blue-500 relative"
         @click="$emit('right')"
         :disabled="rightDisabled"
       >
