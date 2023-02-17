@@ -39,8 +39,10 @@ async function login() {
 
 <template>
   <main class="flex items-center justify-center">
-    <div class="grow flex flex-col max-w-md p-4 m-4 dark:bg-neutral-800
-      rounded-lg border dark:border-neutral-700"
+    <form
+      @submit.prevent="login"
+      class="grow flex flex-col max-w-md p-4 m-4 dark:bg-neutral-800
+        rounded-lg border dark:border-neutral-700"
     >
       <label for="email" class="text-sm">Email</label>
       <input
@@ -48,8 +50,10 @@ async function login() {
         id="email"
         v-model.lazy="email"
         :disabled="loading"
+        autocomplete="email"
+        required
         class="mt-1 max-w-full p-2 rounded-lg dark:bg-neutral-700
-          dark:focus-visible:outline-blue-500"
+          dark:focus-visible:outline-amber-500"
       />
 
       <label for="password" class="text-sm mt-4">Password</label>
@@ -58,15 +62,16 @@ async function login() {
         id="password"
         v-model.lazy="password"
         :disabled="loading"
+        autocomplete="current-password"
+        required
         class="mt-1 max-w-full p-2 rounded-lg dark:bg-neutral-700
-          dark:focus-visible:outline-blue-500"
+          dark:focus-visible:outline-amber-500"
       />
 
       <button
-        @click="login"
         :disabled="loading"
         class="mt-5 py-2 rounded-lg font-bold dark:bg-blue-700 border
-          dark:border-blue-500"
+          dark:border-blue-500 dark:focus-visible:outline-amber-500"
       >Login</button>
 
       <p v-if="error && !loading" class="mt-2 text-center text-red-500">{{ error }}</p>
@@ -75,9 +80,10 @@ async function login() {
         Don't have an account?
         <router-link
           to="/signup"
-          class="text-blue-500 hover:underline"
+          class="text-blue-500 hover:underline
+            dark:focus-visible:outline-amber-500"
         >Sign up</router-link>
       </p>
-    </div>
+    </form>
   </main>
 </template>

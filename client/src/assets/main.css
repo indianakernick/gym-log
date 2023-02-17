@@ -44,3 +44,11 @@ button, a {
     @apply flex items-center justify-center gap-1;
   }
 }
+
+button, input {
+  @apply transition-opacity;
+}
+
+button:disabled, input:disabled {
+  @apply opacity-60;
+}
