@@ -1,3 +1,4 @@
+import ConfirmSignUpView from '@/views/ConfirmSignUpView.vue';
 import LoginView from '@/views/LoginView.vue';
 import MeasurementEditView from '@/views/MeasurementEditView.vue';
 import MeasurementListView from '@/views/MeasurementListView.vue';
@@ -15,6 +16,12 @@ export default createRouter({
   strict: true,
   sensitive: true,
   routes: [
+    {
+      name: 'confirm-signup',
+      path: '/confirm-signup',
+      component: ConfirmSignUpView,
+      props: route => ({ email: route.query.email })
+    },
     {
       path: '/login',
       component: LoginView,

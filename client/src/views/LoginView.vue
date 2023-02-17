@@ -38,13 +38,12 @@ async function login() {
 </script>
 
 <template>
-  <main class="flex items-center justify-center">
+  <main class="flex-center">
     <form
       @submit.prevent="login"
-      class="grow flex flex-col max-w-md p-4 m-4 dark:bg-neutral-800
-        rounded-lg border dark:border-neutral-700"
+      class="grow flex flex-col form-card"
     >
-      <label for="email" class="text-sm">Email</label>
+      <label for="email" class="form-label">Email</label>
       <input
         type="email"
         id="email"
@@ -52,11 +51,10 @@ async function login() {
         :disabled="loading"
         autocomplete="email"
         required
-        class="mt-1 max-w-full p-2 rounded-lg dark:bg-neutral-700
-          dark:focus-visible:outline-amber-500"
+        class="form-input"
       />
 
-      <label for="password" class="text-sm mt-4">Password</label>
+      <label for="password" class="form-label mt-4">Password</label>
       <input
         type="password"
         id="password"
@@ -64,26 +62,20 @@ async function login() {
         :disabled="loading"
         autocomplete="current-password"
         required
-        class="mt-1 max-w-full p-2 rounded-lg dark:bg-neutral-700
-          dark:focus-visible:outline-amber-500"
+        class="form-input"
       />
 
       <button
         :disabled="loading"
-        class="mt-5 py-2 rounded-lg font-bold dark:bg-blue-700 border
-          dark:border-blue-500 dark:focus-visible:outline-amber-500"
+        class="form-submit mt-5"
       >Login</button>
 
-      <p v-if="error && !loading" class="mt-2 text-center text-red-500">{{ error }}</p>
-
-      <p class="text-center mt-2">
+      <p class="text-center mt-3">
         Don't have an account?
-        <router-link
-          to="/signup"
-          class="text-blue-500 hover:underline
-            dark:focus-visible:outline-amber-500"
-        >Sign up</router-link>
+        <router-link to="/signup" class="link">Sign up</router-link>
       </p>
+
+      <p v-if="error && !loading" class="form-error mt-3">{{ error }}</p>
     </form>
   </main>
 </template>

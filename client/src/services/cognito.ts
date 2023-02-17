@@ -2,6 +2,7 @@ import {
   CognitoIdentityProviderClient,
   ConfirmSignUpCommand,
   InitiateAuthCommand,
+  ResendConfirmationCodeCommand,
   SignUpCommand,
   type AuthenticationResultType
 } from '@aws-sdk/client-cognito-identity-provider';
@@ -34,6 +35,13 @@ export default new class {
       ClientId: CLIENT_ID,
       Username: email,
       ConfirmationCode: confirmationCode
+    }));
+  }
+
+  async resendConfirmSignUp(email: string): Promise<void> {
+    await this.client.send(new ResendConfirmationCodeCommand({
+      ClientId: CLIENT_ID,
+      Username: email
     }));
   }
 

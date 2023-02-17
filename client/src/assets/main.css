@@ -2,7 +2,7 @@
 @tailwind components;
 @tailwind utilities;
 
-html, body {
+html {
   @apply dark:bg-neutral-900;
   @apply dark:text-white;
 }
@@ -26,7 +26,46 @@ button, a {
   overflow: hidden scroll;
 }
 
-@layer utilities {
+button, input {
+  @apply transition-opacity;
+}
+
+button:disabled, input:disabled {
+  @apply opacity-60;
+}
+
+@layer components {
+  .link {
+    @apply text-blue-500 hover:underline
+      dark:focus-visible:outline-amber-500;
+  }
+
+  .card {
+    @apply dark:bg-neutral-800 rounded-lg border dark:border-neutral-700;
+  }
+
+  .form-card {
+    @apply max-w-md m-4 p-4 card;
+  }
+
+  .form-label {
+    @apply text-sm mb-1;
+  }
+
+  .form-input {
+    @apply max-w-full p-2 rounded-lg dark:bg-neutral-700
+      dark:focus-visible:outline-amber-500;
+  }
+
+  .form-submit {
+    @apply py-2 rounded-lg font-bold dark:bg-blue-700 border
+      dark:border-blue-500 dark:focus-visible:outline-amber-500
+  }
+
+  .form-error {
+    @apply text-center text-red-500;
+  }
+
   .button-primary, .button-danger {
     @apply mx-3 my-2 py-2 rounded-lg font-bold dark:bg-neutral-800 border
       dark:border-neutral-600;
@@ -41,14 +80,12 @@ button, a {
   }
 
   .button-flex {
-    @apply flex items-center justify-center gap-1;
+    @apply flex-center gap-1;
   }
 }
 
-button, input {
-  @apply transition-opacity;
-}
-
-button:disabled, input:disabled {
-  @apply opacity-60;
+@layer utilities {
+  .flex-center {
+    @apply flex items-center justify-center;
+  }
 }
