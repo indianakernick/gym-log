@@ -61,7 +61,7 @@ const expanded = shallowRef(false);
         <button
           role="menuitem"
           @click="expanded = false; item.handler()"
-          @touchstart=""
+          @touchstart.passive=""
           class="w-full p-2 whitespace-nowrap font-bold flex gap-1 items-center
             active:bg-neutral-700"
           :class="{

@@ -12,6 +12,7 @@ import sync from '@/services/sync';
 import { displayDateTime, toDateTimeString } from '@/utils/date';
 import { EXERCISE_TYPE, EXERCISE_TYPE_GROUP } from '@/utils/i18n';
 import { useConfirmModal } from '@/utils/modal';
+import { refresh } from '@/utils/refresh';
 import { uuid } from '@/utils/uuid';
 import { PlusIcon, TrashIcon } from '@heroicons/vue/20/solid';
 import { ChevronLeftIcon } from '@heroicons/vue/24/outline';
@@ -40,13 +41,23 @@ const deletedExercises: Exercise['workout_exercise_id'][] = [];
 const editing = shallowRef(false);
 const editingExercise = shallowRef<number>();
 
-Promise.all([
-  db.getWorkout(props.id),
-  db.getExercisesOfWorkout(props.id)
-]).then(([w, e]) => {
-  if (w) workout.value = w;
-  exercises.value = e;
-});
+async function load(initial: boolean) {
+  const [dbWorkout, dbExercises] = await Promise.all([
+    db.getWorkout(props.id),
+    db.getExercisesOfWorkout(props.id)
+  ]);
+
+  if (dbWorkout) {
+    workout.value = dbWorkout;
+  } else if (!initial) {
+    back(router, '/workouts');
+    return;
+  }
+
+  exercises.value = dbExercises;
+}
+
+refresh(load);
 
 async function done() {
   if (!editing.value || await confirmModal({

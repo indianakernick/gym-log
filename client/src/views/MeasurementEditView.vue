@@ -14,6 +14,7 @@ import sync from '@/services/sync';
 import { displayDate, toDateString } from '@/utils/date';
 import { MEASUREMENT_TYPE, MEASUREMENT_TYPE_UNIT } from '@/utils/i18n';
 import { useConfirmModal } from '@/utils/modal';
+import { refresh } from '@/utils/refresh';
 import { TrashIcon } from '@heroicons/vue/20/solid';
 import { ChevronLeftIcon, PlusIcon } from '@heroicons/vue/24/outline';
 import { computed, nextTick, onUnmounted, shallowRef, triggerRef } from 'vue';
@@ -32,13 +33,19 @@ const measurementSet = shallowRef<MeasurementSet>({
   measurements: {}
 });
 
-db.getMeasurementSet(props.date).then(d => {
-  if (d) {
-    measurementSet.value = d;
-  } else {
+async function load(initial: boolean) {
+  const measurements = await db.getMeasurementSet(props.date);
+
+  if (measurements) {
+    measurementSet.value = measurements;
+  } else if (initial) {
     readOnly.value = false;
+  } else {
+    back(router, '/measurements');
   }
-});
+}
+
+refresh(load);
 
 // Measurements for today are editable. They become read-only at midnight.
 const now = new Date();
@@ -73,7 +80,7 @@ async function done() {
     }
     sync.sync();
   }
-  back(router, `/measurements`);
+  back(router, '/measurements');
 }
 
 function addMeasurement(type: MeasurementType) {
@@ -126,7 +133,7 @@ async function deleteSet() {
   })) {
     await db.stageDeleteMeasurement(props.date);
     sync.sync();
-    back(router, `/measurements`);
+    back(router, '/measurements');
   }
 }
 </script>

@@ -6,6 +6,7 @@ import Main from '@/components/Main.vue';
 import db from '@/services/db';
 import { groupBy } from '@/utils/array';
 import { displayDate, toDateString } from '@/utils/date';
+import { refresh } from '@/utils/refresh';
 import { CalendarIcon, PlusIcon } from '@heroicons/vue/24/solid';
 import { shallowRef } from 'vue';
 import { useRouter } from 'vue-router';
@@ -14,9 +15,11 @@ const router = useRouter();
 
 const years = shallowRef<string[][]>([]);
 
-db.getMeasurementDates().then(d => {
-  years.value = groupBy(d, date => date.substring(0, 4));
-});
+async function load() {
+  years.value = groupBy(await db.getMeasurementDates(), date => date.substring(0, 4));
+}
+
+refresh(load);
 
 function addToday() {
   router.push(`/measurements/${toDateString(new Date())}`);

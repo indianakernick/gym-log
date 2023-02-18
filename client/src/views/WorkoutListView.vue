@@ -8,6 +8,7 @@ import type { Workout } from '@/model/api';
 import db from '@/services/db';
 import { groupByFiltered } from '@/utils/array';
 import { displayDateTime, displayTime } from '@/utils/date';
+import { refresh } from '@/utils/refresh';
 import { uuid } from '@/utils/uuid';
 import { PlusIcon } from '@heroicons/vue/24/outline';
 import { shallowRef } from 'vue';
@@ -28,12 +29,12 @@ const alertModal = useModal({
 const workouts = shallowRef<Workout[][]>([]);
 let hasIncomplete = false;
 
-db.getWorkouts().then(d => {
+async function load() {
   // For extracting out the incomplete workouts, we might get away with only
   // looking at the first element because of the way they're sorted but merges
   // could make things weird so we'll check the whole array.
 
-  const { groups, filtered } = groupByFiltered(d, workout => {
+  const { groups, filtered } = groupByFiltered(await db.getWorkouts(), workout => {
     if (workout.start_time && workout.finish_time) {
       return workout.start_time.substring(0, 4);
     } else {
@@ -44,7 +45,9 @@ db.getWorkouts().then(d => {
   hasIncomplete = !!filtered.length;
   if (hasIncomplete) groups.unshift(filtered);
   workouts.value = groups;
-});
+}
+
+refresh(load);
 
 function add() {
   if (hasIncomplete) {

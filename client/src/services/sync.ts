@@ -1,6 +1,7 @@
 import type { MergeConflictResolutions, StagedChange } from '@/model/db';
 import db from '@/services/db';
 import user, { CacheOutdatedError } from '@/services/user';
+import { shallowRef, type DeepReadonly, type ShallowRef } from 'vue';
 import type { Router } from 'vue-router';
 import { UnauthenticatedError } from './auth';
 
@@ -13,14 +14,20 @@ export default new class {
   private syncing: boolean = false;
   private debounceId?: number;
   private router?: Router;
+  private versionRef = shallowRef<number>();
 
   constructor() {
     setInterval(this.sync.bind(this), SYNC_PERIOD);
     this.sync();
+    db.getCurrentVersion().then(v => this.versionRef.value = v);
   }
 
   setRouter(router: Router) {
     this.router = router;
+  }
+
+  get version(): DeepReadonly<ShallowRef<number | undefined>> {
+    return this.versionRef;
   }
 
   sync() {
@@ -114,10 +121,7 @@ export default new class {
         // TODO: show the conflicts to the user and ask them for resolutions
         alert('Merge conflicts!!!');
       } else {
-        // TODO: tell the current view to refresh itself somehow
-        // the user might be looking at something that has just been deleted.
-        // so we would need to make sure that we don't accidentally create it
-        // again
+        this.versionRef.value = version;
         return;
       }
     }
