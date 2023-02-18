@@ -5,7 +5,12 @@ import Main from '@/components/Main.vue';
 import Menu from '@/components/Menu.vue';
 import TextArea from '@/components/TextArea.vue';
 import AdjustDatesModal from '@/modals/AdjustDatesModal.vue';
-import { EXERCISE_TYPE_GROUPS, type Exercise, type ExerciseType, type Workout } from '@/model/api';
+import {
+  EXERCISE_TYPE_GROUPS,
+  type Exercise,
+  type ExerciseType,
+  type Workout
+} from '@/model/api';
 import { back } from '@/router/back';
 import db from '@/services/db';
 import sync from '@/services/sync';
@@ -61,7 +66,7 @@ refresh(load);
 
 async function done() {
   if (!editing.value || await confirmModal({
-    title: 'Keep edits',
+    title: 'Keep edits?',
     message: 'Do you want to keep the changes made to this workout?',
     buttons: 'keep-discard'
   })) {
@@ -75,7 +80,7 @@ async function done() {
     }
     sync.sync();
   }
-  back(router, `/workouts`);
+  back(router, '/workouts');
 }
 
 function start() {
@@ -117,8 +122,7 @@ const options = computed(() => {
         attrs: {
           start: workout.value.start_time!,
           finish: workout.value.finish_time!,
-          // I shouldn't need to specify the types for start and finish.
-          onSave: (start: string, finish: string) => {
+          onSave: (start, finish) => {
             workout.value.start_time = start;
             workout.value.finish_time = finish;
             triggerRef(workout);
@@ -144,7 +148,7 @@ async function deleteWorkout() {
   })) {
     await db.stageDeleteWorkout(props.id);
     sync.sync();
-    back(router, `/workouts`);
+    back(router, '/workouts');
   }
 }
 

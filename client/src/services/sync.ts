@@ -7,7 +7,7 @@ import { UnauthenticatedError } from './auth';
 
 // Do we gain anything by moving this into the service worker?
 
-const DEBOUNCE_DURATION = 5000;
+const DEBOUNCE_DURATION = 10 * 1000;
 const SYNC_PERIOD = 10 * 60 * 1000;
 
 export default new class {

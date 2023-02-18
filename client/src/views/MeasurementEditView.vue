@@ -4,6 +4,7 @@ import Main from '@/components/Main.vue';
 import Menu from '@/components/Menu.vue';
 import TextArea from '@/components/TextArea.vue';
 import {
+  measurementSetEqual,
   MEASUREMENT_TYPES,
   type MeasurementSet,
   type MeasurementType
@@ -34,10 +35,21 @@ const measurementSet = shallowRef<MeasurementSet>({
 });
 
 async function load(initial: boolean) {
-  const measurements = await db.getMeasurementSet(props.date);
+  const dbMeasurements = await db.getMeasurementSet(props.date);
 
-  if (measurements) {
-    measurementSet.value = measurements;
+  if (dbMeasurements) {
+    if (
+      !initial
+      && editing.value
+      && !measurementSetEqual(measurementSet.value, dbMeasurements)
+      && await confirmModal({
+        title: 'Keep edits?',
+        message: 'Changes to these measurements have been pulled from another device. Do you want to keep your local edits?',
+        buttons: 'keep-discard'
+      })
+    ) return;
+    measurementSet.value = dbMeasurements;
+    editing.value = false;
   } else if (initial) {
     readOnly.value = false;
   } else {
@@ -69,7 +81,7 @@ const editing = shallowRef(false);
 
 async function done() {
   if (!editing.value || await confirmModal({
-    title: 'Keep edits',
+    title: 'Keep edits?',
     message: 'Do you want to keep the changes made to these measurements?',
     buttons: 'keep-discard'
   })) {
@@ -100,6 +112,7 @@ function setMeasurement(event: Event, type: MeasurementType) {
       measurementSet.value.measurements[type] = input.valueAsNumber;
     }
     triggerRef(measurementSet);
+    if (!editing) save();
   }
 }
 
@@ -117,10 +130,18 @@ const options = computed(() => {
   const items: InstanceType<typeof Menu>['items'] = [];
 
   if (readOnly.value && !editing.value) {
-    items.push({ title: 'Edit', handler: () => editing.value = true });
+    items.push({
+      title: 'Edit',
+      handler: () => editing.value = true
+    });
   }
 
-  items.push({ title: 'Delete Measurements', theme: 'danger', icon: TrashIcon, handler: deleteSet });
+  items.push({
+    title: 'Delete Measurements',
+    theme: 'danger',
+    icon: TrashIcon,
+    handler: deleteSet
+  });
 
   return items;
 });
@@ -135,6 +156,11 @@ async function deleteSet() {
     sync.sync();
     back(router, '/measurements');
   }
+}
+
+async function save() {
+  await db.stageUpdateMeasurement(measurementSet.value);
+  sync.sync();
 }
 </script>
 
@@ -162,8 +188,9 @@ async function deleteSet() {
     </div>
 
     <TextArea
-      v-model="measurementSet.notes"
       label="Notes"
+      v-model="measurementSet.notes"
+      @update:modelValue="editing || save()"
       :read-only="readOnly && !editing"
       class="mx-3 my-2"
     ></TextArea>
@@ -191,7 +218,7 @@ async function deleteSet() {
             :value="measurementSet.measurements[ty]"
             @change="setMeasurement($event, ty)"
             @focus="($event.target as HTMLInputElement | null)?.select()"
-            :ref="el => setInputRef(el as any, ty)"
+            :ref="el => setInputRef(el as HTMLInputElement | null, ty)"
             class="w-16 px-2 py-1 text-right rounded-lg bg-neutral-700"
           />
 
