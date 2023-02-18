@@ -44,5 +44,6 @@ watch(
   <div
     v-else-if="modelValue"
     :aria-label="label"
+    class="whitespace-pre-wrap"
   >{{ modelValue }}</div>
 </template>

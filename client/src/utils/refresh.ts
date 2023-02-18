@@ -12,13 +12,11 @@ export function refresh(load: (initial: boolean) => void | Promise<void>) {
     const version = sync.version.value;
     if (version !== previousVersion) {
       if (previousVersion !== undefined) {
-        console.log('loaded', previousVersion, version);
         load(false);
       }
       previousVersion = version;
     }
   });
 
-  console.log('initial load');
   load(true);
 }

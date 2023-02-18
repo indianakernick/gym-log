@@ -12,6 +12,7 @@ import {
 import { uuid } from '@/utils/uuid';
 import { PlusIcon } from '@heroicons/vue/20/solid';
 import { ref, watchEffect } from 'vue';
+import InputNumber from './InputNumber.vue';
 import TextArea from './TextArea.vue';
 
 const props = defineProps<{
@@ -21,6 +22,7 @@ const props = defineProps<{
 
 const emit = defineEmits<{
   (e: 'setCreated'): void;
+  (e: 'setsChanged'): void;
 }>();
 
 let repeatingSets = ref<RepeatingSet[]>();
@@ -85,8 +87,9 @@ function addFixedSet(sets: FixedSet[]) {
   <template v-if="repeatingSets">
     <div class="px-2 flex flex-col">
       <TextArea
-        v-model="exercise.notes"
         label="Notes"
+        v-model="exercise.notes"
+        @update:model-value="emit('setsChanged')"
         :read-only="!history"
         class="my-2 w-full"
       ></TextArea>
@@ -98,8 +101,16 @@ function addFixedSet(sets: FixedSet[]) {
         </tr></thead>
         <tbody>
           <tr v-for="set in repeatingSets">
-            <td><input type="number" v-model.lazy="set.repetitions" :readonly="!history" /></td>
-            <td><input type="number" v-model.lazy="set.resistance" :readonly="!history" /></td>
+            <td><InputNumber
+              v-model="set.repetitions"
+              @update:modelValue="emit('setsChanged')"
+              :readOnly="!history"
+            /></td>
+            <td><InputNumber
+              v-model="set.resistance"
+              @update:modelValue="emit('setsChanged')"
+              :readOnly="!history"
+            /></td>
           </tr>
         </tbody>
       </table>
@@ -114,8 +125,9 @@ function addFixedSet(sets: FixedSet[]) {
   <template v-else-if="variableSets">
     <div class="px-2">
       <TextArea
-        v-model="exercise.notes"
         label="Notes"
+        v-model="exercise.notes"
+        @update:model-value="emit('setsChanged')"
         :read-only="!history"
         class="my-2 w-full"
       ></TextArea>
@@ -128,9 +140,21 @@ function addFixedSet(sets: FixedSet[]) {
         </tr></thead>
         <tbody>
           <tr v-for="set in variableSets">
-            <td><input type="number" v-model.lazy="set.resistance" :readonly="!history" /></td>
-            <td><input type="number" v-model.lazy="set.distance" :readonly="!history" /></td>
-            <td><input type="number" v-model.lazy="set.duration" :readonly="!history" /></td>
+            <td><InputNumber
+              v-model="set.resistance"
+              @update:modelValue="emit('setsChanged')"
+              :readOnly="!history"
+            /></td>
+            <td><InputNumber
+              v-model="set.distance"
+              @update:modelValue="emit('setsChanged')"
+              :readOnly="!history"
+            /></td>
+            <td><InputNumber
+              v-model="set.duration"
+              @update:modelValue="emit('setsChanged')"
+              :readOnly="!history"
+            /></td>
           </tr>
         </tbody>
       </table>
@@ -145,8 +169,9 @@ function addFixedSet(sets: FixedSet[]) {
   <template v-else-if="fixedSets">
     <div class="px-2">
       <TextArea
-        v-model="exercise.notes"
         label="Notes"
+        v-model="exercise.notes"
+        @update:model-value="emit('setsChanged')"
         :read-only="!history"
         class="my-2 w-full"
       ></TextArea>
@@ -161,10 +186,26 @@ function addFixedSet(sets: FixedSet[]) {
 
         <tbody>
           <tr v-for="set in fixedSets">
-            <td><input type="number" v-model.lazy="set.resistance" :readonly="!history" /></td>
-            <td><input type="number" v-model.lazy="set.speed" :readonly="!history" /></td>
-            <td><input type="number" v-model.lazy="set.distance" :readonly="!history" /></td>
-            <td><input type="number" v-model.lazy="set.duration" :readonly="!history" /></td>
+            <td><InputNumber
+              v-model="set.resistance"
+              @update:modelValue="emit('setsChanged')"
+              :readOnly="!history"
+            /></td>
+            <td><InputNumber
+              v-model="set.speed"
+              @update:modelValue="emit('setsChanged')"
+              :readOnly="!history"
+            /></td>
+            <td><InputNumber
+              v-model="set.distance"
+              @update:modelValue="emit('setsChanged')"
+              :readOnly="!history"
+            /></td>
+            <td><InputNumber
+              v-model="set.duration"
+              @update:modelValue="emit('setsChanged')"
+              :readOnly="!history"
+            /></td>
           </tr>
         </tbody>
       </table>
@@ -206,8 +247,8 @@ function addFixedSet(sets: FixedSet[]) {
   @apply max-w-full px-2 py-1 text-center rounded-lg bg-neutral-700;
 }
 
-.table input:read-only {
-  @apply bg-transparent py-0;
+.table td div {
+  @apply text-center;
 }
 
 .set-button {

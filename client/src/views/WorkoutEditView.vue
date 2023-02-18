@@ -6,7 +6,9 @@ import Menu from '@/components/Menu.vue';
 import TextArea from '@/components/TextArea.vue';
 import AdjustDatesModal from '@/modals/AdjustDatesModal.vue';
 import {
+  exerciseEqual,
   EXERCISE_TYPE_GROUPS,
+  workoutEqual,
   type Exercise,
   type ExerciseType,
   type Workout
@@ -46,6 +48,17 @@ const deletedExercises: Exercise['workout_exercise_id'][] = [];
 const editing = shallowRef(false);
 const editingExercise = shallowRef<number>();
 
+function equal(dbWorkout: Workout, dbExercises: Exercise[]): boolean {
+  if (!workoutEqual(workout.value, dbWorkout)) return false;
+  if (exercises.value.length !== dbExercises.length) return false;
+
+  for (let e = 0; e < dbExercises.length; ++e) {
+    if (!exerciseEqual(exercises.value[e], dbExercises[e])) return false;
+  }
+
+  return true;
+}
+
 async function load(initial: boolean) {
   const [dbWorkout, dbExercises] = await Promise.all([
     db.getWorkout(props.id),
@@ -53,7 +66,18 @@ async function load(initial: boolean) {
   ]);
 
   if (dbWorkout) {
+    if (
+      !initial
+      && editing.value
+      && !equal(dbWorkout, dbExercises)
+      && await confirmModal({
+        title: 'Keep edits?',
+        message: 'Changes to this workout have been pulled from another device. Do you want to keep your local edits?',
+        buttons: 'keep-discard'
+      })
+    ) return;
     workout.value = dbWorkout;
+    editing.value = false;
   } else if (!initial) {
     back(router, '/workouts');
     return;
@@ -72,7 +96,6 @@ async function done() {
   })) {
     if (!workout.value.notes && !exercises.value.length) {
       await db.stageDeleteWorkout(props.id);
-      await Promise.all(deletedExercises.map(e => db.stageDeleteExercise(e)));
     } else {
       await db.stageUpdateWorkout(workout.value);
       await Promise.all(exercises.value.map(e => db.stageUpdateExercise(e)));
@@ -86,11 +109,13 @@ async function done() {
 function start() {
   workout.value.start_time = toDateTimeString(new Date());
   triggerRef(workout);
+  saveWorkout();
 }
 
 function finish() {
   workout.value.finish_time = toDateTimeString(new Date());
   triggerRef(workout);
+  saveWorkout();
 }
 
 function addExercise(event: Event) {
@@ -126,6 +151,7 @@ const options = computed(() => {
             workout.value.start_time = start;
             workout.value.finish_time = finish;
             triggerRef(workout);
+            saveWorkout();
             adjustDatesModal.close();
           },
           onCancel: () => adjustDatesModal.close()
@@ -135,7 +161,12 @@ const options = computed(() => {
     }});
   }
 
-  items.push({ title: 'Delete Workout', theme: 'danger', icon: TrashIcon, handler: deleteWorkout });
+  items.push({
+    title: 'Delete Workout',
+    theme: 'danger',
+    icon: TrashIcon,
+    handler: deleteWorkout
+  });
 
   return items;
 });
@@ -152,10 +183,26 @@ async function deleteWorkout() {
   }
 }
 
-function deleteExercise(index: number) {
-  deletedExercises.push(exercises.value[index].workout_exercise_id);
+async function deleteExercise(index: number) {
+  const id = exercises.value[index].workout_exercise_id;
+  if (editing.value) {
+    deletedExercises.push(id);
+  } else {
+    await db.stageDeleteExercise(id);
+    sync.sync();
+  }
   exercises.value.splice(index, 1);
   triggerRef(exercises);
+}
+
+async function saveWorkout() {
+  await db.stageUpdateWorkout(workout.value);
+  sync.sync();
+}
+
+async function saveExercise(exercise: Exercise) {
+  await db.stageUpdateExercise(exercise);
+  sync.sync();
 }
 </script>
 
@@ -178,8 +225,9 @@ function deleteExercise(index: number) {
 
   <Main>
     <TextArea
-      v-model="workout.notes"
       label="Notes"
+      v-model="workout.notes"
+      @update:model-value="editing || saveWorkout()"
       :read-only="!!workout.finish_time && !editing"
       class="mx-3 my-2"
     ></TextArea>
@@ -211,6 +259,7 @@ function deleteExercise(index: number) {
           :editing="i === (editingExercise ?? (exercises.length - 1))"
           @delete-exercise="deleteExercise(i)"
           @edit-exercise="editingExercise = i === exercises.length - 1 ? undefined : i"
+          @exercise-changed="editing || saveExercise(exercise)"
         ></ExerciseEdit>
       </li>
     </ol>

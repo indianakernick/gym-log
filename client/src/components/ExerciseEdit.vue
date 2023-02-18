@@ -21,6 +21,7 @@ const props = defineProps<{
 const emit = defineEmits<{
   (e: 'deleteExercise'): void;
   (e: 'editExercise'): void;
+  (e: 'exerciseChanged'): void;
 }>();
 
 const confirmModal = useConfirmModal({
@@ -83,10 +84,20 @@ const options = computed(() => {
   setsKey.value;
 
   if (props.exercise.sets.length) {
-    items.push({ title: 'Delete Last Set', theme: 'danger', icon: TrashIcon, handler: deleteLastSet });
+    items.push({
+      title: 'Delete Last Set',
+      theme: 'danger',
+      icon: TrashIcon,
+      handler: deleteLastSet
+    });
   }
 
-  items.push({ title: 'Delete Exercise', theme: 'danger', icon: TrashIcon, handler: deleteExercise });
+  items.push({
+    title: 'Delete Exercise',
+    theme: 'danger',
+    icon: TrashIcon,
+    handler: deleteExercise
+  });
 
   return items;
 });
@@ -109,6 +120,7 @@ async function deleteLastSet() {
     // Vue doesn't see the above mutation so we're manually triggering a
     // re-render. Maybe a little hacky but I don't see a simpler way.
     ++setsKey.value;
+    emit('exerciseChanged');
   }
 }
 </script>
@@ -167,6 +179,7 @@ async function deleteLastSet() {
       :history="editingWorkout && editing ? history : undefined"
       :key="setsKey"
       @set-created="++setsKey"
+      @sets-changed="emit('exerciseChanged')"
     ></SetEdit>
   </div>
 </template>
