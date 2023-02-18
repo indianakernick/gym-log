@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::{collections::HashMap, borrow::Cow};
 use serde::{Serialize, Deserialize};
 
 pub const TABLE_USER: &str = "gym-log.User";
@@ -158,16 +158,16 @@ impl<'de, T: Deserialize<'de>, const MAX_LEN: usize> Deserialize<'de> for MaxLen
     }
 }
 
-/// A wrapper around a &str that validates its length when deserializing.
+/// A wrapper around a Cow<str> that validates its length when deserializing.
 #[repr(transparent)]
 #[derive(Serialize)]
-pub struct MaxLenStr<'a, const MAX_LEN: usize>(pub &'a str);
+pub struct MaxLenStr<'a, const MAX_LEN: usize>(pub Cow<'a, str>);
 
 impl<'de: 'a, 'a, const MAX_LEN: usize> Deserialize<'de> for MaxLenStr<'a, MAX_LEN> {
     fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
         where D: serde::Deserializer<'de>
     {
-        let s = <&str>::deserialize(deserializer)?;
+        let s = <Cow<str>>::deserialize(deserializer)?;
         if s.len() <= MAX_LEN {
             Ok(MaxLenStr(s))
         } else {

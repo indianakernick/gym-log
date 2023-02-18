@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::{collections::HashMap, borrow::Cow};
 use aws_sdk_dynamodb::{model::{AttributeValue, Select}, Client};
 use lambda_http::{Request, Response, http::StatusCode, Error, RequestExt};
 use tokio_stream::StreamExt;
@@ -114,7 +114,7 @@ async fn get_changed(db: &Client, user_id: String, client_version: u32) -> Resul
     Ok(serde_json::to_string(&to_user(version, &items)).unwrap())
 }
 
-fn to_user<'a>(mut version: u32, items: &Vec<HashMap<String, AttributeValue>>) -> common::User {
+fn to_user(mut version: u32, items: &Vec<HashMap<String, AttributeValue>>) -> common::User {
     let mut measurement_sets = Vec::new();
     let mut workouts = Vec::new();
     let mut exercises = Vec::new();
@@ -179,7 +179,7 @@ fn to_measurement_set<'a>(
 ) -> common::MeasurementSet<'a> {
     common::MeasurementSet {
         date,
-        notes: common::MaxLenStr(item["Notes"].as_s().unwrap()),
+        notes: common::MaxLenStr(Cow::Borrowed(item["Notes"].as_s().unwrap())),
         measurements: item["Measurements"].as_m().unwrap().iter()
             .map(|(k, v)| (k.as_str(), common::as_number(v)))
             .collect()
@@ -194,7 +194,7 @@ fn to_workout<'a>(
         workout_id,
         start_time: item.get("StartTime").map(|a| a.as_s().unwrap().as_str()),
         finish_time: item.get("FinishTime").map(|a| a.as_s().unwrap().as_str()),
-        notes: common::MaxLenStr(item["Notes"].as_s().unwrap()),
+        notes: common::MaxLenStr(Cow::Borrowed(item["Notes"].as_s().unwrap())),
     }
 }
 
@@ -205,8 +205,8 @@ fn to_exercise<'a>(
     common::Exercise {
         workout_exercise_id,
         order: common::as_number(&item["Order"]),
-        r#type: common::MaxLenStr(item["Type"].as_s().unwrap()),
-        notes: common::MaxLenStr(item["Notes"].as_s().unwrap()),
+        r#type: common::MaxLenStr(Cow::Borrowed(item["Type"].as_s().unwrap())),
+        notes: common::MaxLenStr(Cow::Borrowed(item["Notes"].as_s().unwrap())),
         sets: common::MaxLenVec(to_sets(item["Sets"].as_l().unwrap())),
     }
 }

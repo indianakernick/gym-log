@@ -23,7 +23,7 @@ pub async fn put(req: Request) -> common::Result {
 
     common::version_modify(&req, common::version_put_item(
         format!("MEASUREMENT#{measurement_id}"),
-        |builder, item: &common::MeasurementSet| {
+        |builder, item: common::MeasurementSet| {
             builder
                 .item("Notes", AttributeValue::S(item.notes.0.into()))
                 .item("Measurements", AttributeValue::M(

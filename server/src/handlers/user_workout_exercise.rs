@@ -59,7 +59,7 @@ pub async fn put(req: Request) -> common::Result {
 
     common::version_modify_checked(
         &req,
-        |mut builder, exercise: &common::Exercise, user_id, new_version| {
+        |mut builder, exercise: common::Exercise, user_id, new_version| {
             builder = common::check_exists(builder, user_id.clone(), format!("WORKOUT#{workout_id}"));
 
             let sets = exercise.sets.0.iter()

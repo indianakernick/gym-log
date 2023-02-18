@@ -23,7 +23,7 @@ pub async fn put(req: Request) -> common::Result {
 
     common::version_modify(&req, common::version_put_item(
         format!("WORKOUT#{workout_id}"),
-        |mut builder, item: &common::Workout| {
+        |mut builder, item: common::Workout| {
             builder = builder.item("Notes", AttributeValue::S(item.notes.0.into()));
 
             if let Some(dt) = item.start_time {

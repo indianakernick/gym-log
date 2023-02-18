@@ -77,7 +77,7 @@ pub async fn version_modify<'r, T, P>(
 ) -> super::Result
     where
         T: Deserialize<'r>,
-        P: FnOnce(TransactWriteItems, &T, String, String) -> TransactWriteItems,
+        P: FnOnce(TransactWriteItems, T, String, String) -> TransactWriteItems,
 {
     version_modify_checked(req, patch, |_| ControlFlow::Continue(())).await
 }
@@ -89,7 +89,7 @@ pub async fn version_modify_checked<'r, T, P, C>(
 ) -> super::Result
     where
         T: Deserialize<'r>,
-        P: FnOnce(TransactWriteItems, &T, String, String) -> TransactWriteItems,
+        P: FnOnce(TransactWriteItems, T, String, String) -> TransactWriteItems,
         C: FnOnce(&[CancellationReason]) -> ControlFlow<super::Result, ()>,
 {
     let body = match super::parse_request_json::<VersionModifyReq<T>>(req) {
@@ -101,7 +101,7 @@ pub async fn version_modify_checked<'r, T, P, C>(
         req,
         body.version,
         |builder, user_id, new_version| {
-            patch(builder, &body.item, user_id, new_version)
+            patch(builder, body.item, user_id, new_version)
         },
         check,
     ).await
@@ -110,8 +110,8 @@ pub async fn version_modify_checked<'r, T, P, C>(
 pub fn version_put_item<T, P>(
     item_id: String,
     patch: P,
-) -> impl FnOnce(TransactWriteItems, &T, String, String) -> TransactWriteItems
-    where P: FnOnce(put::Builder, &T) -> put::Builder
+) -> impl FnOnce(TransactWriteItems, T, String, String) -> TransactWriteItems
+    where P: FnOnce(put::Builder, T) -> put::Builder
 {
     move |builder, item, user_id, new_version| {
         let put = Put::builder()
