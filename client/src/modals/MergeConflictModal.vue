@@ -1,9 +1,10 @@
 <script setup lang="ts">
 import ResolveItem from '@/components/ResolveItem.vue';
-import ResolveMeasurement from '@/components/ResolveMeasurement.vue';
-import ResolveWorkout from '@/components/ResolveWorkout.vue';
+import ResolveItemExercise from '@/components/ResolveItemExercise.vue';
+import ResolveItemMeasurement from '@/components/ResolveItemMeasurement.vue';
+import ResolveItemWorkout from '@/components/ResolveItemWorkout.vue';
 import SequenceNavigator from '@/components/SequenceNavigator.vue';
-import type { MeasurementSet, Workout } from '@/model/api';
+import type { Exercise, MeasurementSet, Workout } from '@/model/api';
 import type { MergeConflict, MergeConflictResolutions } from '@/model/db';
 import { ref, shallowRef } from 'vue';
 import Modal from './Modal.vue';
@@ -22,6 +23,10 @@ const resolutions = ref<MergeConflictResolutions>({});
 function resolve(id: string, which: 'local' | 'remote') {
   resolutions.value[id] = which;
 }
+
+// Selecting local seemed to result in the remote change overwriting it later
+// on. Also, there's an error in the console when clicking the resolve button.
+// Related?
 </script>
 
 <template>
@@ -42,7 +47,11 @@ function resolve(id: string, which: 'local' | 'remote') {
       have to choose which changes to keep.
     </p>
 
-    <!-- Should this thing be hidden if there is only one conflict? -->
+    <!--
+      TODO: Don't show this when there is only one conflict.
+      Keeping it around for now so that I don't forget to improve the styling
+      later.
+    -->
     <SequenceNavigator
       v-model="conflictIdx"
       :length="conflicts.length"
@@ -64,18 +73,20 @@ function resolve(id: string, which: 'local' | 'remote') {
             https://github.com/vuejs/rfcs/discussions/436
             That would be pretty cool!
           -->
-          <ResolveMeasurement :set="(slotProps.item as MeasurementSet)" />
+          <ResolveItemMeasurement :set="(slotProps.item as MeasurementSet)" />
         </ResolveItem>
       </template>
 
       <template v-else-if="conflict.type === 'workout'">
         <ResolveItem v-slot="slotProps" :conflict="conflict" @resolve="resolve">
-          <ResolveWorkout :workout="(slotProps.item as Workout)"/>
+          <ResolveItemWorkout :workout="(slotProps.item as Workout)"/>
         </ResolveItem>
       </template>
 
       <template v-else-if="conflict.type === 'exercise'">
-
+        <ResolveItem v-slot="slotProps" :conflict="conflict" @resolve="resolve">
+          <ResolveItemExercise :exercise="(slotProps.item as Exercise)" />
+        </ResolveItem>
       </template>
     </template>
   </Modal>

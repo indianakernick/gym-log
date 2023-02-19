@@ -6,7 +6,6 @@ import { displayDateTime } from '@/utils/date';
 import { EXERCISE_TYPE } from '@/utils/i18n';
 import { useConfirmModal } from '@/utils/modal';
 import { TrashIcon } from '@heroicons/vue/20/solid';
-import { ChevronDownIcon, ChevronUpIcon } from '@heroicons/vue/24/outline';
 import { computed, shallowRef } from 'vue';
 import Menu from './Menu.vue';
 import SequenceNavigator from './SequenceNavigator.vue';

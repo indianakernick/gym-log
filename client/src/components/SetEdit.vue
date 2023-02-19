@@ -15,6 +15,9 @@ import { ref, watchEffect } from 'vue';
 import InputNumber from './InputNumber.vue';
 import TextArea from './TextArea.vue';
 
+// TODO: SetEdit is a misleading name
+// This is responsible for editing the sets of an exercise as well as the notes
+
 const props = defineProps<{
   exercise: Exercise;
   history?: (Exercise & { workout: Workout })[];
@@ -123,7 +126,7 @@ function addFixedSet(sets: FixedSet[]) {
   </template>
 
   <template v-else-if="variableSets">
-    <div class="px-2">
+    <div class="px-2 flex flex-col">
       <TextArea
         label="Notes"
         v-model="exercise.notes"
@@ -167,7 +170,7 @@ function addFixedSet(sets: FixedSet[]) {
   </template>
 
   <template v-else-if="fixedSets">
-    <div class="px-2">
+    <div class="px-2 flex flex-col">
       <TextArea
         label="Notes"
         v-model="exercise.notes"
