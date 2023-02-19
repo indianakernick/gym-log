@@ -288,6 +288,8 @@ export default new class {
     ]);
 
     if (conflicts.length) {
+      // IDB will throw new DOMException('AbortError', 'AbortError')
+      // TODO: Do we need to catch it?
       tx.abort();
     } else {
       tx.commit();

@@ -1,11 +1,15 @@
+import MergeConflictModal from '@/modals/MergeConflictModal.vue';
 import type { MergeConflictResolutions, StagedChange } from '@/model/db';
 import db from '@/services/db';
 import user, { CacheOutdatedError } from '@/services/user';
 import { shallowRef, type DeepReadonly, type ShallowRef } from 'vue';
-import type { Router } from 'vue-router';
+import { useModal, type UseModalReturnType } from 'vue-final-modal';
+import { useRouter, type Router } from 'vue-router';
 import { UnauthenticatedError } from './auth';
 
 // Do we gain anything by moving this into the service worker?
+
+// Maybe throttle instead of debounce.
 
 const DEBOUNCE_DURATION = 10 * 1000;
 const SYNC_PERIOD = 10 * 60 * 1000;
@@ -14,6 +18,7 @@ export default new class {
   private syncing: boolean = false;
   private debounceId?: number;
   private router?: Router;
+  private modal?: UseModalReturnType<InstanceType<typeof MergeConflictModal>['$props']>;
   private versionRef = shallowRef<number>();
 
   constructor() {
@@ -22,8 +27,11 @@ export default new class {
     db.getCurrentVersion().then(v => this.versionRef.value = v);
   }
 
-  setRouter(router: Router) {
-    this.router = router;
+  setup() {
+    this.router = useRouter();
+    this.modal = useModal({
+      component: MergeConflictModal
+    });
   }
 
   get version(): DeepReadonly<ShallowRef<number | undefined>> {
@@ -118,8 +126,19 @@ export default new class {
       const conflicts = await db.merge(changes, resolutions);
 
       if (conflicts.length) {
-        // TODO: show the conflicts to the user and ask them for resolutions
-        alert('Merge conflicts!!!');
+        await new Promise<void>(accept => {
+          this.modal!.patchOptions({
+            attrs: {
+              conflicts,
+              onResolved: res => {
+                Object.assign(resolutions, res);
+                this.modal!.close();
+                accept();
+              }
+            }
+          });
+          this.modal!.open();
+        });
       } else {
         this.versionRef.value = version;
         return;

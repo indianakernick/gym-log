@@ -10,14 +10,16 @@ defineProps<{
     disabled?: boolean;
     handler: () => void;
   }[];
+  background?: InstanceType<typeof VueFinalModal>['background'];
 }>();
 </script>
 
 <template>
   <VueFinalModal
     class="flex justify-center items-center"
-    content-class="w-full m-6 bg-neutral-800 rounded-lg border
-      border-neutral-600 overflow-hidden"
+    content-class="w-full m-6 bg-neutral-800 rounded-lg overflow-hidden border
+      border-neutral-600 max-h-[calc(100%-2*theme(spacing.6))] max-w-lg flex
+      flex-col"
     :overlay-transition="{
       enterActiveClass: 'transition-opacity',
       enterFromClass: 'opacity-0',
@@ -30,11 +32,14 @@ defineProps<{
       leaveActiveClass: 'transition-[opacity,transform]',
       leaveToClass: 'scale-50 opacity-0'
     }"
+    :background="background"
   >
     <h2 class="text-lg font-bold px-3 pt-2">{{ title }}</h2>
 
-    <div class="p-3 flex flex-col gap-3">
-      <slot></slot>
+    <div class="overflow-scroll">
+      <div class="p-3 flex flex-col gap-3">
+        <slot></slot>
+      </div>
     </div>
 
     <div v-if="buttons" class="grid grid-flow-col auto-cols-fr gap-[1px]

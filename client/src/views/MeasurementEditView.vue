@@ -184,7 +184,7 @@ async function save() {
   <Main>
     <div class="px-3 py-2 flex justify-between">
       <div>Capture Date</div>
-      <time :d="props.date">{{ displayDate(props.date) }}</time>
+      <time :d="date">{{ displayDate(date) }}</time>
     </div>
 
     <TextArea
