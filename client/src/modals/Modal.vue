@@ -10,7 +10,7 @@ defineProps<{
     disabled?: boolean;
     handler: () => void;
   }[];
-  background?: InstanceType<typeof VueFinalModal>['background'];
+  trap?: boolean;
 }>();
 </script>
 
@@ -32,7 +32,8 @@ defineProps<{
       leaveActiveClass: 'transition-[opacity,transform]',
       leaveToClass: 'scale-50 opacity-0'
     }"
-    :background="background"
+    :click-to-close="!trap"
+    :esc-to-close="!trap"
   >
     <h2 class="text-lg font-bold px-3 pt-2">{{ title }}</h2>
 

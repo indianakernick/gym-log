@@ -1,7 +1,8 @@
 <script setup lang="ts">
+import ResolveChoose from '@/components/ResolveChoose.vue';
+import ResolveMeasurement from '@/components/ResolveMeasurement.vue';
+import SequenceNavigator from '@/components/SequenceNavigator.vue';
 import type { MergeConflict, MergeConflictResolutions } from '@/model/db';
-import { displayDate } from '@/utils/date';
-import { ChevronDownIcon, ChevronUpIcon } from '@heroicons/vue/24/outline';
 import { ref, shallowRef } from 'vue';
 import Modal from './Modal.vue';
 
@@ -15,6 +16,10 @@ defineEmits<{
 
 const conflictIdx = shallowRef(0);
 const resolutions = ref<MergeConflictResolutions>({});
+
+function resolve(id: string, which: 'local' | 'remote') {
+  resolutions.value[id] = which;
+}
 </script>
 
 <template>
@@ -27,7 +32,7 @@ const resolutions = ref<MergeConflictResolutions>({});
       disabled: Object.keys(resolutions).length < conflicts.length,
       handler: () => $emit('resolved', resolutions)
     }]"
-    background="non-interactive"
+    :trap="true"
   >
     <p>
       There were conflicts when syncing changes. This can happen when a change
@@ -35,79 +40,37 @@ const resolutions = ref<MergeConflictResolutions>({});
       have to choose which changes to keep.
     </p>
 
-    <div class="sticky top-0 flex items-center bg-neutral-800">
-      <div>Resolving {{ conflictIdx + 1 }} / {{ conflicts.length }}</div>
-
-      <button
-        @click="--conflictIdx"
-        :disabled="conflictIdx < 1"
-        aria-label="Previous"
-        class="ml-auto disabled:text-neutral-600"
-      >
-        <ChevronUpIcon class="w-6 h-6"></ChevronUpIcon>
-      </button>
-
-      <button
-        @click="++conflictIdx"
-        :disabled="conflictIdx === conflicts.length - 1"
-        aria-label="Next"
-        class="ml-3 disabled:text-neutral-600"
-      >
-        <ChevronDownIcon class="w-6 h-6"></ChevronDownIcon>
-      </button>
-    </div>
+    <SequenceNavigator
+      v-model="conflictIdx"
+      :length="conflicts.length"
+      class="sticky top-0 bg-neutral-800"
+    >
+      Resolving {{ conflictIdx + 1 }} / {{ conflicts.length }}
+    </SequenceNavigator>
 
     <template v-for="conflict in [conflicts[conflictIdx]]">
       <template v-if="conflict.type === 'measurement'">
         <div>
-          <div class="flex justify-between items-center">
-            <label for="remote" class="font-bold">Remote</label>
-            <input
-              type="radio"
-              id="remote"
-              :name="conflict.id"
-              @input="resolutions[conflict.id] = 'remote'"
-              class="w-5 h-5"
-            />
-          </div>
+          <ResolveChoose :id="conflict.id" type="remote" @choose="resolve" />
 
-          <div v-if="'deleted' in conflict.remote" class="">
+          <i v-if="'deleted' in conflict.remote" class="text-red-500">
             Deleted
-          </div>
+          </i>
 
           <div v-else>
-            <div class="flex justify-between">
-              <div>Capture Date</div>
-              <time :d="conflict.remote.date">{{ displayDate(conflict.remote.date) }}</time>
-            </div>
-
-            <div>{{ conflict.remote.notes }}</div>
+            <ResolveMeasurement :set="conflict.remote"></ResolveMeasurement>
           </div>
         </div>
 
         <div>
-          <div class="flex justify-between items-center">
-            <label for="local" class="font-bold">Local</label>
-            <input
-              type="radio"
-              id="local"
-              :name="conflict.id"
-              @input="resolutions[conflict.id] = 'local'"
-              class="w-5 h-5"
-            />
-          </div>
+          <ResolveChoose :id="conflict.id" type="local" @choose="resolve" />
 
-          <div v-if="'deleted' in conflict.local">
+          <i v-if="'deleted' in conflict.local" class="text-red-500">
             Deleted
-          </div>
+          </i>
 
           <div v-else>
-            <div class="flex justify-between">
-              <div>Capture Date</div>
-              <time :d="conflict.local.date">{{ displayDate(conflict.local.date) }}</time>
-            </div>
-
-            <div>{{ conflict.local.notes }}</div>
+            <ResolveMeasurement :set="conflict.local"></ResolveMeasurement>
           </div>
         </div>
       </template>

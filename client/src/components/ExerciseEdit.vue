@@ -9,6 +9,7 @@ import { TrashIcon } from '@heroicons/vue/20/solid';
 import { ChevronDownIcon, ChevronUpIcon } from '@heroicons/vue/24/outline';
 import { computed, shallowRef } from 'vue';
 import Menu from './Menu.vue';
+import SequenceNavigator from './SequenceNavigator.vue';
 import SetEdit from './SetEdit.vue';
 
 const props = defineProps<{
@@ -141,7 +142,11 @@ async function deleteLastSet() {
     </div>
 
     <template v-else>
-      <div class="p-2 border-b border-neutral-600 flex items-center">
+      <SequenceNavigator
+        v-model="historyIdx"
+        :length="history.length"
+        class="p-2 border-b border-neutral-600"
+      >
         <!--
           The only way for a historic workout to not have a start_time is if
           there was a merge.
@@ -150,24 +155,7 @@ async function deleteLastSet() {
           displayDateTime(history[historyIdx].workout.start_time!)
         }}</time>
         <i v-else>Not started</i>
-
-        <button
-          @click="--historyIdx"
-          :disabled="historyIdx < 1"
-          aria-label="Previous"
-          class="ml-auto disabled:text-neutral-600"
-        >
-          <ChevronUpIcon class="w-6 h-6"></ChevronUpIcon>
-        </button>
-        <button
-          @click="++historyIdx"
-          :disabled="historyIdx === history.length - 1"
-          aria-label="Next"
-          class="ml-3 disabled:text-neutral-600"
-        >
-          <ChevronDownIcon class="w-6 h-6"></ChevronDownIcon>
-        </button>
-      </div>
+      </SequenceNavigator>
 
       <div v-if="historyIdx !== -1" class="border-b border-neutral-600">
         <SetEdit :exercise="history[historyIdx]"></SetEdit>

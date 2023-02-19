@@ -199,7 +199,7 @@ async function save() {
       <template v-for="ty in MEASUREMENT_TYPES">
         <li
           v-if="!readOnly || editing || measurementSet.measurements[ty] !== undefined"
-          class="px-3 py-2 flex flex-row items-center"
+          class="px-3 py-2 flex items-center"
         >
           <label
             :for="`measurement-${ty}`"

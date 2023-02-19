@@ -11,6 +11,9 @@ import { UnauthenticatedError } from './auth';
 
 // Maybe throttle instead of debounce.
 
+// TODO: let the user see the sync status. perhaps an icon in the header?
+// TODO: let the user manually trigger a sync
+
 const DEBOUNCE_DURATION = 10 * 1000;
 const SYNC_PERIOD = 10 * 60 * 1000;
 
