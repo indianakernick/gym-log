@@ -16,26 +16,28 @@ defineProps<{
     make that tricky to deal with.
   -->
 
-  <div class="flex justify-between">
-    <div>Capture Date</div>
-    <time :d="set.date">{{ displayDate(set.date) }}</time>
+  <div>
+    <div class="flex justify-between">
+      <div>Capture Date</div>
+      <time :d="set.date">{{ displayDate(set.date) }}</time>
+    </div>
+
+    <div aria-label="Notes" class="whitespace-pre-wrap">{{ set.notes }}</div>
+
+    <ul>
+      <template v-for="ty in MEASUREMENT_TYPES">
+        <li
+          v-if="set.measurements[ty] !== undefined"
+          class="flex items-center"
+        >
+          <div class="flex-grow">
+            {{ MEASUREMENT_TYPE[ty] }}
+            <i class="text-neutral-400">{{ MEASUREMENT_TYPE_UNIT[ty] }}</i>
+          </div>
+
+          <div class="text-right">{{ set.measurements[ty] }}</div>
+        </li>
+      </template>
+    </ul>
   </div>
-
-  <div aria-label="Notes">{{ set.notes }}</div>
-
-  <ul>
-    <template v-for="ty in MEASUREMENT_TYPES">
-      <li
-        v-if="set.measurements[ty] !== undefined"
-        class="flex items-center"
-      >
-        <div class="flex-grow">
-          {{ MEASUREMENT_TYPE[ty] }}
-          <i class="text-neutral-400">{{ MEASUREMENT_TYPE_UNIT[ty] }}</i>
-        </div>
-
-        <div class="text-right">{{ set.measurements[ty] }}</div>
-      </li>
-    </template>
-  </ul>
 </template>

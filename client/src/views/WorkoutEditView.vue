@@ -245,7 +245,10 @@ async function saveExercise(exercise: Exercise) {
       class="button-primary"
     >Start</button>
 
-    <div v-if="workout.start_time && workout.finish_time" class="px-3 py-2 flex justify-between">
+    <div
+      v-if="workout.start_time && workout.finish_time"
+      class="px-3 py-2 flex justify-between"
+    >
       <div>Finished</div>
       <time :d="workout.finish_time">{{ displayDateTime(workout.finish_time) }}</time>
     </div>
