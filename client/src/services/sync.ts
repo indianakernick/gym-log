@@ -82,10 +82,8 @@ export default new class {
             if (!this.handleAuthRedirect(e)) {
               console.error('Pulling changes', e);
             }
-            return true;
           }
-        }
-        if (!this.handleAuthRedirect(e)) {
+        } else if (!this.handleAuthRedirect(e)) {
           console.error('Pushing changes', e);
         }
         return true;
