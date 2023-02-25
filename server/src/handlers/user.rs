@@ -83,6 +83,11 @@ async fn get_changed(db: &Client, user_id: String, client_version: u32) -> Resul
     // path that will be taken.
 
     if version <= client_version {
+        // TODO: since this is so common, perhaps make it smaller
+        // we could use the If-None-Match header where the ETag is the version
+        // number. Reaching this branch would end up being a 304 response with
+        // the version in the ETag header.
+
         return Ok(serde_json::to_string(&common::User {
             version,
             measurement_sets: Vec::new(),

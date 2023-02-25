@@ -9,24 +9,22 @@ import { UnauthenticatedError } from './auth';
 
 // Do we gain anything by moving this into the service worker?
 
-// Maybe throttle instead of debounce.
-
 // TODO: let the user see the sync status. perhaps an icon in the header?
 // TODO: let the user manually trigger a sync
 
-const DEBOUNCE_DURATION = 10 * 1000;
+const THROTTLE_DURATION = 10 * 1000;
 const SYNC_PERIOD = 10 * 60 * 1000;
 
 export default new class {
   private syncing: boolean = false;
-  private debounceId?: number;
+  private syncAfterThrottle: boolean = false;
+  private throttleId?: number;
   private router?: Router;
   private modal?: UseModalReturnType<InstanceType<typeof MergeConflictModal>['$props']>;
   private versionRef = shallowRef<number>();
 
   constructor() {
     setInterval(this.sync.bind(this), SYNC_PERIOD);
-    this.sync();
     db.getCurrentVersion().then(v => this.versionRef.value = v);
   }
 
@@ -35,6 +33,7 @@ export default new class {
     this.modal = useModal({
       component: MergeConflictModal
     });
+    this.sync();
   }
 
   get version(): DeepReadonly<ShallowRef<number | undefined>> {
@@ -42,35 +41,48 @@ export default new class {
   }
 
   sync() {
-    clearTimeout(this.debounceId);
-    this.debounceId = window.setTimeout(async () => {
-      if (this.syncing) {
-        this.sync();
-      } else {
-        this.syncing = true;
-        try {
-          if (!await this.doSync()) {
-            await this.pullChanges(await db.getCurrentVersion());
-          }
-        } catch (e) {
-          if (!this.handleAuthRedirect(e)) {
-            console.error('Pulling changes', e);
-          }
-        } finally {
-          this.syncing = false;
-        }
-      }
-    }, DEBOUNCE_DURATION);
+    if (this.throttleId !== undefined) {
+      this.syncAfterThrottle = true;
+      return;
+    }
+
+    if (this.syncing) {
+      this.syncAfterThrottle = true;
+    } else {
+      this.syncAfterThrottle = false;
+      this.syncPushOrPull();
+    }
+
+    this.throttleId = window.setTimeout(() => {
+      this.throttleId = undefined;
+      if (this.syncAfterThrottle) this.sync();
+    }, THROTTLE_DURATION);
   }
 
-  private async doSync(): Promise<boolean> {
-    let foundStagedChanges = false;
+  private async syncPushOrPull(): Promise<void> {
+    this.syncing = true;
+
+    try {
+      if (!await this.syncPush()) {
+        await this.pullChanges(await db.getCurrentVersion());
+      }
+    } catch (e) {
+      if (!this.handleAuthRedirect(e)) {
+        console.error('Pulling changes', e);
+      }
+    } finally {
+      this.syncing = false;
+    }
+  }
+
+  private async syncPush(): Promise<boolean> {
+    let didPush = false;
 
     while (true) {
       const change = await db.getNextStagedChange();
 
-      if (!change) return foundStagedChanges;
-      foundStagedChanges = true;
+      if (!change) return didPush;
+      didPush = true;
 
       try {
         await this.pushChange(change);
@@ -141,7 +153,7 @@ export default new class {
           this.modal!.open();
         });
       } else {
-        this.versionRef.value = version;
+        this.versionRef.value = changes.version;
         return;
       }
     }
@@ -149,8 +161,6 @@ export default new class {
 
   private handleAuthRedirect(e: unknown): boolean {
     if (e instanceof UnauthenticatedError) {
-      // There's no way initializing the app is going to take up the full
-      // debounce duration so the router would have been set by then.
       this.router!.push({
         path: '/login',
         query: { redirect: this.router!.currentRoute.value.path }
