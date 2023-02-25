@@ -6,7 +6,7 @@ export function refresh(load: (initial: boolean) => void | Promise<void>) {
 
   // sync.version will initially be undefined for a brief moment until the
   // actual version is loaded from IndexedDB. Refreshing the view should not
-  // happen we are simply discovering what the initial version is.
+  // happen when we are discovering what the initial version is.
 
   watchEffect(() => {
     const version = sync.version.value;
