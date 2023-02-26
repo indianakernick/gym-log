@@ -46,7 +46,6 @@ defineProps<{
           </div>
 
           <div
-            class="text-right"
             :class="colorForChange(set, otherSet, s => s.measurements[ty])"
           >{{ set.measurements[ty] }}</div>
         </li>

@@ -80,7 +80,10 @@ function resolve(id: string, which: 'local' | 'remote') {
 
       <template v-else-if="conflict.type === 'workout'">
         <ResolveItem v-slot="slotProps" :conflict="conflict" @resolve="resolve">
-          <ResolveItemWorkout :workout="(slotProps.item as Workout)"/>
+          <ResolveItemWorkout
+            :workout="(slotProps.item as Workout)"
+            :other-workout="(slotProps.other as Workout | Deleted)"
+          />
         </ResolveItem>
       </template>
 
