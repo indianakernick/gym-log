@@ -261,7 +261,8 @@ export default new class {
         remote.deleted_measurement_sets,
         measurementSetEqual,
         m => m.date,
-        (id, remote, local) => ({ type: 'measurement', id, remote, local })
+        (id, original, remote, local) =>
+          ({ type: 'measurement', id, original, remote, local })
       ),
       this.mergeEntity(
         resolutions,
@@ -272,7 +273,8 @@ export default new class {
         remote.deleted_workouts,
         workoutEqual,
         m => m.workout_id,
-        (id, remote, local) => ({ type: 'workout', id, remote, local })
+        (id, original, remote, local) =>
+          ({ type: 'workout', id, original, remote, local })
       ),
       this.mergeEntity(
         resolutions,
@@ -283,7 +285,8 @@ export default new class {
         remote.deleted_exercises,
         exerciseEqual,
         m => m.workout_exercise_id,
-        (id, remote, local) => ({ type: 'exercise', id, remote, local })
+        (id, original, remote, local) =>
+          ({ type: 'exercise', id, original, remote, local })
       )
     ]);
 
@@ -310,10 +313,16 @@ export default new class {
     remoteDeletes: Schema[S]['key'][],
     equal: (a: Schema[S]['value'], b: Schema[S]['value']) => boolean,
     getId: (item: Schema[S]['value']) => Schema[S]['key'],
-    makeConflict: (id: Schema[S]['key'], remote: Schema[S]['value'] | Deleted, local: Schema[S]['value'] | Deleted) => MergeConflict
+    makeConflict: (
+      id: Schema[S]['key'],
+      original: Schema[S]['value'] | Deleted,
+      remote: Schema[S]['value'] | Deleted,
+      local: Schema[S]['value'] | Deleted
+    ) => MergeConflict
   ): Promise<void> {
     for (const r of remoteUpdates) {
       const id = getId(r);
+      const original = (await canonStore.get(id)) ?? DELETED;
 
       await canonStore.put(r);
 
@@ -323,18 +332,20 @@ export default new class {
         r,
         equal,
         () => stagedStore.delete(id),
-        local => conflicts.push(makeConflict(id, r, local))
+        local => conflicts.push(makeConflict(id, original, r, local))
       );
     }
 
     for (const r of remoteDeletes) {
+      const original = (await canonStore.get(r)) ?? DELETED;
+
       await canonStore.delete(r);
 
       await this.mergeDelete(
         resolutions[r],
         await stagedStore.get(r),
         () => stagedStore.delete(r),
-        local => conflicts.push(makeConflict(r, DELETED, local))
+        local => conflicts.push(makeConflict(r, original, DELETED, local))
       );
     }
   }
