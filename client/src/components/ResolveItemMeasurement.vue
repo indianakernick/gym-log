@@ -1,10 +1,13 @@
 <script setup lang="ts">
 import { MEASUREMENT_TYPES, type MeasurementSet } from '@/model/api';
+import type { Deleted } from '@/model/db';
 import { displayDate } from '@/utils/date';
 import { MEASUREMENT_TYPE, MEASUREMENT_TYPE_UNIT } from '@/utils/i18n';
+import { colorForChange } from '@/utils/merge';
 
 defineProps<{
   set: MeasurementSet;
+  otherSet: MeasurementSet | Deleted;
 }>();
 </script>
 
@@ -19,10 +22,17 @@ defineProps<{
   <div>
     <div class="flex justify-between">
       <div>Capture Date</div>
-      <time :d="set.date">{{ displayDate(set.date) }}</time>
+      <time
+        :d="set.date"
+        :class="colorForChange(set, otherSet, s => s.date)"
+      >{{ displayDate(set.date) }}</time>
     </div>
 
-    <div aria-label="Notes" class="whitespace-pre-wrap">{{ set.notes }}</div>
+    <div
+      aria-label="Notes"
+      class="whitespace-pre-wrap"
+      :class="colorForChange(set, otherSet, s => s.notes)"
+    >{{ set.notes }}</div>
 
     <ul>
       <template v-for="ty in MEASUREMENT_TYPES">
@@ -35,7 +45,10 @@ defineProps<{
             <i class="text-neutral-400">{{ MEASUREMENT_TYPE_UNIT[ty] }}</i>
           </div>
 
-          <div class="text-right">{{ set.measurements[ty] }}</div>
+          <div
+            class="text-right"
+            :class="colorForChange(set, otherSet, s => s.measurements[ty])"
+          >{{ set.measurements[ty] }}</div>
         </li>
       </template>
     </ul>

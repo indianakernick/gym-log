@@ -22,7 +22,7 @@ defineEmits<{
 
     <i v-if="'deleted' in conflict.remote" class="text-red-500">Deleted</i>
 
-    <slot v-else :item="conflict.remote"></slot>
+    <slot v-else :item="conflict.remote" :other="conflict.local"></slot>
   </div>
 
   <div class="p-3 border-t border-neutral-600">
@@ -35,6 +35,6 @@ defineEmits<{
 
     <i v-if="'deleted' in conflict.local" class="text-red-500">Deleted</i>
 
-    <slot v-else :item="conflict.local"></slot>
+    <slot v-else :item="conflict.local" :other="conflict.remote"></slot>
   </div>
 </template>

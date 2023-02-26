@@ -5,7 +5,7 @@ import ResolveItemMeasurement from '@/components/ResolveItemMeasurement.vue';
 import ResolveItemWorkout from '@/components/ResolveItemWorkout.vue';
 import SequenceNavigator from '@/components/SequenceNavigator.vue';
 import type { Exercise, MeasurementSet, Workout } from '@/model/api';
-import type { MergeConflict, MergeConflictResolutions } from '@/model/db';
+import type { Deleted, MergeConflict, MergeConflictResolutions } from '@/model/db';
 import { ref, shallowRef } from 'vue';
 import Modal from './Modal.vue';
 
@@ -71,7 +71,10 @@ function resolve(id: string, which: 'local' | 'remote') {
             https://github.com/vuejs/rfcs/discussions/436
             That would be pretty cool!
           -->
-          <ResolveItemMeasurement :set="(slotProps.item as MeasurementSet)" />
+          <ResolveItemMeasurement
+            :set="(slotProps.item as MeasurementSet)"
+            :other-set="(slotProps.other as MeasurementSet | Deleted)"
+          />
         </ResolveItem>
       </template>
 
