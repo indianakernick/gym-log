@@ -42,6 +42,8 @@ async function load(initial: boolean) {
       !initial
       && editing.value
       && !measurementSetEqual(measurementSet.value, dbMeasurements)
+      // TODO: can/should we use the merge conflict modal here?
+      // ditto for the workout page
       && await confirmModal({
         title: 'Keep edits?',
         message: 'Changes to these measurements have been pulled from another device. Do you want to keep your local edits?',

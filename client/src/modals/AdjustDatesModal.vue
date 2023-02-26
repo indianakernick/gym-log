@@ -67,39 +67,41 @@ function save() {
       }
     ]"
   >
-    <div
-      v-if="error"
-      class="p-2 rounded-lg border border-red-500 border-opacity-50
-        text-red-500 bg-red-500 bg-opacity-10"
-    >
-      <template v-if="error === 'start-before-finish'">
-        Start time must be before finish time.
-      </template>
-      <template v-else-if="error === 'past'">
-        Start and finish times must be in the past.
-      </template>
-    </div>
+    <div class="p-3 flex flex-col gap-3">
+      <div
+        v-if="error"
+        class="p-2 rounded-lg border border-red-500 border-opacity-50
+          text-red-500 bg-red-500 bg-opacity-10"
+      >
+        <template v-if="error === 'start-before-finish'">
+          Start time must be before finish time.
+        </template>
+        <template v-else-if="error === 'past'">
+          Start and finish times must be in the past.
+        </template>
+      </div>
 
-    <div class="flex items-center justify-between">
-      <label for="start">Started</label>
-      <input
-        id="started"
-        type="datetime-local"
-        v-model="start"
-        step="1"
-        class="appearance-none px-2 py-1 rounded-lg bg-neutral-700"
-      />
-    </div>
+      <div class="flex items-center justify-between">
+        <label for="start">Started</label>
+        <input
+          id="started"
+          type="datetime-local"
+          v-model="start"
+          step="1"
+          class="appearance-none px-2 py-1 rounded-lg bg-neutral-700"
+        />
+      </div>
 
-    <div class="flex items-center justify-between">
-      <label for="finished">Finished</label>
-      <input
-        id="finished"
-        type="datetime-local"
-        v-model="finish"
-        step="1"
-        class="appearance-none px-2 py-1 rounded-lg bg-neutral-700"
-      />
+      <div class="flex items-center justify-between">
+        <label for="finished">Finished</label>
+        <input
+          id="finished"
+          type="datetime-local"
+          v-model="finish"
+          step="1"
+          class="appearance-none px-2 py-1 rounded-lg bg-neutral-700"
+        />
+      </div>
     </div>
   </Modal>
 </template>

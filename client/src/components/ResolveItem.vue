@@ -12,11 +12,12 @@ defineEmits<{
 </script>
 
 <template>
-  <div>
+  <div class="p-3">
     <ResolveChoose
       :id="conflict.id"
       type="remote"
       @choose="$emit('resolve', conflict.id, 'remote')"
+      class="pb-2"
     />
 
     <i v-if="'deleted' in conflict.remote" class="text-red-500">Deleted</i>
@@ -24,11 +25,12 @@ defineEmits<{
     <slot v-else :item="conflict.remote"></slot>
   </div>
 
-  <div>
+  <div class="p-3 border-t border-neutral-600">
     <ResolveChoose
       :id="conflict.id"
       type="local"
       @choose="$emit('resolve', conflict.id, 'local')"
+      class="pb-2"
     />
 
     <i v-if="'deleted' in conflict.local" class="text-red-500">Deleted</i>

@@ -35,12 +35,10 @@ defineProps<{
     :click-to-close="!trap"
     :esc-to-close="!trap"
   >
-    <h2 class="text-lg font-bold px-3 pt-2">{{ title }}</h2>
+    <h2 class="text-lg font-bold px-3 py-2 border-b border-neutral-600">{{ title }}</h2>
 
     <div class="overflow-scroll">
-      <div class="p-3 flex flex-col gap-3">
-        <slot></slot>
-      </div>
+      <slot></slot>
     </div>
 
     <div v-if="buttons" class="grid grid-flow-col auto-cols-fr gap-[1px]

@@ -23,10 +23,6 @@ const resolutions = ref<MergeConflictResolutions>({});
 function resolve(id: string, which: 'local' | 'remote') {
   resolutions.value[id] = which;
 }
-
-// Selecting local seemed to result in the remote change overwriting it later
-// on. Also, there's an error in the console when clicking the resolve button.
-// Related?
 </script>
 
 <template>
@@ -41,21 +37,23 @@ function resolve(id: string, which: 'local' | 'remote') {
     }]"
     :trap="true"
   >
-    <p>
+    <p
+      class="p-3"
+      :class="{
+        'border-b border-neutral-600': conflicts.length === 1
+      }"
+    >
       There were conflicts when syncing changes. This can happen when a change
       is made on another device while also making changes on this device. You'll
       have to choose which changes to keep.
     </p>
 
-    <!--
-      TODO: Don't show this when there is only one conflict.
-      Keeping it around for now so that I don't forget to improve the styling
-      later.
-    -->
     <SequenceNavigator
+      v-if="conflicts.length > 1"
       v-model="conflictIdx"
       :length="conflicts.length"
-      class="sticky top-0 bg-neutral-800"
+      class="sticky -top-[1px] bg-neutral-800 px-3 py-2 border-t border-b
+        border-neutral-600"
     >
       Resolving {{ conflictIdx + 1 }} / {{ conflicts.length }}
     </SequenceNavigator>

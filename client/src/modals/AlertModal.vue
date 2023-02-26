@@ -20,5 +20,7 @@ defineEmits<{
         handler: () => $emit('ok')
       }
     ]"
-  >{{ message }}</Modal>
+  >
+    <div class="p-3">{{ message }}</div>
+  </Modal>
 </template>

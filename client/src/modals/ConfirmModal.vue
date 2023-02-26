@@ -50,5 +50,7 @@ const buttons = computed<InstanceType<typeof Modal>['buttons']>(() => {
   <Modal
     :title="title"
     :buttons="buttons"
-  >{{ message }}</Modal>
+  >
+    <div class="p-3">{{ message }}</div>
+  </Modal>
 </template>
