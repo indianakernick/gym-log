@@ -1,7 +1,7 @@
 #!/bin/zsh
 
 # Note that macOS sed is quite limited compared to GNU sed. Escape sequences
-# such as \w and \s are not supported. There is tab character between the []
+# such as \w and \s are not supported. There is a tab character between the []
 # because neither \s or \t can be used.
 aws cloudformation describe-stacks \
   --profile gym-log \

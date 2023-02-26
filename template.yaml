@@ -202,6 +202,20 @@ Resources:
   Api:
     Type: AWS::ApiGatewayV2::Api
     Properties:
+      CorsConfiguration:
+        AllowHeaders:
+          - Authorization
+          - Content-Type
+        AllowMethods:
+          - DELETE
+          - GET
+          - OPTIONS
+          - PUT
+        AllowOrigins:
+          - !GetAtt S3BucketWebsite.WebsiteURL
+          # TODO: don't forget to remove localhost
+          - http://localhost:5173
+        MaxAge: 86400
       Name: gym-log
       ProtocolType: HTTP
       Tags:
@@ -221,17 +235,12 @@ Resources:
     Type: AWS::ApiGatewayV2::Deployment
     DependsOn:
      - ApiRouteUserGet
-     - ApiRouteUserOptions
      - ApiRouteUserMeasurementDelete
-     - ApiRouteUserMeasurementOptions
      - ApiRouteUserMeasurementPut
      - ApiRouteUserWorkoutDelete
-     - ApiRouteUserWorkoutOptions
      - ApiRouteUserWorkoutPut
      - ApiRouteUserWorkoutExerciseDelete
-     - ApiRouteUserWorkoutExerciseOptions
      - ApiRouteUserWorkoutExercisePut
-     - ApiRouteUserWorkoutOrderOptions
      - ApiRouteUserWorkoutOrderPut
     Properties:
       ApiId: !Ref Api
@@ -265,9 +274,7 @@ Resources:
       PayloadFormatVersion: "2.0"
       TimeoutInMillis: 30000
 
-  # Below are the route definitions for the whole API. There are OPTIONS routes
-  # that are handled by the proxy Lambda for CORS. API Gateway has a built-in
-  # mechanism for dealing with CORS but it didn't seem to work.
+  # Below are the route definitions for the whole API.
 
   ApiRouteUserGet:
     Type: AWS::ApiGatewayV2::Route
@@ -281,16 +288,6 @@ Resources:
         - - integrations
           - !Ref ApiIntegrationProxy
 
-  ApiRouteUserOptions:
-    Type: AWS::ApiGatewayV2::Route
-    Properties:
-      ApiId: !Ref Api
-      RouteKey: OPTIONS /user
-      Target: !Join
-        - /
-        - - integrations
-          - !Ref ApiIntegrationProxy
-
   ApiRouteUserMeasurementDelete:
     Type: AWS::ApiGatewayV2::Route
     Properties:
@@ -298,16 +295,6 @@ Resources:
       AuthorizationType: JWT
       AuthorizerId: !Ref ApiAuthorizer
       RouteKey: DELETE /user/measurement/{measurementId}
-      Target: !Join
-        - /
-        - - integrations
-          - !Ref ApiIntegrationProxy
-
-  ApiRouteUserMeasurementOptions:
-    Type: AWS::ApiGatewayV2::Route
-    Properties:
-      ApiId: !Ref Api
-      RouteKey: OPTIONS /user/measurement/{measurementId}
       Target: !Join
         - /
         - - integrations
@@ -337,16 +324,6 @@ Resources:
         - - integrations
           - !Ref ApiIntegrationProxy
 
-  ApiRouteUserWorkoutOptions:
-    Type: AWS::ApiGatewayV2::Route
-    Properties:
-      ApiId: !Ref Api
-      RouteKey: OPTIONS /user/workout/{workoutId}
-      Target: !Join
-        - /
-        - - integrations
-          - !Ref ApiIntegrationProxy
-
   ApiRouteUserWorkoutPut:
     Type: AWS::ApiGatewayV2::Route
     Properties:
@@ -371,16 +348,6 @@ Resources:
         - - integrations
           - !Ref ApiIntegrationProxy
 
-  ApiRouteUserWorkoutExerciseOptions:
-    Type: AWS::ApiGatewayV2::Route
-    Properties:
-      ApiId: !Ref Api
-      RouteKey: OPTIONS /user/workout/{workoutId}/exercise/{exerciseId}
-      Target: !Join
-        - /
-        - - integrations
-          - !Ref ApiIntegrationProxy
-
   ApiRouteUserWorkoutExercisePut:
     Type: AWS::ApiGatewayV2::Route
     Properties:
@@ -388,16 +355,6 @@ Resources:
       AuthorizationType: JWT
       AuthorizerId: !Ref ApiAuthorizer
       RouteKey: PUT /user/workout/{workoutId}/exercise/{exerciseId}
-      Target: !Join
-        - /
-        - - integrations
-          - !Ref ApiIntegrationProxy
-
-  ApiRouteUserWorkoutOrderOptions:
-    Type: AWS::ApiGatewayV2::Route
-    Properties:
-      ApiId: !Ref Api
-      RouteKey: OPTIONS /user/workout/{workoutId}/order
       Target: !Join
         - /
         - - integrations

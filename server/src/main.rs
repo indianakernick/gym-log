@@ -10,17 +10,12 @@ async fn function_handler(req: Request) -> Result<Response<Body>, Error> {
 
     match req_ctx.route_key.as_deref() {
         Some("GET /user") => user::get(req).await,
-        Some("OPTIONS /user") => options(),
         Some("DELETE /user/measurement/{measurementId}") => user_measurement::delete(req).await,
-        Some("OPTIONS /user/measurement/{measurementId}") => options(),
         Some("PUT /user/measurement/{measurementId}") => user_measurement::put(req).await,
         Some("DELETE /user/workout/{workoutId}") => user_workout::delete(req).await,
-        Some("OPTIONS /user/workout/{workoutId}") => options(),
         Some("PUT /user/workout/{workoutId}") => user_workout::put(req).await,
         Some("DELETE /user/workout/{workoutId}/exercise/{exerciseId}") => user_workout_exercise::delete(req).await,
-        Some("OPTIONS /user/workout/{workoutId}/exercise/{exerciseId}") => options(),
         Some("PUT /user/workout/{workoutId}/exercise/{exerciseId}") => user_workout_exercise::put(req).await,
-        Some("OPTIONS /user/workout/{workoutId}/order") => options(),
         Some("PUT /user/workout/{workoutId}/order") => user_workout_order::put(req).await,
 
         Some(_) | None => common::empty_response(StatusCode::NOT_FOUND)

@@ -24,7 +24,7 @@ pub async fn get(req: Request) -> common::Result {
         get_all(db, user_id).await?
     };
 
-    Ok(common::with_cors(Response::builder())
+    Ok(Response::builder()
         .status(StatusCode::OK)
         .header("Content-Type", "application/json")
         .body(body.into())
@@ -70,11 +70,8 @@ async fn get_changed(db: &Client, user_id: String, client_version: u32) -> Resul
         .send()
         .await?;
 
-    let version = if let Some(item) = get_version.item() {
-        common::as_number(&item["Version"])
-    } else {
-        0
-    };
+    let version = get_version.item()
+        .map_or(0, |i| common::as_number(&i["Version"]));
 
     // If the client is requesting changes after the current version, then we
     // know that there won't be anything so we can skip the extra queries and
