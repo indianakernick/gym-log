@@ -7,9 +7,9 @@ import { EXERCISE_TYPE } from '@/utils/i18n';
 import { useConfirmModal } from '@/utils/modal';
 import { TrashIcon } from '@heroicons/vue/20/solid';
 import { computed, shallowRef } from 'vue';
+import ExerciseSetEdit from './ExerciseSetEdit.vue';
 import Menu from './Menu.vue';
 import SequenceNavigator from './SequenceNavigator.vue';
-import SetEdit from './SetEdit.vue';
 
 const props = defineProps<{
   workoutStart: string;
@@ -133,7 +133,7 @@ async function deleteLastSet() {
         v-if="editingWorkout"
         title="Exercise Options"
         :items="options"
-      ></Menu>
+      />
     </div>
 
     <div v-if="historyIdx === -1" class="p-2 border-b border-neutral-600">
@@ -157,16 +157,16 @@ async function deleteLastSet() {
       </SequenceNavigator>
 
       <div v-if="historyIdx !== -1" class="border-b border-neutral-600">
-        <SetEdit :exercise="history[historyIdx]"></SetEdit>
+        <ExerciseSetEdit :exercise="history[historyIdx]" />
       </div>
     </template>
 
-    <SetEdit
+    <ExerciseSetEdit
       :exercise="exercise"
       :history="editingWorkout && editing ? history : undefined"
       :key="setsKey"
       @set-created="++setsKey"
       @sets-changed="emit('exerciseChanged')"
-    ></SetEdit>
+    />
   </div>
 </template>

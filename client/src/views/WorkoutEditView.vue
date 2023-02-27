@@ -219,7 +219,7 @@ async function saveExercise(exercise: Exercise) {
         title="Workout Options"
         :items="options"
         theme="primary"
-      ></Menu>
+      />
     </template>
   </Header>
 
@@ -230,7 +230,7 @@ async function saveExercise(exercise: Exercise) {
       @update:model-value="editing || saveWorkout()"
       :read-only="!!workout.finish_time && !editing"
       class="mx-3 my-2"
-    ></TextArea>
+    />
 
     <div
       v-if="workout.start_time"
@@ -263,7 +263,7 @@ async function saveExercise(exercise: Exercise) {
           @delete-exercise="deleteExercise(i)"
           @edit-exercise="editingExercise = i === exercises.length - 1 ? undefined : i"
           @exercise-changed="editing || saveExercise(exercise)"
-        ></ExerciseEdit>
+        />
       </li>
     </ol>
 

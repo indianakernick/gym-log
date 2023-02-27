@@ -21,7 +21,7 @@ defineEmits<{
       aria-label="Previous"
       class="ml-auto disabled:text-neutral-600"
     >
-      <ChevronUpIcon class="w-6 h-6"></ChevronUpIcon>
+      <ChevronUpIcon class="w-6 h-6" />
     </button>
 
     <button
@@ -30,7 +30,7 @@ defineEmits<{
       aria-label="Next"
       class="ml-3 disabled:text-neutral-600"
     >
-      <ChevronDownIcon class="w-6 h-6"></ChevronDownIcon>
+      <ChevronDownIcon class="w-6 h-6" />
     </button>
   </div>
 </template>

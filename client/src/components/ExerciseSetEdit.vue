@@ -1,12 +1,9 @@
 <script setup lang="ts">
 import type { Exercise, Workout } from '@/model/api';
 import { PlusIcon } from '@heroicons/vue/20/solid';
-import { ref } from 'vue';
+import { shallowRef } from 'vue';
 import SetTable from './SetTable.vue';
 import TextArea from './TextArea.vue';
-
-// TODO: SetEdit is a misleading name
-// This is responsible for editing the sets of an exercise as well as the notes
 
 defineProps<{
   exercise: Exercise;
@@ -18,7 +15,7 @@ const emit = defineEmits<{
   (e: 'setsChanged'): void;
 }>();
 
-const table = ref<InstanceType<typeof SetTable> | null>(null);
+const table = shallowRef<InstanceType<typeof SetTable>>();
 
 function addSet() {
   if (table.value) {

@@ -179,7 +179,7 @@ async function save() {
         title="Measurement Options"
         :items="options"
         theme="primary"
-      ></Menu>
+      />
     </template>
   </Header>
 
@@ -195,7 +195,7 @@ async function save() {
       @update:modelValue="editing || save()"
       :read-only="readOnly && !editing"
       class="mx-3 my-2"
-    ></TextArea>
+    />
 
     <ul>
       <template v-for="ty in MEASUREMENT_TYPES">
@@ -242,7 +242,7 @@ async function save() {
             -->
             <div class="absolute inset-0 rounded-lg border
               border-neutral-600"></div>
-            <PlusIcon class="w-6 h-6 text-neutral-300"></PlusIcon>
+            <PlusIcon class="w-6 h-6 text-neutral-300" />
           </button>
         </li>
       </template>

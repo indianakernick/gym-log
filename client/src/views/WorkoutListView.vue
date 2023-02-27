@@ -61,7 +61,7 @@ function add() {
 <template>
   <Header title="Workouts" @right="add">
     <template #right>
-      <PlusIcon class="w-6 h-6"></PlusIcon>
+      <PlusIcon class="w-6 h-6" />
     </template>
   </Header>
 

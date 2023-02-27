@@ -58,11 +58,6 @@ function resolve(id: string, which: 'local' | 'remote') {
       Resolving {{ conflictIdx + 1 }} / {{ conflicts.length }}
     </SequenceNavigator>
 
-    <!--
-      TODO: maybe do some color coding to highlight the individual pieces of
-      data that differ between the remote and local versions.
-    -->
-
     <template v-for="conflict in [conflicts[conflictIdx]]">
       <template v-if="conflict.type === 'measurement'">
         <ResolveItem v-slot="{ item, other }" :conflict="conflict" @resolve="resolve">
