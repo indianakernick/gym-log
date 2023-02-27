@@ -90,6 +90,7 @@ export default new class {
         if (e instanceof CacheOutdatedError) {
           try {
             await this.pullChanges(change.version);
+            continue;
           } catch (e) {
             if (!this.handleAuthRedirect(e)) {
               console.error('Pulling changes', e);
