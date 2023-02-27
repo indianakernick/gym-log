@@ -65,31 +65,34 @@ function resolve(id: string, which: 'local' | 'remote') {
 
     <template v-for="conflict in [conflicts[conflictIdx]]">
       <template v-if="conflict.type === 'measurement'">
-        <ResolveItem v-slot="slotProps" :conflict="conflict" @resolve="resolve">
+        <ResolveItem v-slot="{ item, other }" :conflict="conflict" @resolve="resolve">
           <!--
             We'd need generically typed components to remove the cast.
             https://github.com/vuejs/rfcs/discussions/436
             That would be pretty cool!
           -->
           <ResolveItemMeasurement
-            :set="(slotProps.item as MeasurementSet)"
-            :other-set="(slotProps.other as MeasurementSet | Deleted)"
+            :set="(item as MeasurementSet)"
+            :other-set="(other as MeasurementSet | Deleted)"
           />
         </ResolveItem>
       </template>
 
       <template v-else-if="conflict.type === 'workout'">
-        <ResolveItem v-slot="slotProps" :conflict="conflict" @resolve="resolve">
+        <ResolveItem v-slot="{ item, other }" :conflict="conflict" @resolve="resolve">
           <ResolveItemWorkout
-            :workout="(slotProps.item as Workout)"
-            :other-workout="(slotProps.other as Workout | Deleted)"
+            :workout="(item as Workout)"
+            :other-workout="(other as Workout | Deleted)"
           />
         </ResolveItem>
       </template>
 
       <template v-else-if="conflict.type === 'exercise'">
-        <ResolveItem v-slot="slotProps" :conflict="conflict" @resolve="resolve">
-          <ResolveItemExercise :exercise="(slotProps.item as Exercise)" />
+        <ResolveItem v-slot="{ item, other }" :conflict="conflict" @resolve="resolve">
+          <ResolveItemExercise
+            :exercise="(item as Exercise)"
+            :other-exercise="(other as Exercise | Deleted)"
+          />
         </ResolveItem>
       </template>
     </template>

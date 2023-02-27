@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { nextTick, ref, watch } from 'vue';
+import { nextTick, shallowRef, watch } from 'vue';
 
 const props = defineProps<{
   modelValue: string;
@@ -11,7 +11,7 @@ defineEmits<{
   (e: 'update:modelValue', v: string): void;
 }>();
 
-const area = ref<HTMLTextAreaElement>();
+const area = shallowRef<HTMLTextAreaElement>();
 
 function setHeight(area: HTMLTextAreaElement) {
   area.style.height = '';

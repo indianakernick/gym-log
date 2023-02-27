@@ -43,17 +43,17 @@ function addSet() {
       ref="table"
       :exercise="exercise"
       :history="history"
-      v-slot="slotProps"
+      v-slot="{ set, field }"
       class="mb-2"
     >
       <input
         v-if="history"
         type="number"
-        v-model="slotProps.set[slotProps.field]"
+        v-model="set[field]"
         @change="emit('setsChanged')"
         class="max-w-full px-2 py-1 text-center rounded-lg bg-neutral-700"
       />
-      <div v-else>{{ slotProps.set[slotProps.field] }}</div>
+      <div v-else>{{ set[field] }}</div>
     </SetTable>
   </div>
 
