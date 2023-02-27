@@ -15,11 +15,11 @@ const LABEL = {
 </script>
 
 <template>
-  <div class="flex justify-between items-center">
-    <label :for="type" class="font-bold">{{ LABEL[type] }}</label>
+  <div class="flex items-center">
+    <label :for="type" class="font-bold grow">{{ LABEL[type] }}</label>
     <input
       type="radio"
-      id="remote"
+      :id="type"
       :name="id"
       @input="($event.target as HTMLInputElement).checked && $emit('choose')"
       class="w-5 h-5 accent-blue-500"
