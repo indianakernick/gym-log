@@ -66,7 +66,7 @@ function add() {
   </Header>
 
   <Main>
-    <ol>
+    <ol class="contents">
       <li v-for="group in workouts">
         <ListGroup>
           <ListItem

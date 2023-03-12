@@ -52,7 +52,7 @@ function resolve(id: string, which: 'local' | 'remote') {
       v-if="conflicts.length > 1"
       v-model="conflictIdx"
       :length="conflicts.length"
-      class="sticky -top-[1px] bg-neutral-800 px-3 py-2 border-t border-b
+      class="sticky -top-px bg-neutral-800 px-3 py-2 border-t border-b
         border-neutral-600"
     >
       Resolving {{ conflictIdx + 1 }} / {{ conflicts.length }}

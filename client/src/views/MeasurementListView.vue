@@ -60,7 +60,7 @@ function addPast(event: Event) {
   </Header>
 
   <Main>
-    <ol>
+    <ol class="contents">
       <li
         v-for="year in years"
         :aria-label="year[0].substring(0, 4)"

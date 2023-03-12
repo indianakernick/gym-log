@@ -229,12 +229,12 @@ async function saveExercise(exercise: Exercise) {
       v-model="workout.notes"
       @update:model-value="editing || saveWorkout()"
       :read-only="!!workout.finish_time && !editing"
-      class="mx-3 my-2"
+      class="mx-3"
     />
 
     <div
       v-if="workout.start_time"
-      class="px-3 py-2 flex justify-between"
+      class="mx-3 flex justify-between"
     >
       <div>Started</div>
       <time :d="workout.start_time">{{ displayDateTime(workout.start_time) }}</time>
@@ -242,18 +242,18 @@ async function saveExercise(exercise: Exercise) {
     <button
       v-else
       @click="start"
-      class="button-primary"
+      class="mx-3 form-submit"
     >Start</button>
 
     <div
       v-if="workout.start_time && workout.finish_time"
-      class="px-3 py-2 flex justify-between"
+      class="mx-3 flex justify-between"
     >
       <div>Finished</div>
       <time :d="workout.finish_time">{{ displayDateTime(workout.finish_time) }}</time>
     </div>
 
-    <ol class="flex flex-col gap-3 my-2">
+    <ol class="contents">
       <li v-for="exercise, i in exercises">
         <ExerciseEdit
           :workout-start="workout.start_time!"
@@ -273,13 +273,10 @@ async function saveExercise(exercise: Exercise) {
         need to use this god awful hack. In the future this might be a regular
         button that opens a dialog so maybe it doesn't matter.
       -->
-      <div
-        class="relative mx-3 my-2 rounded-lg bg-neutral-800 border
-          border-neutral-600"
-      >
+      <div class="relative mx-3">
         <select
           @change="addExercise"
-          class="py-2 w-full appearance-none opacity-0"
+          class="peer py-2 border w-full appearance-none opacity-0"
         >
           <option value="" disabled selected>Add Exercise</option>
           <optgroup v-for="group, name in EXERCISE_TYPE_GROUPS" :label="EXERCISE_TYPE_GROUP[name]">
@@ -289,7 +286,9 @@ async function saveExercise(exercise: Exercise) {
 
         <div
           class="absolute inset-0 pointer-events-none font-bold
-            button-flex text-blue-500"
+            button-flex text-blue-500 border border-neutral-600 rounded-lg
+            bg-neutral-800 peer-focus-visible:outline
+            peer-focus-visible:outline-amber-500"
         >
           <PlusIcon class="w-5 h-5" />
           Add Exercise
@@ -298,7 +297,7 @@ async function saveExercise(exercise: Exercise) {
 
       <button
         @click="finish"
-        class="button-primary"
+        class="mx-3 form-submit"
       >Finish</button>
     </template>
   </Main>

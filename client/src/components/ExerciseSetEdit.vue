@@ -26,7 +26,7 @@ function addSet() {
 </script>
 
 <template>
-  <div class="px-2 flex flex-col">
+  <div class="mx-2 flex flex-col">
     <TextArea
       label="Notes"
       v-model="exercise.notes"

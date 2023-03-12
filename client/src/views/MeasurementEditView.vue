@@ -184,7 +184,7 @@ async function save() {
   </Header>
 
   <Main>
-    <div class="px-3 py-2 flex justify-between">
+    <div class="mx-3 flex justify-between">
       <div>Capture Date</div>
       <time :d="date">{{ displayDate(date) }}</time>
     </div>
@@ -194,14 +194,14 @@ async function save() {
       v-model="measurementSet.notes"
       @update:modelValue="editing || save()"
       :read-only="readOnly && !editing"
-      class="mx-3 my-2"
+      class="mx-3"
     />
 
-    <ul>
+    <ul class="contents">
       <template v-for="ty in MEASUREMENT_TYPES">
         <li
           v-if="!readOnly || editing || measurementSet.measurements[ty] !== undefined"
-          class="px-3 py-2 flex items-center"
+          class="mx-3 flex items-center"
         >
           <label
             :for="`measurement-${ty}`"

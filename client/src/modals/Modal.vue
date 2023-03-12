@@ -37,12 +37,12 @@ defineProps<{
   >
     <h2 class="text-lg font-bold px-3 py-2 border-b border-neutral-600">{{ title }}</h2>
 
-    <div class="overflow-scroll">
+    <div class="overflow-auto">
       <slot></slot>
     </div>
 
-    <div v-if="buttons" class="grid grid-flow-col auto-cols-fr gap-[1px]
-      pt-[1px] bg-neutral-600"
+    <div v-if="buttons" class="grid grid-flow-col auto-cols-fr gap-px
+      pt-px bg-neutral-600"
     >
       <button
         v-for="button in buttons"
