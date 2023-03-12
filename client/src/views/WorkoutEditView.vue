@@ -5,12 +5,12 @@ import Main from '@/components/Main.vue';
 import Menu from '@/components/Menu.vue';
 import TextArea from '@/components/TextArea.vue';
 import AdjustDatesModal from '@/modals/AdjustDatesModal.vue';
+import SelectModal from '@/modals/SelectModal.vue';
 import {
   exerciseEqual,
   EXERCISE_TYPE_GROUPS,
   workoutEqual,
   type Exercise,
-  type ExerciseType,
   type Workout
 } from '@/model/api';
 import { back } from '@/router/back';
@@ -34,6 +34,34 @@ const props = defineProps<{
 const router = useRouter();
 const adjustDatesModal = useModal({
   component: AdjustDatesModal
+});
+const addExerciseModal = useModal({
+  component: SelectModal,
+  attrs: {
+    title: 'Add Exercise',
+    selectTitle: 'Create',
+    groups: Object.entries(EXERCISE_TYPE_GROUPS)
+      .map(([group, types]) => ({
+        title: EXERCISE_TYPE_GROUP[group as keyof typeof EXERCISE_TYPE_GROUPS],
+        options: types.map(value => ({
+          title: EXERCISE_TYPE[value],
+          value,
+        }))
+      })),
+    onSelect(type) {
+      if (type) {
+        exercises.value.push({
+          workout_exercise_id: `${workout.value.workout_id}#${uuid()}`,
+          order: exercises.value.length,
+          type: type as any,
+          notes: '',
+          sets: []
+        });
+        triggerRef(exercises);
+      }
+      addExerciseModal.close();
+    }
+  }
 });
 const confirmModal = useConfirmModal();
 
@@ -116,22 +144,6 @@ function finish() {
   workout.value.finish_time = toDateTimeString(new Date());
   triggerRef(workout);
   saveWorkout();
-}
-
-function addExercise(event: Event) {
-  const select = event.target as HTMLSelectElement | null;
-  if (select?.value) {
-    const type = select.value as ExerciseType;
-    select.value = '';
-    exercises.value.push({
-      workout_exercise_id: `${workout.value.workout_id}#${uuid()}`,
-      order: exercises.value.length,
-      type,
-      notes: '',
-      sets: []
-    });
-    triggerRef(exercises);
-  }
 }
 
 const options = computed(() => {
@@ -273,27 +285,14 @@ async function saveExercise(exercise: Exercise) {
         need to use this god awful hack. In the future this might be a regular
         button that opens a dialog so maybe it doesn't matter.
       -->
-      <div class="relative mx-3">
-        <select
-          @change="addExercise"
-          class="peer py-2 border w-full appearance-none opacity-0"
-        >
-          <option value="" disabled selected>Add Exercise</option>
-          <optgroup v-for="group, name in EXERCISE_TYPE_GROUPS" :label="EXERCISE_TYPE_GROUP[name]">
-            <option v-for="ty in group" :value="ty">{{ EXERCISE_TYPE[ty] }}</option>
-          </optgroup>
-        </select>
-
-        <div
-          class="absolute inset-0 pointer-events-none font-bold
-            button-flex text-blue-500 border border-neutral-600 rounded-lg
-            bg-neutral-800 peer-focus-visible:outline
-            peer-focus-visible:outline-amber-500"
-        >
-          <PlusIcon class="w-5 h-5" />
-          Add Exercise
-        </div>
-      </div>
+      <button
+        @click="addExerciseModal.open"
+        class="mx-3 py-2 font-bold text-blue-500 bg-neutral-800 border
+          border-neutral-600 rounded-lg button-flex"
+      >
+        <PlusIcon class="w-5 h-5" />
+        Add Exercise
+      </button>
 
       <button
         @click="finish"
