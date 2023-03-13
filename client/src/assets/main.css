@@ -2,37 +2,6 @@
 @tailwind components;
 @tailwind utilities;
 
-@layer base {
-  html {
-    @apply bg-neutral-900 text-white;
-    color-scheme: dark;
-  }
-
-  button, a {
-    user-select: none;
-  }
-
-  #app {
-    height: 100dvh;
-    display: flex;
-    flex-direction: column;
-  }
-
-  #app > header {
-    flex-shrink: 0;
-  }
-
-  #app > main {
-    flex-grow: 1;
-    overflow: hidden auto;
-  }
-
-  button, input, select {
-    @apply disabled:opacity-60 transition-opacity
-      focus-visible:outline focus-visible:outline-amber-500;
-  }
-}
-
 @layer components {
   .link {
     @apply text-blue-500 hover:underline focus-visible:outline

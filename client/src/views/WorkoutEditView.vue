@@ -1,7 +1,5 @@
 <script setup lang="ts">
 import ExerciseEdit from '@/components/ExerciseEdit.vue';
-import Header from '@/components/Header.vue';
-import Main from '@/components/Main.vue';
 import Menu from '@/components/Menu.vue';
 import TextArea from '@/components/TextArea.vue';
 import AdjustDatesModal from '@/modals/AdjustDatesModal.vue';
@@ -22,10 +20,18 @@ import { useConfirmModal } from '@/utils/modal';
 import { refresh } from '@/utils/refresh';
 import { uuid } from '@/utils/uuid';
 import { PlusIcon, TrashIcon } from '@heroicons/vue/20/solid';
-import { ChevronLeftIcon } from '@heroicons/vue/24/outline';
+import {
+  IonBackButton,
+  IonButtons,
+  IonContent,
+  IonHeader,
+  IonPage,
+  IonTitle,
+  IonToolbar
+} from '@ionic/vue';
 import { computed, shallowRef, triggerRef } from 'vue';
 import { useModal } from 'vue-final-modal';
-import { useRouter } from 'vue-router';
+import { onBeforeRouteLeave, useRouter } from 'vue-router';
 
 const props = defineProps<{
   id: string;
@@ -116,7 +122,7 @@ async function load(initial: boolean) {
 
 refresh(load);
 
-async function done() {
+onBeforeRouteLeave(async () => {
   if (!editing.value || await confirmModal({
     title: 'Keep edits?',
     message: 'Do you want to keep the changes made to this workout?',
@@ -131,8 +137,7 @@ async function done() {
     }
     sync.sync();
   }
-  back(router, '/workouts');
-}
+});
 
 function start() {
   workout.value.start_time = toDateTimeString(new Date());
@@ -219,85 +224,87 @@ async function saveExercise(exercise: Exercise) {
 </script>
 
 <template>
-  <Header
-    title="Workout Details"
-    @left="done"
-  >
-    <template #left>
-      <ChevronLeftIcon class="w-6 h-6" />
-    </template>
-    <template #full-right>
-      <Menu
-        title="Workout Options"
-        :items="options"
-        theme="primary"
+  <IonPage>
+    <IonHeader>
+      <IonToolbar>
+        <IonButtons slot="start">
+          <IonBackButton text="Workouts" />
+        </IonButtons>
+        <IonTitle>Workout Details</IonTitle>
+        <IonButtons slot="end">
+          <Menu
+            title="Workout Options"
+            :items="options"
+            theme="primary"
+          />
+        </IonButtons>
+      </IonToolbar>
+    </IonHeader>
+
+    <IonContent>
+      <TextArea
+        label="Notes"
+        v-model="workout.notes"
+        @update:model-value="editing || saveWorkout()"
+        :read-only="!!workout.finish_time && !editing"
+        class="mx-3"
       />
-    </template>
-  </Header>
 
-  <Main>
-    <TextArea
-      label="Notes"
-      v-model="workout.notes"
-      @update:model-value="editing || saveWorkout()"
-      :read-only="!!workout.finish_time && !editing"
-      class="mx-3"
-    />
-
-    <div
-      v-if="workout.start_time"
-      class="mx-3 flex justify-between"
-    >
-      <div>Started</div>
-      <time :d="workout.start_time">{{ displayDateTime(workout.start_time) }}</time>
-    </div>
-    <button
-      v-else
-      @click="start"
-      class="mx-3 form-submit"
-    >Start</button>
-
-    <div
-      v-if="workout.start_time && workout.finish_time"
-      class="mx-3 flex justify-between"
-    >
-      <div>Finished</div>
-      <time :d="workout.finish_time">{{ displayDateTime(workout.finish_time) }}</time>
-    </div>
-
-    <ol class="contents">
-      <li v-for="exercise, i in exercises">
-        <ExerciseEdit
-          :workout-start="workout.start_time!"
-          :exercise="exercise"
-          :editing-workout="!workout.finish_time || editing"
-          :editing="i === (editingExercise ?? (exercises.length - 1))"
-          @delete-exercise="deleteExercise(i)"
-          @edit-exercise="editingExercise = i === exercises.length - 1 ? undefined : i"
-          @exercise-changed="editing || saveExercise(exercise)"
-        />
-      </li>
-    </ol>
-
-    <template v-if="workout.start_time && !workout.finish_time">
-      <!--
-        Safari doesn't respond to text-align: center on <select> elements so we
-        need to use this god awful hack. In the future this might be a regular
-        button that opens a dialog so maybe it doesn't matter.
-      -->
-      <button
-        @click="addExerciseModal.open"
-        class="mx-3 py-2 font-bold text-blue-500 bg-neutral-800 border
-          border-neutral-600 rounded-lg button-flex"
+      <div
+        v-if="workout.start_time"
+        class="mx-3 flex justify-between"
       >
-        <PlusIcon class="w-5 h-5" />
-        Add Exercise
-      </button>
-
+        <div>Started</div>
+        <time :d="workout.start_time">{{ displayDateTime(workout.start_time) }}</time>
+      </div>
       <button
-        @click="finish"
+        v-else
+        @click="start"
         class="mx-3 form-submit"
-      >Finish</button>
-    </template>
-  </Main>
+      >Start</button>
+
+      <div
+        v-if="workout.start_time && workout.finish_time"
+        class="mx-3 flex justify-between"
+      >
+        <div>Finished</div>
+        <time :d="workout.finish_time">{{ displayDateTime(workout.finish_time) }}</time>
+      </div>
+
+      <ol class="contents">
+        <li v-for="exercise, i in exercises">
+          <ExerciseEdit
+            :workout-start="workout.start_time!"
+            :exercise="exercise"
+            :editing-workout="!workout.finish_time || editing"
+            :editing="i === (editingExercise ?? (exercises.length - 1))"
+            @delete-exercise="deleteExercise(i)"
+            @edit-exercise="editingExercise = i === exercises.length - 1 ? undefined : i"
+            @exercise-changed="editing || saveExercise(exercise)"
+          />
+        </li>
+      </ol>
+
+      <template v-if="workout.start_time && !workout.finish_time">
+        <!--
+          Safari doesn't respond to text-align: center on <select> elements so we
+          need to use this god awful hack. In the future this might be a regular
+          button that opens a dialog so maybe it doesn't matter.
+        -->
+        <button
+          @click="addExerciseModal.open"
+          class="mx-3 py-2 font-bold text-blue-500 bg-neutral-800 border
+            border-neutral-600 rounded-lg button-flex"
+        >
+          <PlusIcon class="w-5 h-5" />
+          Add Exercise
+        </button>
+
+        <button
+          @click="finish"
+          class="mx-3 form-submit"
+        >Finish</button>
+      </template>
+    </IonContent>
+  </IonPage>
 </template>

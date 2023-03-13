@@ -7,7 +7,7 @@ import TabsView from '@/views/TabsView.vue';
 import WorkoutEditView from '@/views/WorkoutEditView.vue';
 import WorkoutListView from '@/views/WorkoutListView.vue';
 import { nextTick } from 'vue';
-import { createRouter, createWebHistory } from 'vue-router';
+import { createRouter, createWebHistory } from '@ionic/vue-router';
 import { authGuard } from './auth-guard';
 import { dateGuard } from './date-guard';
 import { uuidGuard } from './uuid-guard';

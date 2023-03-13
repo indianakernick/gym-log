@@ -1,6 +1,6 @@
 <script setup lang="ts">
+import { IonApp, IonRouterOutlet } from '@ionic/vue';
 import { ModalsContainer } from 'vue-final-modal';
-import { RouterView } from 'vue-router';
 import sync from './services/sync';
 
 sync.setup();
@@ -8,5 +8,7 @@ sync.setup();
 
 <template>
   <ModalsContainer />
-  <RouterView />
+  <IonApp>
+    <IonRouterOutlet />
+  </IonApp>
 </template>
