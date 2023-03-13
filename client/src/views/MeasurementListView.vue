@@ -1,28 +1,41 @@
 <script setup lang="ts">
-import Header from '@/components/Header.vue';
-import ListGroup from '@/components/ListGroup.vue';
-import ListItem from '@/components/ListItem.vue';
 import db from '@/services/db';
 import { groupBy } from '@/utils/array';
 import { displayDate, toDateString } from '@/utils/date';
 import { refresh } from '@/utils/refresh';
+import { itemLines } from '@/utils/style';
 import {
   IonButton,
   IonButtons,
   IonContent,
+  IonDatetime,
   IonHeader,
   IonIcon,
+  IonItem,
+  IonItemDivider,
+  IonItemGroup,
+  IonLabel,
+  IonList,
+  IonModal,
   IonPage,
   IonTitle,
   IonToolbar
 } from '@ionic/vue';
-import { add, calendarClearOutline } from 'ionicons/icons';
-import { shallowRef } from 'vue';
+import { addOutline, calendarClearOutline } from 'ionicons/icons';
+import { onMounted, shallowRef } from 'vue';
 import { useRouter } from 'vue-router';
 
 const router = useRouter();
 
 const years = shallowRef<string[][]>([]);
+const page = shallowRef();
+const presentingElement = shallowRef();
+const dateModal = shallowRef();
+const date = shallowRef<string>();
+
+onMounted(() => {
+  presentingElement.value = page.value.$el;
+});
 
 async function load() {
   years.value = groupBy(await db.getMeasurementDates(), date => date.substring(0, 4));
@@ -34,56 +47,35 @@ function addToday() {
   router.push(`/measurements/${toDateString(new Date())}`);
 }
 
-function addPast(event: Event) {
-  const date = (event.target as HTMLInputElement | null)?.valueAsDate;
-  if (date) {
-    // Safari doesn't support the max attribute. Also, it will emit the change
-    // event with today's date when the picker is opened.
-    const today = toDateString(new Date());
-    const selected = toDateString(date);
-    if (selected < today) {
-      router.push(`/measurements/${toDateString(date)}`);
-    }
+function dateModalDismissed(event: CustomEvent<{ data?: string }>) {
+  if (event.detail.data) {
+    router.push(`/measurements/${toDateString(new Date(event.detail.data))}`);
   }
+}
+
+function openDateModal() {
+  date.value = undefined;
+  dateModal.value.$el.present();
 }
 </script>
 
 <template>
-  <IonPage>
+  <IonPage ref="page">
     <IonHeader>
       <IonToolbar>
         <IonButtons slot="start">
-          <IonButton>
+          <IonButton @click="openDateModal">
             <IonIcon slot="icon-only" :icon="calendarClearOutline" />
           </IonButton>
         </IonButtons>
         <IonTitle>Measurements</IonTitle>
         <IonButtons slot="end">
           <IonButton @click="addToday">
-            <IonIcon slot="icon-only" :icon="add" />
+            <IonIcon slot="icon-only" :icon="addOutline" />
           </IonButton>
         </IonButtons>
       </IonToolbar>
     </IonHeader>
-
-    <Header v-if="0" title="Measurements" @right="addToday">
-      <template #left>
-        <CalendarIcon class="w-6 h-6" />
-        <!--
-          Safari 15 doesn't support the showPicker method so we're putting the
-          date picker on top of the button.
-        -->
-        <input
-          class="absolute top-0 right-0 bottom-0 opacity-0"
-          type="date"
-          :max="toDateString(new Date())"
-          @change="addPast"
-        />
-      </template>
-      <template #right>
-        <PlusIcon class="w-6 h-6" />
-      </template>
-    </Header>
 
     <IonContent :fullscreen="true">
       <IonHeader collapse="condense">
@@ -92,19 +84,64 @@ function addPast(event: Event) {
         </IonToolbar>
       </IonHeader>
 
-      <ol class="contents">
-        <li
-          v-for="year in years"
-          :aria-label="year[0].substring(0, 4)"
-        >
-          <ListGroup>
-            <ListItem
-              v-for="date in year"
-              @click="router.push(`/measurements/${date}`)"
-            >{{ displayDate(date) }}</ListItem>
-          </ListGroup>
-        </li>
-      </ol>
+      <IonList>
+        <IonItemGroup v-for="year, y in years">
+          <IonItemDivider>
+            <IonLabel>{{ year[0].substring(0, 4) }}</IonLabel>
+          </IonItemDivider>
+
+          <IonItem
+            v-for="date, d in year"
+            button
+            :detail="true"
+            :lines="itemLines(years, y, d)"
+            @click="router.push(`/measurements/${date}`)"
+          >
+            <IonLabel>{{ displayDate(date) }}</IonLabel>
+          </IonItem>
+        </IonItemGroup>
+      </IonList>
+
+      <IonModal
+        ref="dateModal"
+        :presenting-element="presentingElement"
+        :can-dismiss="true"
+        @didDismiss="dateModalDismissed"
+      >
+        <IonHeader>
+          <IonToolbar>
+            <IonButtons slot="start">
+              <IonButton @click="dateModal.$el.dismiss()">Cancel</IonButton>
+            </IonButtons>
+            <IonTitle>Select Date</IonTitle>
+            <IonButtons slot="end">
+              <IonButton :strong="true" :disabled="!date" @click="dateModal.$el.dismiss(date)">Select</IonButton>
+            </IonButtons>
+          </IonToolbar>
+        </IonHeader>
+
+        <IonContent class="ion-padding" :scroll-x="false" :scroll-y="false">
+          <div>Select a date to record past measurements.</div>
+          <IonDatetime
+            :first-day-of-week="1"
+            :max="new Date().toISOString()"
+            v-model="date"
+            presentation="date"
+          />
+        </IonContent>
+      </IonModal>
     </IonContent>
   </IonPage>
 </template>
+
+<style scoped>
+ion-item-divider {
+  position: sticky;
+  top: 0;
+}
+
+ion-datetime {
+  border-radius: 10px;
+  margin: 16px auto 0 auto;
+}
+</style>

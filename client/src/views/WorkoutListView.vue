@@ -1,6 +1,4 @@
 <script setup lang="ts">
-import ListGroup from '@/components/ListGroup.vue';
-import ListItem from '@/components/ListItem.vue';
 import AlertModal from '@/modals/AlertModal.vue';
 import type { Workout } from '@/model/api';
 import db from '@/services/db';
@@ -27,6 +25,7 @@ import { shallowRef } from 'vue';
 import { useModal } from 'vue-final-modal';
 import { useRouter } from 'vue-router';
 import { addOutline } from 'ionicons/icons';
+import { itemLines } from '@/utils/style';
 
 const router = useRouter();
 
@@ -75,13 +74,6 @@ function groupLabel(group: Workout[]) {
     ? group[0].start_time.substring(0, 4)
     : 'In-progress';
 }
-
-function itemLines(groups: Workout[][], groupIdx: number, workoutIdx: number) {
-  if (workoutIdx === groups[groupIdx].length - 1) {
-    return groupIdx === groups.length - 1 ? 'full' : 'none';
-  }
-  return 'inset';
-}
 </script>
 
 <template>
@@ -109,6 +101,7 @@ function itemLines(groups: Workout[][], groupIdx: number, workoutIdx: number) {
           <IonItemDivider>
             <IonLabel>{{ groupLabel(group) }}</IonLabel>
           </IonItemDivider>
+
           <IonItem
             v-for="workout, w in group"
             button
