@@ -78,7 +78,7 @@ export function groupByFiltered<T, U>(
       const current = getKey(array[i]);
 
       if (current === undefined) {
-        filtered.push(...array.splice(0, 1));
+        filtered.push(...array.splice(i, 1));
         --i;
       } else if (current !== previous) {
         groups.push(array.splice(0, i));

@@ -14,6 +14,11 @@ import {
   IonContent,
   IonHeader,
   IonIcon,
+  IonItem,
+  IonItemDivider,
+  IonItemGroup,
+  IonLabel,
+  IonList,
   IonPage,
   IonTitle,
   IonToolbar
@@ -21,7 +26,7 @@ import {
 import { shallowRef } from 'vue';
 import { useModal } from 'vue-final-modal';
 import { useRouter } from 'vue-router';
-import { add as addIcon } from 'ionicons/icons';
+import { addOutline } from 'ionicons/icons';
 
 const router = useRouter();
 
@@ -64,6 +69,19 @@ function add() {
   }
   router.push(`/workouts/${uuid()}`);
 }
+
+function groupLabel(group: Workout[]) {
+  return group[0].start_time && group[0].finish_time
+    ? group[0].start_time.substring(0, 4)
+    : 'In-progress';
+}
+
+function itemLines(groups: Workout[][], groupIdx: number, workoutIdx: number) {
+  if (workoutIdx === groups[groupIdx].length - 1) {
+    return groupIdx === groups.length - 1 ? 'full' : 'none';
+  }
+  return 'inset';
+}
 </script>
 
 <template>
@@ -73,7 +91,7 @@ function add() {
         <IonTitle>Workouts</IonTitle>
         <IonButtons slot="end">
           <IonButton @click="add">
-            <IonIcon slot="icon-only" :icon="addIcon"></IonIcon>
+            <IonIcon slot="icon-only" :icon="addOutline"></IonIcon>
           </IonButton>
         </IonButtons>
       </IonToolbar>
@@ -86,41 +104,48 @@ function add() {
         </IonToolbar>
       </IonHeader>
 
-      <ol class="contents">
-        <li v-for="group in workouts">
-          <ListGroup>
-            <ListItem
-              v-for="workout in group"
-              @click="router.push(`/workouts/${workout.workout_id}`)"
-            >
-              <div class="min-w-0">
-                <div>
-                  <template v-if="workout.start_time">
-                    <time :d="workout.start_time">{{
-                      displayDateTime(workout.start_time)
-                    }}</time>
-                    -
-                    <time v-if="workout.finish_time" :d="workout.finish_time">{{
-                      // If the workout started and finished on the same day,
-                      // don't show the date twice.
-                      workout.start_time.substring(0, 10) === workout.finish_time.substring(0, 10)
-                        ? displayTime(workout.finish_time)
-                        : displayDateTime(workout.finish_time)
-                    }}</time>
-                    <i v-else>Not finished</i>
-                  </template>
-                  <i v-else>Not started</i>
-                </div>
-                <div
-                  v-if="workout.notes"
-                  class="text-sm text-ellipsis overflow-hidden whitespace-nowrap
-                    text-neutral-400"
-                >{{ workout.notes }}</div>
-              </div>
-            </ListItem>
-          </ListGroup>
-        </li>
-      </ol>
+      <IonList>
+        <IonItemGroup v-for="group, g in workouts">
+          <IonItemDivider>
+            <IonLabel>{{ groupLabel(group) }}</IonLabel>
+          </IonItemDivider>
+          <IonItem
+            v-for="workout, w in group"
+            button
+            :detail="true"
+            :lines="itemLines(workouts, g, w)"
+            @click="router.push(`/workouts/${workout.workout_id}`)"
+          >
+            <IonLabel>
+              <h3>
+                <template v-if="workout.start_time">
+                  <time :d="workout.start_time">{{
+                    displayDateTime(workout.start_time)
+                  }}</time>
+                  -
+                  <time v-if="workout.finish_time" :d="workout.finish_time">{{
+                    // If the workout started and finished on the same day,
+                    // don't show the date twice.
+                    workout.start_time.substring(0, 10) === workout.finish_time.substring(0, 10)
+                      ? displayTime(workout.finish_time)
+                      : displayDateTime(workout.finish_time)
+                  }}</time>
+                  <i v-else>Not finished</i>
+                </template>
+                <i v-else>Not started</i>
+              </h3>
+              <p v-if="workout.notes">{{ workout.notes }}</p>
+            </IonLabel>
+          </IonItem>
+        </IonItemGroup>
+      </IonList>
     </IonContent>
   </IonPage>
 </template>
+
+<style scoped>
+ion-item-divider {
+  position: sticky;
+  top: 0;
+}
+</style>
