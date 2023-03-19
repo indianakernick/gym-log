@@ -1,10 +1,11 @@
 <script setup lang="ts">
-import AlertModal from '@/modals/AlertModal.vue';
 import type { Workout } from '@/model/api';
 import db from '@/services/db';
+import { showAlert } from '@/utils/alert';
 import { groupByFiltered } from '@/utils/array';
 import { displayDateTime, displayTime } from '@/utils/date';
 import { refresh } from '@/utils/refresh';
+import { itemLines } from '@/utils/style';
 import { uuid } from '@/utils/uuid';
 import {
   IonButton,
@@ -21,22 +22,11 @@ import {
   IonTitle,
   IonToolbar
 } from '@ionic/vue';
-import { shallowRef } from 'vue';
-import { useModal } from 'vue-final-modal';
-import { useRouter } from 'vue-router';
 import { addOutline } from 'ionicons/icons';
-import { itemLines } from '@/utils/style';
+import { shallowRef } from 'vue';
+import { useRouter } from 'vue-router';
 
 const router = useRouter();
-
-const alertModal = useModal({
-  component: AlertModal,
-  attrs: {
-    title: 'You have incomplete workouts',
-    message: 'Finish your current workout before starting a new one.',
-    onOk: () => alertModal.close()
-  }
-});
 
 const workouts = shallowRef<Workout[][]>([]);
 let hasIncomplete = false;
@@ -63,7 +53,11 @@ refresh(load);
 
 function add() {
   if (hasIncomplete) {
-    alertModal.open();
+    showAlert({
+      title: 'You have incomplete workouts',
+      message: 'Finish your current workout before starting a new one.',
+      buttons: 'ok'
+    });
     return;
   }
   router.push(`/workouts/${uuid()}`);

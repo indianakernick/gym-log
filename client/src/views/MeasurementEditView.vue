@@ -10,9 +10,9 @@ import {
 import { back } from '@/router/back';
 import db from '@/services/db';
 import sync from '@/services/sync';
+import { showAlert } from '@/utils/alert';
 import { displayDate, toDateString } from '@/utils/date';
 import { MEASUREMENT_TYPE, MEASUREMENT_TYPE_UNIT } from '@/utils/i18n';
-import { useConfirmModal } from '@/utils/modal';
 import { refresh } from '@/utils/refresh';
 import {
   IonBackButton,
@@ -33,7 +33,6 @@ const props = defineProps<{
 }>();
 
 const router = useRouter();
-const confirmModal = useConfirmModal();
 
 const measurementSet = shallowRef<MeasurementSet>({
   date: props.date,
@@ -51,7 +50,7 @@ async function load(initial: boolean) {
       && !measurementSetEqual(measurementSet.value, dbMeasurements)
       // TODO: can/should we use the merge conflict modal here?
       // ditto for the workout page
-      && await confirmModal({
+      && await showAlert({
         title: 'Keep edits?',
         message: 'Changes to these measurements have been pulled from another device. Do you want to keep your local edits?',
         buttons: 'keep-discard'
@@ -89,7 +88,7 @@ onUnmounted(() => {
 const editing = shallowRef(false);
 
 onBeforeRouteLeave(async () => {
-  if (!editing.value || await confirmModal({
+  if (!editing.value || await showAlert({
     title: 'Keep edits?',
     message: 'Do you want to keep the changes made to these measurements?',
     buttons: 'keep-discard'
@@ -155,7 +154,7 @@ const options = computed(() => {
 });
 
 async function deleteSet() {
-  if (await confirmModal({
+  if (await showAlert({
     title: 'Delete measurements',
     message: `Are you sure you want to delete measurements for ${displayDate(props.date)}?`,
     buttons: 'delete-cancel'

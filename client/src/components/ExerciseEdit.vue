@@ -4,7 +4,7 @@ import db from '@/services/db';
 import { binarySearch, stringCompare } from '@/utils/array';
 import { displayDateTime } from '@/utils/date';
 import { EXERCISE_TYPE } from '@/utils/i18n';
-import { useConfirmModal } from '@/utils/modal';
+import { showAlert } from '@/utils/alert';
 import { trashOutline } from 'ionicons/icons';
 import { computed, shallowRef } from 'vue';
 import ExerciseSetEdit from './ExerciseSetEdit.vue';
@@ -23,10 +23,6 @@ const emit = defineEmits<{
   (e: 'editExercise'): void;
   (e: 'exerciseChanged'): void;
 }>();
-
-const confirmModal = useConfirmModal({
-  buttons: 'delete-cancel'
-});
 
 const history = shallowRef<(Exercise & { workout: Workout })[]>([]);
 const historyIdx = shallowRef(-1);
@@ -102,19 +98,22 @@ const options = computed(() => {
   return items;
 });
 
+
 async function deleteExercise() {
-  if (await confirmModal({
+  if (await showAlert({
     title: 'Delete exercise',
-    message: 'Are you sure you want to delete this exercise?'
+    message: 'Are you sure you want to delete this exercise?',
+    buttons: 'delete-cancel'
   })) {
     emit('deleteExercise');
   }
 }
 
 async function deleteLastSet() {
-  if (await confirmModal({
+  if (await showAlert({
     title: 'Delete last set',
-    message: 'Are you sure you want to delete the last set in this exercise?'
+    message: 'Are you sure you want to delete the last set in this exercise?',
+    buttons: 'delete-cancel'
   })) {
     props.exercise.sets.pop();
     // Vue doesn't see the above mutation so we're manually triggering a

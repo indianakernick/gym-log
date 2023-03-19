@@ -14,9 +14,9 @@ import {
 import { back } from '@/router/back';
 import db from '@/services/db';
 import sync from '@/services/sync';
+import { showAlert } from '@/utils/alert';
 import { displayDateTime, toDateTimeString } from '@/utils/date';
 import { EXERCISE_TYPE, EXERCISE_TYPE_GROUP } from '@/utils/i18n';
-import { useConfirmModal } from '@/utils/modal';
 import { refresh } from '@/utils/refresh';
 import { uuid } from '@/utils/uuid';
 import {
@@ -70,7 +70,6 @@ const addExerciseModal = useModal({
     }
   }
 });
-const confirmModal = useConfirmModal();
 
 const workout = shallowRef<Workout>({
   workout_id: props.id,
@@ -105,7 +104,7 @@ async function load(initial: boolean) {
       !initial
       && editing.value
       && !equal(dbWorkout, dbExercises)
-      && await confirmModal({
+      && await showAlert({
         title: 'Keep edits?',
         message: 'Changes to this workout have been pulled from another device. Do you want to keep your local edits?',
         buttons: 'keep-discard'
@@ -124,7 +123,7 @@ async function load(initial: boolean) {
 refresh(load);
 
 onBeforeRouteLeave(async () => {
-  if (!editing.value || await confirmModal({
+  if (!editing.value || await showAlert({
     title: 'Keep edits?',
     message: 'Do you want to keep the changes made to this workout?',
     buttons: 'keep-discard'
@@ -190,7 +189,7 @@ const options = computed(() => {
 });
 
 async function deleteWorkout() {
-  if (await confirmModal({
+  if (await showAlert({
     title: 'Delete workout',
     message: 'Are you sure you want to delete this workout?',
     buttons: 'delete-cancel'
