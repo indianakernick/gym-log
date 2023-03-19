@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import type { Exercise, Workout } from '@/model/api';
-import { PlusIcon } from '@heroicons/vue/20/solid';
+import { IonIcon } from '@ionic/vue';
+import { addOutline } from 'ionicons/icons';
 import { shallowRef } from 'vue';
 import SetTable from './SetTable.vue';
 import TextArea from './TextArea.vue';
@@ -60,7 +61,7 @@ function addSet() {
     class="p-2 w-full font-bold text-blue-500 border-t border-neutral-600
       button-flex"
   >
-    <PlusIcon class="w-5 h-5" />
+    <IonIcon :icon="addOutline" class="w-5 h-5" />
     Add Set
   </button>
 </template>

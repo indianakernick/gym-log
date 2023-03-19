@@ -19,16 +19,17 @@ import { EXERCISE_TYPE, EXERCISE_TYPE_GROUP } from '@/utils/i18n';
 import { useConfirmModal } from '@/utils/modal';
 import { refresh } from '@/utils/refresh';
 import { uuid } from '@/utils/uuid';
-import { PlusIcon, TrashIcon } from '@heroicons/vue/20/solid';
 import {
   IonBackButton,
   IonButtons,
   IonContent,
   IonHeader,
+  IonIcon,
   IonPage,
   IonTitle,
   IonToolbar
 } from '@ionic/vue';
+import { addOutline, trashOutline } from 'ionicons/icons';
 import { computed, shallowRef, triggerRef } from 'vue';
 import { useModal } from 'vue-final-modal';
 import { onBeforeRouteLeave, useRouter } from 'vue-router';
@@ -181,7 +182,7 @@ const options = computed(() => {
   items.push({
     title: 'Delete Workout',
     theme: 'danger',
-    icon: TrashIcon,
+    icon: trashOutline,
     handler: deleteWorkout
   });
 
@@ -228,83 +229,80 @@ async function saveExercise(exercise: Exercise) {
     <IonHeader>
       <IonToolbar>
         <IonButtons slot="start">
-          <IonBackButton text="Workouts" />
+          <IonBackButton text="Workouts" default-href="/workouts" />
         </IonButtons>
         <IonTitle>Workout Details</IonTitle>
         <IonButtons slot="end">
           <Menu
             title="Workout Options"
+            context="title-bar"
             :items="options"
-            theme="primary"
           />
         </IonButtons>
       </IonToolbar>
     </IonHeader>
 
     <IonContent>
-      <TextArea
-        label="Notes"
-        v-model="workout.notes"
-        @update:model-value="editing || saveWorkout()"
-        :read-only="!!workout.finish_time && !editing"
-        class="mx-3"
-      />
+      <div class="flex flex-col gap-3 py-3">
+        <TextArea
+          label="Notes"
+          v-model="workout.notes"
+          @update:model-value="editing || saveWorkout()"
+          :read-only="!!workout.finish_time && !editing"
+          class="mx-3"
+        />
 
-      <div
-        v-if="workout.start_time"
-        class="mx-3 flex justify-between"
-      >
-        <div>Started</div>
-        <time :d="workout.start_time">{{ displayDateTime(workout.start_time) }}</time>
-      </div>
-      <button
-        v-else
-        @click="start"
-        class="mx-3 form-submit"
-      >Start</button>
-
-      <div
-        v-if="workout.start_time && workout.finish_time"
-        class="mx-3 flex justify-between"
-      >
-        <div>Finished</div>
-        <time :d="workout.finish_time">{{ displayDateTime(workout.finish_time) }}</time>
-      </div>
-
-      <ol class="contents">
-        <li v-for="exercise, i in exercises">
-          <ExerciseEdit
-            :workout-start="workout.start_time!"
-            :exercise="exercise"
-            :editing-workout="!workout.finish_time || editing"
-            :editing="i === (editingExercise ?? (exercises.length - 1))"
-            @delete-exercise="deleteExercise(i)"
-            @edit-exercise="editingExercise = i === exercises.length - 1 ? undefined : i"
-            @exercise-changed="editing || saveExercise(exercise)"
-          />
-        </li>
-      </ol>
-
-      <template v-if="workout.start_time && !workout.finish_time">
-        <!--
-          Safari doesn't respond to text-align: center on <select> elements so we
-          need to use this god awful hack. In the future this might be a regular
-          button that opens a dialog so maybe it doesn't matter.
-        -->
-        <button
-          @click="addExerciseModal.open"
-          class="mx-3 py-2 font-bold text-blue-500 bg-neutral-800 border
-            border-neutral-600 rounded-lg button-flex"
+        <div
+          v-if="workout.start_time"
+          class="mx-3 flex justify-between"
         >
-          <PlusIcon class="w-5 h-5" />
-          Add Exercise
-        </button>
-
+          <div>Started</div>
+          <time :d="workout.start_time">{{ displayDateTime(workout.start_time) }}</time>
+        </div>
         <button
-          @click="finish"
+          v-else
+          @click="start"
           class="mx-3 form-submit"
-        >Finish</button>
-      </template>
+        >Start</button>
+
+        <div
+          v-if="workout.start_time && workout.finish_time"
+          class="mx-3 flex justify-between"
+        >
+          <div>Finished</div>
+          <time :d="workout.finish_time">{{ displayDateTime(workout.finish_time) }}</time>
+        </div>
+
+        <ol class="contents">
+          <li v-for="exercise, i in exercises">
+            <ExerciseEdit
+              :workout-start="workout.start_time!"
+              :exercise="exercise"
+              :editing-workout="!workout.finish_time || editing"
+              :editing="i === (editingExercise ?? (exercises.length - 1))"
+              @delete-exercise="deleteExercise(i)"
+              @edit-exercise="editingExercise = i === exercises.length - 1 ? undefined : i"
+              @exercise-changed="editing || saveExercise(exercise)"
+            />
+          </li>
+        </ol>
+
+        <template v-if="workout.start_time && !workout.finish_time">
+          <button
+            @click="addExerciseModal.open"
+            class="mx-3 py-2 font-bold text-blue-500 bg-neutral-800 border
+              border-neutral-600 rounded-lg button-flex"
+          >
+            <IonIcon :icon="addOutline" class="w-5 h-5" />
+            Add Exercise
+          </button>
+
+          <button
+            @click="finish"
+            class="mx-3 form-submit"
+          >Finish</button>
+        </template>
+      </div>
     </IonContent>
   </IonPage>
 </template>

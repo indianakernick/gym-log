@@ -2,6 +2,44 @@
 @tailwind components;
 @tailwind utilities;
 
+@layer base {
+  /*
+  Tailwind's preflight stylesheet adds this:
+
+    border-style: solid;
+
+  Ionic adds this:
+
+    border: 0;
+
+  Tailwind's border classes assume that adding a border width is all that is
+  necessary to add a border. We're adding `html` to the selector to increase
+  specificity.
+  */
+  html * {
+    border-style: solid;
+  }
+
+  /*
+  Tailwind's preflight stylesheet adds this:
+
+    line-height: inherit;
+
+  Ionic adds this:
+
+    line-height: 1.2;
+
+  */
+  h1, h2, h3, h4, h5, h6 {
+    line-height: inherit;
+  }
+
+  button, input {
+    @apply disabled:opacity-60 transition-opacity focus-visible:outline
+      focus-visible:outline-amber-500;
+  }
+}
+
 @layer components {
   .link {
     @apply text-blue-500 hover:underline focus-visible:outline

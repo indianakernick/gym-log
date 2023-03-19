@@ -37,3 +37,18 @@ const tabs = [
     </IonTabs>
   </IonPage>
 </template>
+
+<style scoped>
+/*
+Tailwind's preflight stylesheet adds this:
+
+  border-width: 0;
+  border-style: solid;
+  border-color: #e5e7eb;
+
+This overrides the border on Ionic's tab bar so we're adding it back.
+*/
+ion-tab-bar {
+  border-top: var(--border);
+}
+</style>

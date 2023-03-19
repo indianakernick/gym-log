@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import cognito from '@/services/cognito';
 import { getCognitoErrorMessage } from '@/utils/error';
+import { IonContent, IonPage } from '@ionic/vue';
 import { shallowRef } from 'vue';
 import { useRouter } from 'vue-router';
 
@@ -53,42 +54,46 @@ async function resend() {
 </script>
 
 <template>
-  <main class="flex-center">
-    <form
-      @submit.prevent="confirm"
-      class="grow flex flex-col form-card"
-    >
-      <p class="mb-4">
-        A code was sent to your email. Enter it here to verify ownership of
-        the email address.
-      </p>
+  <IonPage>
+    <IonContent>
+      <div class="flex-center w-full h-full">
+        <form
+          @submit.prevent="confirm"
+          class="grow flex flex-col form-card"
+        >
+          <p class="mb-4">
+            A code was sent to your email. Enter it here to verify ownership of
+            the email address.
+          </p>
 
-      <label for="code" class="form-label">Confirmation Code</label>
-      <input
-        type="text"
-        id="code"
-        v-model.lazy="confirmationCode"
-        :disabled="loading"
-        autocomplete="one-time-code"
-        required
-        class="form-input"
-      />
+          <label for="code" class="form-label">Confirmation Code</label>
+          <input
+            type="text"
+            id="code"
+            v-model.lazy="confirmationCode"
+            :disabled="loading"
+            autocomplete="one-time-code"
+            required
+            class="form-input"
+          />
 
-      <button
-        :disabled="loading"
-        class="form-submit mt-5"
-      >Confirm</button>
+          <button
+            :disabled="loading"
+            class="form-submit mt-5"
+          >Confirm</button>
 
-      <p class="text-center mt-3">
-        Didn't receive a code?
-        <button
-          type="button"
-          @click="resend"
-          class="link"
-        >Resend</button>
-      </p>
+          <p class="text-center mt-3">
+            Didn't receive a code?
+            <button
+              type="button"
+              @click="resend"
+              class="link"
+            >Resend</button>
+          </p>
 
-      <p v-if="error && !loading" class="form-error mt-3">{{ error }}</p>
-    </form>
-  </main>
+          <p v-if="error && !loading" class="form-error mt-3">{{ error }}</p>
+        </form>
+      </div>
+    </IonContent>
+  </IonPage>
 </template>

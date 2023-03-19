@@ -96,9 +96,9 @@ function groupLabel(group: Workout[]) {
         </IonToolbar>
       </IonHeader>
 
-      <IonList>
+      <IonList class="mt-3">
         <IonItemGroup v-for="group, g in workouts">
-          <IonItemDivider>
+          <IonItemDivider class="sticky top-0">
             <IonLabel>{{ groupLabel(group) }}</IonLabel>
           </IonItemDivider>
 
@@ -135,10 +135,3 @@ function groupLabel(group: Workout[]) {
     </IonContent>
   </IonPage>
 </template>
-
-<style scoped>
-ion-item-divider {
-  position: sticky;
-  top: 0;
-}
-</style>

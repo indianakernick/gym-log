@@ -5,7 +5,7 @@ import { binarySearch, stringCompare } from '@/utils/array';
 import { displayDateTime } from '@/utils/date';
 import { EXERCISE_TYPE } from '@/utils/i18n';
 import { useConfirmModal } from '@/utils/modal';
-import { TrashIcon } from '@heroicons/vue/20/solid';
+import { trashOutline } from 'ionicons/icons';
 import { computed, shallowRef } from 'vue';
 import ExerciseSetEdit from './ExerciseSetEdit.vue';
 import Menu from './Menu.vue';
@@ -87,7 +87,7 @@ const options = computed(() => {
     items.push({
       title: 'Delete Last Set',
       theme: 'danger',
-      icon: TrashIcon,
+      icon: trashOutline,
       handler: deleteLastSet
     });
   }
@@ -95,7 +95,7 @@ const options = computed(() => {
   items.push({
     title: 'Delete Exercise',
     theme: 'danger',
-    icon: TrashIcon,
+    icon: trashOutline,
     handler: deleteExercise
   });
 
@@ -132,6 +132,7 @@ async function deleteLastSet() {
       <Menu
         v-if="editingWorkout"
         title="Exercise Options"
+        context="inline"
         :items="options"
       />
     </div>

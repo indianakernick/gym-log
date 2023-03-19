@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { uuid } from '@/utils/uuid';
-import { CheckIcon } from '@heroicons/vue/20/solid';
+import { IonIcon } from '@ionic/vue';
+import { checkmark } from 'ionicons/icons';
 import { shallowRef } from 'vue';
 import Modal from './Modal.vue';
 
@@ -65,7 +66,8 @@ const id = uuid();
                 @input="($event.target as HTMLInputElement).checked && (choice = option.value)"
                 class="opacity-0 peer"
               />
-              <CheckIcon
+              <IonIcon
+                :icon="checkmark"
                 class="absolute top-0 w-5 h-5 opacity-0 peer-checked:opacity-100
                   text-blue-500"
               />

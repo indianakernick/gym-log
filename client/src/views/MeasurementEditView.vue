@@ -14,17 +14,17 @@ import { displayDate, toDateString } from '@/utils/date';
 import { MEASUREMENT_TYPE, MEASUREMENT_TYPE_UNIT } from '@/utils/i18n';
 import { useConfirmModal } from '@/utils/modal';
 import { refresh } from '@/utils/refresh';
-import { TrashIcon } from '@heroicons/vue/20/solid';
-import { PlusIcon } from '@heroicons/vue/24/outline';
 import {
   IonBackButton,
   IonButtons,
   IonContent,
   IonHeader,
+  IonIcon,
   IonPage,
   IonTitle,
   IonToolbar
 } from '@ionic/vue';
+import { addOutline, trashOutline } from 'ionicons/icons';
 import { computed, nextTick, onUnmounted, shallowRef, triggerRef } from 'vue';
 import { onBeforeRouteLeave, useRouter } from 'vue-router';
 
@@ -147,7 +147,7 @@ const options = computed(() => {
   items.push({
     title: 'Delete Measurements',
     theme: 'danger',
-    icon: TrashIcon,
+    icon: trashOutline,
     handler: deleteSet
   });
 
@@ -177,83 +177,85 @@ async function save() {
     <IonHeader>
       <IonToolbar>
         <IonButtons slot="start">
-          <IonBackButton />
+          <IonBackButton default-href="/measurements" />
         </IonButtons>
         <IonTitle>Measurement Details</IonTitle>
         <IonButtons slot="end">
           <Menu
             title="Measurement Options"
+            context="title-bar"
             :items="options"
-            theme="primary"
           />
         </IonButtons>
       </IonToolbar>
     </IonHeader>
 
     <IonContent>
-      <div class="mx-3 flex justify-between">
-        <div>Capture Date</div>
-        <time :d="date">{{ displayDate(date) }}</time>
+      <div class="flex flex-col gap-3 py-3">
+        <div class="mx-3 flex justify-between">
+          <div>Capture Date</div>
+          <time :d="date">{{ displayDate(date) }}</time>
+        </div>
+
+        <TextArea
+          label="Notes"
+          v-model="measurementSet.notes"
+          @update:modelValue="editing || save()"
+          :read-only="readOnly && !editing"
+          class="mx-3"
+        />
+
+        <ul class="contents">
+          <template v-for="ty in MEASUREMENT_TYPES">
+            <li
+              v-if="!readOnly || editing || measurementSet.measurements[ty] !== undefined"
+              class="mx-3 flex items-center"
+            >
+              <label
+                :for="`measurement-${ty}`"
+                class="flex-grow"
+              >
+                {{ MEASUREMENT_TYPE[ty] }}
+                <i class="text-neutral-400">{{ MEASUREMENT_TYPE_UNIT[ty] }}</i>
+              </label>
+
+              <input
+                v-if="(!readOnly || editing) && measurementSet.measurements[ty] !== undefined"
+                :id="`measurement-${ty}`"
+                type="number"
+                inputmode="decimal"
+                min="0"
+                :value="measurementSet.measurements[ty]"
+                @change="setMeasurement($event, ty)"
+                @focus="($event.target as HTMLInputElement | null)?.select()"
+                :ref="el => setInputRef(el as HTMLInputElement | null, ty)"
+                class="w-16 px-2 py-1 text-right rounded-lg bg-neutral-700"
+              />
+
+              <div
+                v-else-if="readOnly && !editing"
+                class="text-right"
+              >{{ measurementSet.measurements[ty] }}</div>
+
+              <button
+                v-else
+                :id="`measurement-${ty}`"
+                @click="addMeasurement(ty)"
+                class="relative w-16 py-1 rounded-lg flex justify-center
+                  bg-neutral-800"
+              >
+                <!--
+                  border-radius doesn't apply to outlines in Safari so this was the
+                  next simplest thing.
+                -->
+                <div class="absolute inset-0 rounded-lg border
+                  border-neutral-600"></div>
+                <IonIcon :icon="addOutline" class="w-6 h-6 text-neutral-300" />
+              </button>
+            </li>
+          </template>
+        </ul>
       </div>
-
-      <TextArea
-        label="Notes"
-        v-model="measurementSet.notes"
-        @update:modelValue="editing || save()"
-        :read-only="readOnly && !editing"
-        class="mx-3"
-      />
-
-      <ul class="contents">
-        <template v-for="ty in MEASUREMENT_TYPES">
-          <li
-            v-if="!readOnly || editing || measurementSet.measurements[ty] !== undefined"
-            class="mx-3 flex items-center"
-          >
-            <label
-              :for="`measurement-${ty}`"
-              class="flex-grow"
-            >
-              {{ MEASUREMENT_TYPE[ty] }}
-              <i class="text-neutral-400">{{ MEASUREMENT_TYPE_UNIT[ty] }}</i>
-            </label>
-
-            <input
-              v-if="(!readOnly || editing) && measurementSet.measurements[ty] !== undefined"
-              :id="`measurement-${ty}`"
-              type="number"
-              inputmode="decimal"
-              min="0"
-              :value="measurementSet.measurements[ty]"
-              @change="setMeasurement($event, ty)"
-              @focus="($event.target as HTMLInputElement | null)?.select()"
-              :ref="el => setInputRef(el as HTMLInputElement | null, ty)"
-              class="w-16 px-2 py-1 text-right rounded-lg bg-neutral-700"
-            />
-
-            <div
-              v-else-if="readOnly && !editing"
-              class="text-right"
-            >{{ measurementSet.measurements[ty] }}</div>
-
-            <button
-              v-else
-              :id="`measurement-${ty}`"
-              @click="addMeasurement(ty)"
-              class="relative w-16 py-1 rounded-lg flex justify-center
-                bg-neutral-800"
-            >
-              <!--
-                border-radius doesn't apply to outlines in Safari so this was the
-                next simplest thing.
-              -->
-              <div class="absolute inset-0 rounded-lg border
-                border-neutral-600"></div>
-              <PlusIcon class="w-6 h-6 text-neutral-300" />
-            </button>
-          </li>
-        </template>
-      </ul>
     </IonContent>
   </IonPage>
 </template>

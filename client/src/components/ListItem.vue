@@ -1,5 +1,6 @@
 <script setup lang="ts">
-import { ChevronRightIcon } from '@heroicons/vue/20/solid';
+import { IonIcon } from '@ionic/vue';
+import { chevronForward } from 'ionicons/icons';
 
 defineEmits<{
   (e: 'click'): void;
@@ -16,7 +17,7 @@ defineEmits<{
       class="px-3 py-2 w-full flex justify-between items-center text-left"
     >
       <slot></slot>
-      <ChevronRightIcon class="w-5 h-5 shrink-0 text-neutral-500" />
+      <IonIcon :icon="chevronForward" class="w-5 h-5 shrink-0 text-neutral-500" />
     </button>
   </li>
 </template>

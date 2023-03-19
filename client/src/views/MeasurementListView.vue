@@ -63,13 +63,11 @@ function openDateModal() {
   <IonPage ref="page">
     <IonHeader>
       <IonToolbar>
-        <IonButtons slot="start">
+        <IonTitle>Measurements</IonTitle>
+        <IonButtons slot="end">
           <IonButton @click="openDateModal">
             <IonIcon slot="icon-only" :icon="calendarClearOutline" />
           </IonButton>
-        </IonButtons>
-        <IonTitle>Measurements</IonTitle>
-        <IonButtons slot="end">
           <IonButton @click="addToday">
             <IonIcon slot="icon-only" :icon="addOutline" />
           </IonButton>
@@ -84,9 +82,9 @@ function openDateModal() {
         </IonToolbar>
       </IonHeader>
 
-      <IonList>
+      <IonList class="mt-3">
         <IonItemGroup v-for="year, y in years">
-          <IonItemDivider>
+          <IonItemDivider class="sticky top-0">
             <IonLabel>{{ year[0].substring(0, 4) }}</IonLabel>
           </IonItemDivider>
 
@@ -127,6 +125,7 @@ function openDateModal() {
             :max="new Date().toISOString()"
             v-model="date"
             presentation="date"
+            class="rounded-lg mx-auto mt-4"
           />
         </IonContent>
       </IonModal>
@@ -141,7 +140,10 @@ ion-item-divider {
 }
 
 ion-datetime {
-  border-radius: 10px;
-  margin: 16px auto 0 auto;
+  /* neutral-800 from Tailwind. */
+  --background: #262626;
+  --background-rgb: 38, 38, 38;
+  /* neutral-700 from Tailwind. Sets the picker highlight. */
+  --ion-color-step-150: #404040;
 }
 </style>
