@@ -27,10 +27,11 @@ import {
   IonIcon,
   IonPage,
   IonTitle,
-  IonToolbar
+  IonToolbar,
+  modalController
 } from '@ionic/vue';
 import { addOutline, trashOutline } from 'ionicons/icons';
-import { computed, shallowRef, triggerRef } from 'vue';
+import { computed, onMounted, shallowRef, triggerRef } from 'vue';
 import { useModal } from 'vue-final-modal';
 import { onBeforeRouteLeave, useRouter } from 'vue-router';
 
@@ -42,33 +43,12 @@ const router = useRouter();
 const adjustDatesModal = useModal({
   component: AdjustDatesModal
 });
-const addExerciseModal = useModal({
-  component: SelectModal,
-  attrs: {
-    title: 'Add Exercise',
-    selectTitle: 'Create',
-    groups: Object.entries(EXERCISE_TYPE_GROUPS)
-      .map(([group, types]) => ({
-        title: EXERCISE_TYPE_GROUP[group as keyof typeof EXERCISE_TYPE_GROUPS],
-        options: types.map(value => ({
-          title: EXERCISE_TYPE[value],
-          value,
-        }))
-      })),
-    onSelect(type) {
-      if (type) {
-        exercises.value.push({
-          workout_exercise_id: `${workout.value.workout_id}#${uuid()}`,
-          order: exercises.value.length,
-          type: type as any,
-          notes: '',
-          sets: []
-        });
-        triggerRef(exercises);
-      }
-      addExerciseModal.close();
-    }
-  }
+
+const page = shallowRef();
+const presentingElement = shallowRef();
+
+onMounted(() => {
+  presentingElement.value = page.value.$el;
 });
 
 const workout = shallowRef<Workout>({
@@ -221,10 +201,44 @@ async function saveExercise(exercise: Exercise) {
   await db.stageUpdateExercise(exercise);
   sync.sync();
 }
+
+async function addExercise() {
+  const modal = await modalController.create({
+    component: SelectModal,
+    componentProps: {
+      title: 'Add Exercise',
+      selectTitle: 'Add',
+      groups: Object.entries(EXERCISE_TYPE_GROUPS)
+        .map(([group, types]) => ({
+          title: EXERCISE_TYPE_GROUP[group as keyof typeof EXERCISE_TYPE_GROUPS],
+          options: types.map(value => ({
+            title: EXERCISE_TYPE[value],
+            value,
+          }))
+        })),
+    },
+    presentingElement: presentingElement.value,
+  });
+
+  await modal.present();
+
+  const { data } = await modal.onDidDismiss();
+
+  if (data) {
+    exercises.value.push({
+      workout_exercise_id: `${workout.value.workout_id}#${uuid()}`,
+      order: exercises.value.length,
+      type: data,
+      notes: '',
+      sets: []
+    });
+    triggerRef(exercises);
+  }
+}
 </script>
 
 <template>
-  <IonPage>
+  <IonPage ref="page">
     <IonHeader>
       <IonToolbar>
         <IonButtons slot="start">
@@ -288,7 +302,7 @@ async function saveExercise(exercise: Exercise) {
 
         <template v-if="workout.start_time && !workout.finish_time">
           <button
-            @click="addExerciseModal.open"
+            @click="addExercise"
             class="mx-3 py-2 font-bold text-blue-500 bg-neutral-800 border
               border-neutral-600 rounded-lg button-flex"
           >

@@ -1,9 +1,17 @@
 <script setup lang="ts">
 import { uuid } from '@/utils/uuid';
-import { IonIcon } from '@ionic/vue';
+import {
+  IonButton,
+  IonButtons,
+  IonContent,
+  IonHeader,
+  IonIcon,
+  IonTitle,
+  IonToolbar,
+  modalController
+} from '@ionic/vue';
 import { checkmark } from 'ionicons/icons';
 import { shallowRef } from 'vue';
-import Modal from './Modal.vue';
 
 export type Value = string;
 
@@ -23,31 +31,28 @@ defineProps<{
   groups: OptionGroup[];
 }>();
 
-defineEmits<{
-  (e: 'select', choice?: Value): void;
-}>();
-
 const choice = shallowRef<Value>();
 const id = uuid();
 </script>
 
 <template>
-  <Modal
-    :title="title"
-    :fullscreen="true"
-    :buttons="[
-      {
-        title: 'Cancel',
-        handler: () => $emit('select')
-      },
-      {
-        title: selectTitle ?? 'Select',
-        bold: true,
-        disabled: !choice,
-        handler: () => $emit('select', choice)
-      }
-    ]"
-  >
+  <IonHeader>
+    <IonToolbar>
+      <IonButtons slot="start">
+        <IonButton @click="modalController.dismiss()">Cancel</IonButton>
+      </IonButtons>
+      <IonTitle>{{ title }}</IonTitle>
+      <IonButtons slot="end">
+        <IonButton
+          @click="modalController.dismiss(choice)"
+          :disabled="!choice"
+          :strong="true"
+        >{{ selectTitle ?? 'Select' }}</IonButton>
+      </IonButtons>
+    </IonToolbar>
+  </IonHeader>
+
+  <IonContent>
     <div class="my-3">
       <div v-for="group, g in groups" class="mt-4 first:mt-0">
         <h3 class="mx-3 mb-1 text-sm text-neutral-400">{{ group.title }}</h3>
@@ -68,7 +73,7 @@ const id = uuid();
               />
               <IonIcon
                 :icon="checkmark"
-                class="absolute top-0 w-5 h-5 opacity-0 peer-checked:opacity-100
+                class="absolute top-0 left-0 w-5 h-5 opacity-0 peer-checked:opacity-100
                   text-blue-500"
               />
             </div>
@@ -76,5 +81,5 @@ const id = uuid();
         </div>
       </div>
     </div>
-  </Modal>
+  </IonContent>
 </template>
