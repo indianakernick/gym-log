@@ -32,7 +32,6 @@ import {
 } from '@ionic/vue';
 import { addOutline, trashOutline } from 'ionicons/icons';
 import { computed, onMounted, shallowRef, triggerRef } from 'vue';
-import { useModal } from 'vue-final-modal';
 import { onBeforeRouteLeave, useRouter } from 'vue-router';
 
 const props = defineProps<{
@@ -40,9 +39,6 @@ const props = defineProps<{
 }>();
 
 const router = useRouter();
-const adjustDatesModal = useModal({
-  component: AdjustDatesModal
-});
 
 const page = shallowRef();
 const presentingElement = shallowRef();
@@ -139,22 +135,26 @@ const options = computed(() => {
   }
 
   if (workout.value.start_time && workout.value.finish_time) {
-    items.push({ title: 'Adjust Dates', handler: () => {
-      adjustDatesModal.patchOptions({
-        attrs: {
+    items.push({ title: 'Adjust Dates', handler: async () => {
+      const modal = await modalController.create({
+        component: AdjustDatesModal,
+        componentProps: {
           start: workout.value.start_time!,
           finish: workout.value.finish_time!,
-          onSave: (start, finish) => {
-            workout.value.start_time = start;
-            workout.value.finish_time = finish;
-            triggerRef(workout);
-            saveWorkout();
-            adjustDatesModal.close();
-          },
-          onCancel: () => adjustDatesModal.close()
-        }
+        },
+        presentingElement: presentingElement.value,
       });
-      adjustDatesModal.open();
+
+      await modal.present();
+
+      const { data } = await modal.onWillDismiss();
+
+      if (data) {
+        workout.value.start_time = data.start;
+        workout.value.finish_time = data.finish;
+        triggerRef(workout);
+        saveWorkout();
+      }
     }});
   }
 
@@ -222,7 +222,7 @@ async function addExercise() {
 
   await modal.present();
 
-  const { data } = await modal.onDidDismiss();
+  const { data } = await modal.onWillDismiss();
 
   if (data) {
     exercises.value.push({

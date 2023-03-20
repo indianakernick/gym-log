@@ -1,15 +1,18 @@
 <script setup lang="ts">
+import {
+  IonButton,
+  IonButtons,
+  IonContent,
+  IonHeader,
+  IonTitle,
+  IonToolbar,
+  modalController
+} from '@ionic/vue';
 import { shallowRef, watchEffect } from 'vue';
-import Modal from './Modal.vue';
 
 const props = defineProps<{
   start: string;
   finish: string;
-}>();
-
-const emit = defineEmits<{
-  (e: 'cancel'): void;
-  (e: 'save', start: string, finish: string): void;
 }>();
 
 const tz = new Date().getTimezoneOffset() * 60000;
@@ -46,27 +49,32 @@ watchEffect(() => {
 
 function save() {
   if (!error.value) {
-    emit('save', fromInputDateTime(start.value), fromInputDateTime(finish.value));
+    modalController.dismiss({
+      start: fromInputDateTime(start.value),
+      finsih: fromInputDateTime(finish.value),
+    });
   }
 }
 </script>
 
 <template>
-  <Modal
-    title="Adjust Dates"
-    :buttons="[
-      {
-        title: 'Cancel',
-        handler: () => $emit('cancel')
-      },
-      {
-        title: 'Save',
-        bold: true,
-        disabled: !!error,
-        handler: save
-      }
-    ]"
-  >
+  <IonHeader>
+    <IonToolbar>
+      <IonButtons slot="start">
+        <IonButton @click="modalController.dismiss()">Cancel</IonButton>
+      </IonButtons>
+      <IonTitle>Adjust Dates</IonTitle>
+      <IonButtons slot="end">
+        <IonButton
+          @click="save"
+          :disabled="!!error"
+          :strong="true"
+        >Save</IonButton>
+      </IonButtons>
+    </IonToolbar>
+  </IonHeader>
+
+  <IonContent>
     <div class="p-3 flex flex-col gap-3">
       <div
         v-if="error"
@@ -88,7 +96,8 @@ function save() {
           type="datetime-local"
           v-model="start"
           step="1"
-          class="appearance-none px-2 py-1 rounded-lg bg-neutral-700"
+          class="appearance-none px-2 py-1 rounded-lg
+            bg-neutral-300 dark:bg-neutral-700"
         />
       </div>
 
@@ -99,9 +108,10 @@ function save() {
           type="datetime-local"
           v-model="finish"
           step="1"
-          class="appearance-none px-2 py-1 rounded-lg bg-neutral-700"
+          class="appearance-none px-2 py-1 rounded-lg
+            bg-neutral-300 dark:bg-neutral-700"
         />
       </div>
     </div>
-  </Modal>
+  </IonContent>
 </template>
