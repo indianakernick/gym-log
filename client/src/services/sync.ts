@@ -2,8 +2,8 @@ import MergeConflictModal from '@/modals/MergeConflictModal.vue';
 import type { MergeConflictResolutions, StagedChange } from '@/model/db';
 import db from '@/services/db';
 import user, { CacheOutdatedError } from '@/services/user';
+import { modalController } from '@ionic/vue';
 import { shallowRef, type DeepReadonly, type ShallowRef } from 'vue';
-import { useModal, type UseModalReturnType } from 'vue-final-modal';
 import { useRouter, type Router } from 'vue-router';
 import { UnauthenticatedError } from './auth';
 
@@ -20,7 +20,6 @@ export default new class {
   private syncAfterThrottle: boolean = false;
   private throttleId?: number;
   private router?: Router;
-  private modal?: UseModalReturnType<InstanceType<typeof MergeConflictModal>['$props']>;
   private versionRef = shallowRef<number>();
 
   constructor() {
@@ -30,9 +29,6 @@ export default new class {
 
   setup() {
     this.router = useRouter();
-    this.modal = useModal({
-      component: MergeConflictModal
-    });
     this.sync();
   }
 
@@ -140,19 +136,22 @@ export default new class {
       const conflicts = await db.merge(changes, resolutions);
 
       if (conflicts.length) {
-        await new Promise<void>(accept => {
-          this.modal!.patchOptions({
-            attrs: {
-              conflicts,
-              onResolved: res => {
-                Object.assign(resolutions, res);
-                this.modal!.close();
-                accept();
-              }
-            }
-          });
-          this.modal!.open();
+        const modal = await modalController.create({
+          component: MergeConflictModal,
+          componentProps: {
+            conflicts,
+          }
         });
+
+        await modal.present();
+
+        const { data } = await modal.onWillDismiss();
+
+        Object.assign(resolutions, data);
+
+        // In case there are merge conflicts a second time, wait for the modal
+        // to disappear before showing it again.
+        await modal.onDidDismiss();
       } else {
         this.versionRef.value = changes.version;
         return;

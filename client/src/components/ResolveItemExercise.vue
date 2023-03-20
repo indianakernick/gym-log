@@ -38,9 +38,17 @@ function composeClass(index: number, field: string): { [ key in string]: boolean
       :class="colorForChange(exercise, otherExercise, e => e.notes)"
     >{{ exercise.notes }}</div>
 
+    <!--
+      TODO: maybe find another way of implementing colorForChange
+      We have to repeat the classes here so that the Tailwind JIT can find them.
+    -->
     <SetTable
       :exercise="exercise"
       v-slot="{ set, index, field }"
+      :class="{
+        'text-green-600 dark:text-green-400': false,
+        'text-orange-600 dark:text-orange-400': false
+      }"
     >
       <div :class="composeClass(index, field)">{{ set[field] }}</div>
     </SetTable>

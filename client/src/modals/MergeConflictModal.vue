@@ -6,8 +6,16 @@ import ResolveItemWorkout from '@/components/ResolveItemWorkout.vue';
 import SequenceNavigator from '@/components/SequenceNavigator.vue';
 import type { Exercise, MeasurementSet, Workout } from '@/model/api';
 import type { Deleted, MergeConflict, MergeConflictResolutions } from '@/model/db';
+import {
+  IonButton,
+  IonButtons,
+  IonContent,
+  IonHeader,
+  IonTitle,
+  IonToolbar,
+  modalController
+} from '@ionic/vue';
 import { ref, shallowRef } from 'vue';
-import Modal from './Modal.vue';
 
 defineProps<{
   conflicts: MergeConflict[];
@@ -26,21 +34,24 @@ function resolve(id: string, which: 'local' | 'remote') {
 </script>
 
 <template>
-  <Modal
-    title="Sync Conflicts"
-    :buttons="[{
-      title: 'Resolve',
-      theme: 'primary',
-      bold: true,
-      disabled: Object.keys(resolutions).length < conflicts.length,
-      handler: () => $emit('resolved', resolutions)
-    }]"
-    :trap="true"
-  >
+  <IonHeader>
+    <IonToolbar>
+      <IonTitle>Sync Conflicts</IonTitle>
+      <IonButtons slot="end">
+        <IonButton
+          @click="modalController.dismiss(resolutions)"
+          :disabled="Object.keys(resolutions).length < conflicts.length"
+          :strong="true"
+        >Resolve</IonButton>
+      </IonButtons>
+    </IonToolbar>
+  </IonHeader>
+
+  <IonContent>
     <p
       class="p-3"
       :class="{
-        'border-b border-neutral-600': conflicts.length === 1
+        'border-b border-neutral-300 dark:border-neutral-600': conflicts.length === 1
       }"
     >
       There were conflicts when syncing changes. This can happen when a change
@@ -52,8 +63,9 @@ function resolve(id: string, which: 'local' | 'remote') {
       v-if="conflicts.length > 1"
       v-model="conflictIdx"
       :length="conflicts.length"
-      class="sticky -top-px bg-neutral-800 px-3 py-2 border-t border-b
-        border-neutral-600"
+      class="sticky -top-px px-3 py-2 border-t border-b
+        border-neutral-300 dark:border-neutral-600
+        bg-neutral-100 dark:bg-neutral-800"
     >
       Resolving {{ conflictIdx + 1 }} / {{ conflicts.length }}
     </SequenceNavigator>
@@ -91,5 +103,5 @@ function resolve(id: string, which: 'local' | 'remote') {
         </ResolveItem>
       </template>
     </template>
-  </Modal>
+  </IonContent>
 </template>

@@ -20,7 +20,7 @@ defineEmits<{
       @click="modelValue < 1 || $emit('update:modelValue', modelValue - 1)"
       :disabled="modelValue < 1"
       aria-label="Previous"
-      class="ml-auto disabled:text-neutral-600"
+      class="ml-auto text-neutral-700 dark:text-neutral-200 "
     >
       <IonIcon :icon="chevronUp" class="block w-6 h-6" />
     </button>
@@ -29,7 +29,7 @@ defineEmits<{
       @click="modelValue >= length - 1 || $emit('update:modelValue', modelValue + 1)"
       :disabled="modelValue >= length - 1"
       aria-label="Next"
-      class="ml-3 disabled:text-neutral-600"
+      class="ml-3 text-neutral-700 dark:text-neutral-200 "
     >
       <IonIcon :icon="chevronDown" class="block w-6 h-6" />
     </button>

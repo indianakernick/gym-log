@@ -25,7 +25,7 @@ defineEmits<{
     <slot v-else :item="conflict.remote" :other="conflict.local"></slot>
   </div>
 
-  <div class="p-3 border-t border-neutral-600">
+  <div class="p-3 border-t border-neutral-300 dark:border-neutral-600">
     <ResolveChoose
       :id="conflict.id"
       type="local"
