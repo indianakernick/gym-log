@@ -55,12 +55,16 @@ const id = uuid();
   <IonContent>
     <div class="my-3">
       <div v-for="group, g in groups" class="mt-4 first:mt-0">
-        <h3 class="mx-3 mb-1 text-sm text-neutral-400">{{ group.title }}</h3>
+        <h3
+          class="mx-3 mb-1 text-sm text-neutral-500 dark:text-neutral-400"
+        >{{ group.title }}</h3>
         <div class="flex flex-col">
           <div
             v-for="option, o in group.options"
-            class="flex items-center mx-3 p-2 gap-2 border-x border-t last:border-b
-              border-neutral-600 first:rounded-t-lg last:rounded-b-lg bg-neutral-800"
+            class="flex items-center mx-3 p-2 gap-2
+              first:rounded-t-lg last:rounded-b-lg
+              border-x border-t last:border-b border-neutral-300 dark:border-neutral-600
+              bg-neutral-100 dark:bg-neutral-800"
           >
             <label :for="`${id}-${g}-${o}`" class="grow">{{ option.title }}</label>
             <div class="relative w-5 h-5">
