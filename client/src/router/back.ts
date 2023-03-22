@@ -1,10 +1,10 @@
-import type { NavigationFailure, RouteLocationRaw, Router } from 'vue-router';
+import type { UseIonRouterResult } from '@ionic/vue';
+import type { RouteLocationRaw } from 'vue-router';
 
-export function back(
-  router: Router,
-  to: RouteLocationRaw,
-): Promise<NavigationFailure | void | undefined> {
-  // TODO: find a reliable way of checking whether router.back() will succeed
-  // router.back if we can go back, otherwise router.replace
-  return router.replace(to);
+export function back(router: UseIonRouterResult, fallback: RouteLocationRaw) {
+  if (router.canGoBack()) {
+    router.back();
+  } else {
+    router.navigate(fallback, 'back', 'replace');
+  }
 }

@@ -28,17 +28,18 @@ import {
   IonPage,
   IonTitle,
   IonToolbar,
-  modalController
+  modalController,
+  useIonRouter
 } from '@ionic/vue';
 import { addOutline, trashOutline } from 'ionicons/icons';
 import { computed, onMounted, shallowRef, triggerRef } from 'vue';
-import { onBeforeRouteLeave, useRouter } from 'vue-router';
+import { onBeforeRouteLeave } from 'vue-router';
 
 const props = defineProps<{
   id: string;
 }>();
 
-const router = useRouter();
+const router = useIonRouter();
 
 const page = shallowRef();
 const presentingElement = shallowRef();
