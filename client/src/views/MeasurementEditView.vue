@@ -229,7 +229,8 @@ async function save() {
                 @change="setMeasurement($event, ty)"
                 @focus="($event.target as HTMLInputElement | null)?.select()"
                 :ref="el => setInputRef(el as HTMLInputElement | null, ty)"
-                class="w-16 px-2 py-1 text-right rounded-lg bg-neutral-700"
+                class="w-16 px-2 py-1 text-right rounded-lg
+                  bg-neutral-200 dark:bg-neutral-700"
               />
 
               <div
@@ -242,15 +243,20 @@ async function save() {
                 :id="`measurement-${ty}`"
                 @click="addMeasurement(ty)"
                 class="relative w-16 py-1 rounded-lg flex justify-center
-                  bg-neutral-800"
+                  bg-neutral-300 dark:bg-neutral-800"
               >
                 <!--
                   border-radius doesn't apply to outlines in Safari so this was the
                   next simplest thing.
                 -->
-                <div class="absolute inset-0 rounded-lg border
-                  border-neutral-600"></div>
-                <IonIcon :icon="addOutline" class="w-6 h-6 text-neutral-300" />
+                <div
+                  class="absolute inset-0 rounded-lg border
+                    border-neutral-400 dark:border-neutral-600"
+                ></div>
+                <IonIcon
+                  :icon="addOutline"
+                  class="w-6 h-6 text-neutral-600 dark:text-neutral-300"
+                />
               </button>
             </li>
           </template>
