@@ -2,7 +2,8 @@
 import type { Workout } from '@/model/api';
 import type { Deleted } from '@/model/db';
 import { displayDateTime } from '@/utils/date';
-import { colorForChange } from '@/utils/merge';
+import { describeChange } from '@/utils/merge';
+import ResolveColor from './ResolveColor.vue';
 
 defineProps<{
   workout: Workout;
@@ -12,21 +13,22 @@ defineProps<{
 
 <template>
   <div>
-    <div
+    <ResolveColor
+      :desc="describeChange(workout, otherWorkout, w => w.notes)"
       aria-label="Notes"
       class="whitespace-pre-wrap"
-      :class="colorForChange(workout, otherWorkout, w => w.notes)"
-    >{{ workout.notes }}</div>
+    >
+      {{ workout.notes }}
+    </ResolveColor>
 
     <div
       v-if="workout.start_time"
       class="flex justify-between"
     >
       <div>Started</div>
-      <time
-        :d="workout.start_time"
-        :class="colorForChange(workout, otherWorkout, w => w.start_time)"
-      >{{ displayDateTime(workout.start_time) }}</time>
+      <ResolveColor :desc="describeChange(workout, otherWorkout, w => w.start_time)">
+        <time :d="workout.start_time">{{ displayDateTime(workout.start_time) }}</time>
+      </ResolveColor>
     </div>
 
     <div
@@ -34,10 +36,9 @@ defineProps<{
       class="flex justify-between"
     >
       <div>Finished</div>
-      <time
-        :d="workout.finish_time"
-        :class="colorForChange(workout, otherWorkout, w => w.finish_time)"
-      >{{ displayDateTime(workout.finish_time) }}</time>
+      <ResolveColor :desc="describeChange(workout, otherWorkout, w => w.finish_time)">
+        <time :d="workout.finish_time">{{ displayDateTime(workout.finish_time) }}</time>
+      </ResolveColor>
     </div>
   </div>
 </template>

@@ -1,15 +1,16 @@
 import type { Deleted } from '@/model/db';
 
-export function colorForChange<T extends object, U>(
+export type ChangeDesc = 'equal' | 'modified' | 'added';
+
+export function describeChange<T extends object, U>(
   entity: T,
   otherEntity: T | Deleted,
   access: (e: T) => U | undefined
-): { [key in string]: boolean } {
-  if ('deleted' in otherEntity) return {};
+): ChangeDesc {
+  if ('deleted' in otherEntity) return 'equal';
   const value = access(entity);
   const otherValue = access(otherEntity);
-  return {
-    'text-green-600 dark:text-green-400': otherValue === undefined,
-    'text-orange-600 dark:text-orange-400': otherValue !== undefined && value !== otherValue
-  };
+  if (otherValue === undefined) return 'added';
+  if (value !== otherValue) return 'modified';
+  return 'equal';
 }

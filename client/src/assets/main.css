@@ -35,6 +35,7 @@
   }
 
   button, input {
+    /* TODO: this opacity transition doesn't seem to apply to Ionic buttons */
     @apply disabled:opacity-60 transition-opacity focus-visible:outline
       focus-visible:outline-amber-500;
   }

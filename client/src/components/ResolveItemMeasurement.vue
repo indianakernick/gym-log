@@ -3,7 +3,8 @@ import { MEASUREMENT_TYPES, type MeasurementSet } from '@/model/api';
 import type { Deleted } from '@/model/db';
 import { displayDate } from '@/utils/date';
 import { MEASUREMENT_TYPE, MEASUREMENT_TYPE_UNIT } from '@/utils/i18n';
-import { colorForChange } from '@/utils/merge';
+import { describeChange } from '@/utils/merge';
+import ResolveColor from './ResolveColor.vue';
 
 defineProps<{
   set: MeasurementSet;
@@ -22,17 +23,18 @@ defineProps<{
   <div>
     <div class="flex justify-between">
       <div>Capture Date</div>
-      <time
-        :d="set.date"
-        :class="colorForChange(set, otherSet, s => s.date)"
-      >{{ displayDate(set.date) }}</time>
+      <ResolveColor :desc="describeChange(set, otherSet, s => s.date)">
+        <time :d="set.date">{{ displayDate(set.date) }}</time>
+      </ResolveColor>
     </div>
 
-    <div
+    <ResolveColor
+      :desc="describeChange(set, otherSet, s => s.notes)"
       aria-label="Notes"
       class="whitespace-pre-wrap"
-      :class="colorForChange(set, otherSet, s => s.notes)"
-    >{{ set.notes }}</div>
+    >
+      {{ set.notes }}
+    </ResolveColor>
 
     <ul>
       <template v-for="ty in MEASUREMENT_TYPES">
@@ -45,9 +47,9 @@ defineProps<{
             <i class="text-neutral-400">{{ MEASUREMENT_TYPE_UNIT[ty] }}</i>
           </div>
 
-          <div
-            :class="colorForChange(set, otherSet, s => s.measurements[ty])"
-          >{{ set.measurements[ty] }}</div>
+          <ResolveColor :desc="describeChange(set, otherSet, s => s.measurements[ty])">
+            {{ set.measurements[ty] }}
+          </ResolveColor>
         </li>
       </template>
     </ul>
