@@ -18,3 +18,6 @@ coverage
 *.njsproj
 *.sln
 *.sw?
+
+# Derived files
+public/*
