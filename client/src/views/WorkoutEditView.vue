@@ -304,8 +304,10 @@ async function addExercise() {
         <template v-if="workout.start_time && !workout.finish_time">
           <button
             @click="addExercise"
-            class="mx-3 py-2 font-bold text-blue-500 bg-neutral-800 border
-              border-neutral-600 rounded-lg button-flex"
+            class="mx-3 py-2 font-bold text-blue-500 border rounded-lg
+              button-flex
+              border-neutral-200 dark:border-neutral-600
+              bg-neutral-100 dark:bg-neutral-800"
           >
             <IonIcon :icon="addOutline" class="w-5 h-5" />
             Add Exercise
