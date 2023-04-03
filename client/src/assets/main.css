@@ -40,17 +40,21 @@
       focus-visible:outline-amber-500;
   }
 
-  ion-alert.ios {
+  ion-alert {
     --backdrop-opacity: 0.5;
   }
 
   ion-alert.ios .alert-wrapper {
     border: 0.55px solid rgba(var(--ion-text-color-rgb, 0, 0, 0), 0.2);
-    @apply dark:bg-neutral-800 bg-white;
+    @apply bg-white dark:bg-neutral-800;
   }
 
   ion-alert.ios .alert-button.ion-activated {
-    @apply dark:bg-neutral-700 bg-neutral-100;
+    @apply bg-neutral-100 dark:bg-neutral-700;
+  }
+
+  ion-alert.md .alert-wrapper {
+    @apply bg-white dark:bg-neutral-800;
   }
 }
 

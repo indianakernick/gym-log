@@ -82,7 +82,7 @@ function openDateModal() {
         </IonToolbar>
       </IonHeader>
 
-      <IonList class="mt-3">
+      <IonList class="p-0">
         <IonItemGroup v-for="year, y in years">
           <IonItemDivider class="sticky top-0">
             <IonLabel>{{ year[0].substring(0, 4) }}</IonLabel>
@@ -134,11 +134,6 @@ function openDateModal() {
 </template>
 
 <style scoped>
-ion-item-divider {
-  position: sticky;
-  top: 0;
-}
-
 ion-datetime {
   /* neutral-200 from Tailwind. */
   --background: #e5e5e5;
