@@ -62,8 +62,9 @@ const id = getIdGenerator('menu')();
         <li
           v-for="item in items"
           role="presentation"
-          class="border-t first:border-none border-neutral-600 bg-neutral-800
-            shadow-lg overflow-hidden"
+          class="border-t first:border-none shadow-lg overflow-hidden
+            border-neutral-300 bg-neutral-200
+            dark:border-neutral-600 dark:bg-neutral-800"
         >
           <!--
             An empty touchstart listener is required to make :active work on iOS
@@ -75,7 +76,7 @@ const id = getIdGenerator('menu')();
             @click="item.handler"
             @touchstart.passive=""
             class="w-full py-2 px-3 whitespace-nowrap flex gap-1 items-center
-              active:bg-neutral-700 text-sm"
+              text-sm active:bg-neutral-300 dark:active:bg-neutral-700"
             :class="{
               'text-blue-500': item.theme === 'primary',
               'text-red-500': item.theme === 'danger',
@@ -93,7 +94,14 @@ const id = getIdGenerator('menu')();
 <style scoped>
 ion-popover {
   --backdrop-opacity: 0.5;
-  /* neutral-800 from Tailwind. */
-  --background: #262626;
+  /* neutral-200 from Tailwind. */
+  --background: #e5e5e5;
+}
+
+@media (prefers-color-scheme: dark) {
+  ion-popover {
+    /* neutral-800 from Tailwind. */
+    --background: #262626;
+  }
 }
 </style>
