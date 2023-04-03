@@ -140,10 +140,20 @@ ion-item-divider {
 }
 
 ion-datetime {
-  /* neutral-800 from Tailwind. */
-  --background: #262626;
-  --background-rgb: 38, 38, 38;
-  /* neutral-700 from Tailwind. Sets the picker highlight. */
-  --ion-color-step-150: #404040;
+  /* neutral-200 from Tailwind. */
+  --background: #e5e5e5;
+  --background-rgb: 229, 229, 229;
+  /* neutral-100 from Tailwind. Sets the picker highlight. */
+  --ion-color-step-150: #f5f5f5;
+}
+
+@media (prefers-color-scheme: dark) {
+  ion-datetime {
+    /* neutral-800 from Tailwind. */
+    --background: #262626;
+    --background-rgb: 38, 38, 38;
+    /* neutral-700 from Tailwind. Sets the picker highlight. */
+    --ion-color-step-150: #404040;
+  }
 }
 </style>
