@@ -49,7 +49,8 @@ function addSet() {
         type="number"
         v-model="set[field]"
         @change="emit('setsChanged')"
-        class="max-w-full px-2 py-1 text-center rounded-lg bg-neutral-700"
+        class="max-w-full px-2 py-1 text-center rounded-lg bg-neutral-200
+          dark:bg-neutral-700"
       />
       <div v-else>{{ set[field] }}</div>
     </SetTable>
@@ -58,8 +59,8 @@ function addSet() {
   <button
     v-if="history"
     @click="addSet"
-    class="p-2 w-full font-bold text-blue-500 border-t border-neutral-600
-      button-flex"
+    class="p-2 w-full font-bold text-blue-500 border-t button-flex
+      border-neutral-200 dark:border-neutral-600"
   >
     <IonIcon :icon="addOutline" class="w-5 h-5" />
     Add Set

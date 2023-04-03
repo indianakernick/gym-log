@@ -126,7 +126,9 @@ async function deleteLastSet() {
 
 <template>
   <div class="mx-3 card">
-    <div class="p-2 border-b border-neutral-600 flex justify-between">
+    <div class="p-2 border-b flex justify-between border-neutral-200
+      dark:border-neutral-600"
+    >
       <h2 class="font-bold">{{ EXERCISE_TYPE[exercise.type] }}</h2>
       <Menu
         v-if="editingWorkout"
@@ -136,7 +138,10 @@ async function deleteLastSet() {
       />
     </div>
 
-    <div v-if="historyIdx === -1" class="p-2 border-b border-neutral-600">
+    <div
+      v-if="historyIdx === -1"
+      class="p-2 border-b border-neutral-200 dark:border-neutral-600"
+    >
       <i>You've never done this exercise before</i>
     </div>
 
@@ -144,7 +149,7 @@ async function deleteLastSet() {
       <SequenceNavigator
         v-model="historyIdx"
         :length="history.length"
-        class="p-2 border-b border-neutral-600"
+        class="p-2 border-b border-neutral-200 dark:border-neutral-600"
       >
         <!--
           The only way for a historic workout to not have a start_time is if
@@ -156,7 +161,10 @@ async function deleteLastSet() {
         <i v-else>Not started</i>
       </SequenceNavigator>
 
-      <div v-if="historyIdx !== -1" class="border-b border-neutral-600">
+      <div
+        v-if="historyIdx !== -1"
+        class="border-b border-neutral-200 dark:border-neutral-600"
+      >
         <ExerciseSetEdit :exercise="history[historyIdx]" />
       </div>
     </template>
