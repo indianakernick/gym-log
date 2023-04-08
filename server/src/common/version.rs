@@ -1,8 +1,20 @@
 use std::ops::ControlFlow;
 use aws_sdk_dynamodb::{
-    error::{TransactWriteItemsError, TransactWriteItemsErrorKind},
-    model::{TransactWriteItem, AttributeValue, Update, ReturnValuesOnConditionCheckFailure, put, Put, CancellationReason, ConditionCheck},
-    types::SdkError, client::fluent_builders::TransactWriteItems,
+    error::SdkError,
+    operation::transact_write_items::{
+        builders::TransactWriteItemsFluentBuilder,
+        TransactWriteItemsError,
+    },
+    types::{
+        AttributeValue,
+        builders::PutBuilder,
+        CancellationReason,
+        ConditionCheck,
+        Put,
+        ReturnValuesOnConditionCheckFailure,
+        TransactWriteItem,
+        Update,
+    },
 };
 use lambda_http::{Request, http::StatusCode};
 use serde::Deserialize;
@@ -77,7 +89,7 @@ pub async fn version_modify<'r, T, P>(
 ) -> super::Result
     where
         T: Deserialize<'r>,
-        P: FnOnce(TransactWriteItems, T, String, String) -> TransactWriteItems,
+        P: FnOnce(TransactWriteItemsFluentBuilder, T, String, String) -> TransactWriteItemsFluentBuilder,
 {
     version_modify_checked(req, patch, |_| ControlFlow::Continue(())).await
 }
@@ -89,7 +101,7 @@ pub async fn version_modify_checked<'r, T, P, C>(
 ) -> super::Result
     where
         T: Deserialize<'r>,
-        P: FnOnce(TransactWriteItems, T, String, String) -> TransactWriteItems,
+        P: FnOnce(TransactWriteItemsFluentBuilder, T, String, String) -> TransactWriteItemsFluentBuilder,
         C: FnOnce(&[CancellationReason]) -> ControlFlow<super::Result, ()>,
 {
     let body = match super::parse_request_json::<VersionModifyReq<T>>(req) {
@@ -110,8 +122,8 @@ pub async fn version_modify_checked<'r, T, P, C>(
 pub fn version_put_item<T, P>(
     item_id: String,
     patch: P,
-) -> impl FnOnce(TransactWriteItems, T, String, String) -> TransactWriteItems
-    where P: FnOnce(put::Builder, T) -> put::Builder
+) -> impl FnOnce(TransactWriteItemsFluentBuilder, T, String, String) -> TransactWriteItemsFluentBuilder
+    where P: FnOnce(PutBuilder, T) -> PutBuilder
 {
     move |builder, item, user_id, new_version| {
         let put = Put::builder()
@@ -128,11 +140,11 @@ pub fn version_put_item<T, P>(
 }
 
 pub fn version_delete_item(
-    builder: TransactWriteItems,
+    builder: TransactWriteItemsFluentBuilder,
     user_id: String,
     item_id: String,
     new_version: String,
-) -> TransactWriteItems {
+) -> TransactWriteItemsFluentBuilder {
     builder.transact_items(TransactWriteItem::builder()
         .update(Update::builder()
             .table_name(super::TABLE_USER)
@@ -147,10 +159,10 @@ pub fn version_delete_item(
 }
 
 pub fn check_exists(
-    builder: TransactWriteItems,
+    builder: TransactWriteItemsFluentBuilder,
     user_id: String,
     item_id: String,
-) -> TransactWriteItems {
+) -> TransactWriteItemsFluentBuilder {
     builder.transact_items(TransactWriteItem::builder()
         .condition_check(ConditionCheck::builder()
             .table_name(super::TABLE_USER)
@@ -168,7 +180,7 @@ pub async fn version_apply<P, C>(
     check: C,
 ) -> super::Result
     where
-        P: FnOnce(TransactWriteItems, String, String) -> TransactWriteItems,
+        P: FnOnce(TransactWriteItemsFluentBuilder, String, String) -> TransactWriteItemsFluentBuilder,
         C: FnOnce(&[CancellationReason]) -> ControlFlow<super::Result, ()>,
 {
     let db = super::get_db_client();
@@ -216,7 +228,7 @@ pub async fn version_apply<P, C>(
 
 fn cancellation_reasons(error: &SdkError<TransactWriteItemsError>) -> Option<&[CancellationReason]> {
     if let SdkError::ServiceError(service_error) = error {
-        if let TransactWriteItemsErrorKind::TransactionCanceledException(cancel) = &service_error.err().kind {
+        if let TransactWriteItemsError::TransactionCanceledException(cancel) = &service_error.err() {
             return cancel.cancellation_reasons();
         }
     }

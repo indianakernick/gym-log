@@ -1,4 +1,4 @@
-use aws_sdk_dynamodb::model::AttributeValue;
+use aws_sdk_dynamodb::types::AttributeValue;
 use once_cell::sync::OnceCell;
 
 static CLIENT: OnceCell<aws_sdk_dynamodb::Client> = OnceCell::new();

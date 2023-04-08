@@ -1,5 +1,5 @@
 use std::ops::ControlFlow;
-use aws_sdk_dynamodb::model::{TransactWriteItem, Update, AttributeValue};
+use aws_sdk_dynamodb::types::{TransactWriteItem, Update, AttributeValue};
 use lambda_http::{Request, RequestExt, http::StatusCode};
 use crate::common;
 

@@ -1,5 +1,5 @@
 use std::{collections::HashMap, borrow::Cow};
-use aws_sdk_dynamodb::{model::{AttributeValue, Select}, Client};
+use aws_sdk_dynamodb::{types::{AttributeValue, Select}, Client};
 use lambda_http::{Request, Response, http::StatusCode, Error, RequestExt};
 use tokio_stream::StreamExt;
 use crate::common;

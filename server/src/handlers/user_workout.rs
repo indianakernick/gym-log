@@ -1,4 +1,4 @@
-use aws_sdk_dynamodb::model::AttributeValue;
+use aws_sdk_dynamodb::types::AttributeValue;
 use lambda_http::{Request, RequestExt, http::StatusCode};
 use crate::common;
 
