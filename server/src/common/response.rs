@@ -10,6 +10,14 @@ pub fn empty_response(status: StatusCode) -> Result {
         .map_err(|e| e.into())
 }
 
+pub fn retry_later_response(delay_s: u64) -> Result {
+    Response::builder()
+        .status(StatusCode::SERVICE_UNAVAILABLE)
+        .header("Retry-After", delay_s)
+        .body(().into())
+        .map_err(|e| e.into())
+}
+
 pub fn json_response<T: Serialize>(status: StatusCode, value: T) -> Result {
     Response::builder()
         .status(status)

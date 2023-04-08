@@ -11,7 +11,7 @@ pub const MAX_NOTES_LEN: usize = 10000;
 #[derive(Serialize)]
 pub struct User<'a> {
     /// The current version of the user's data.
-    pub version: u32,
+    pub version: u64,
     #[serde(borrow)]
     pub measurement_sets: Vec<MeasurementSet<'a>>,
     #[serde(borrow)]
@@ -175,4 +175,14 @@ impl<'de: 'a, 'a, const MAX_LEN: usize> Deserialize<'de> for MaxLenStr<'a, MAX_L
             Err(serde::de::Error::invalid_length(s.len(), &msg.as_str()))
         }
     }
+}
+
+pub const COLLECTION_LEN: usize = u32::ilog10(u32::MAX) as usize;
+
+pub fn get_collection_prefix(collection: u32) -> String {
+    format!("{collection:0COLLECTION_LEN$}#")
+}
+
+pub fn collection_from_version(version: u64) -> u32 {
+    (version >> 32) as u32
 }

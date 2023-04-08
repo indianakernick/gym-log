@@ -16,6 +16,9 @@ pub async fn delete(req: Request) -> common::Result {
         Ok(b) => b.version,
         Err(r) => return r,
     };
+    let collection_prefix = common::get_collection_prefix(
+        common::collection_from_version(client_version)
+    );
 
     common::version_apply(
         &req,
@@ -24,13 +27,13 @@ pub async fn delete(req: Request) -> common::Result {
             builder = common::check_exists(
                 builder,
                 user_id.clone(),
-                format!("WORKOUT#{workout_id}"),
+                format!("{collection_prefix}WORKOUT#{workout_id}"),
             );
 
             common::version_delete_item(
                 builder,
                 user_id,
-                format!("WORKOUT#{workout_id}#{exercise_id}"),
+                format!("{collection_prefix}WORKOUT#{workout_id}#{exercise_id}"),
                 new_version,
             )
         },
@@ -57,10 +60,25 @@ pub async fn put(req: Request) -> common::Result {
         return e;
     }
 
-    common::version_modify_checked(
+    let body = match common::parse_request_json::<common::VersionModifyReq<_>>(&req) {
+        Ok(b) => b,
+        Err(e) => return e,
+    };
+    let collection_prefix = common::get_collection_prefix(
+        common::collection_from_version(body.version)
+    );
+
+    common::version_apply(
         &req,
-        |mut builder, exercise: common::Exercise, user_id, new_version| {
-            builder = common::check_exists(builder, user_id.clone(), format!("WORKOUT#{workout_id}"));
+        body.version,
+        |mut builder, user_id, new_version| {
+            builder = common::check_exists(
+                builder,
+                user_id.clone(),
+                format!("{collection_prefix}WORKOUT#{workout_id}"),
+            );
+
+            let exercise: common::Exercise = body.item;
 
             let sets = exercise.sets.0.iter()
                 .map(|set| {
@@ -92,11 +110,13 @@ pub async fn put(req: Request) -> common::Result {
                 })
                 .collect();
 
+            let exercise_key = format!("{collection_prefix}WORKOUT#{workout_id}#{exercise_id}");
+
             builder.transact_items(TransactWriteItem::builder()
                 .put(Put::builder()
                     .table_name(common::TABLE_USER)
                     .item("UserId", AttributeValue::S(user_id))
-                    .item("Id", AttributeValue::S(format!("WORKOUT#{workout_id}#{exercise_id}")))
+                    .item("Id", AttributeValue::S(exercise_key))
                     .item("ModifiedVersion", AttributeValue::N(new_version))
                     .item("Order", AttributeValue::N(exercise.order.to_string()))
                     .item("Type", AttributeValue::S(exercise.r#type.0.into()))

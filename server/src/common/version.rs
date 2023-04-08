@@ -48,24 +48,28 @@ use serde::Deserialize;
 
 #[derive(Deserialize)]
 pub struct VersionDeleteReq {
-    pub version: u32,
+    pub version: u64,
 }
 
 #[derive(Deserialize)]
 pub struct VersionModifyReq<T> {
-    pub version: u32,
+    pub version: u64,
     // Should we flatten here?
     pub item: T,
 }
 
 pub async fn version_delete(
     req: &Request,
-    item_id: String,
+    item_id_without_prefix: String,
 ) -> super::Result {
     let client_version = match super::parse_request_json::<VersionDeleteReq>(req) {
         Ok(b) => b.version,
         Err(r) => return r,
     };
+    let collection_prefix = super::get_collection_prefix(
+        super::collection_from_version(client_version)
+    );
+    let item_id = collection_prefix + &item_id_without_prefix;
 
     version_apply(
         req,
@@ -175,7 +179,7 @@ pub fn check_exists(
 
 pub async fn version_apply<P, C>(
     req: &Request,
-    client_version: u32,
+    client_version: u64,
     patch: P,
     check: C,
 ) -> super::Result
@@ -187,6 +191,10 @@ pub async fn version_apply<P, C>(
     let user_id = super::get_user_id(req);
     let new_version = (client_version + 1).to_string();
     let client_version = client_version.to_string();
+    let now = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .unwrap()
+        .as_secs();
 
     let builder = db.transact_write_items()
         .transact_items(TransactWriteItem::builder()
@@ -196,7 +204,11 @@ pub async fn version_apply<P, C>(
                 .key("Id", AttributeValue::S("VERSION".into()))
                 .expression_attribute_values(":clientVersion", AttributeValue::N(client_version.clone()))
                 .expression_attribute_values(":newVersion", AttributeValue::N(new_version.clone()))
-                .condition_expression("attribute_not_exists(Version) OR Version = :clientVersion")
+                .expression_attribute_values(":now", AttributeValue::N(now.to_string()))
+                .condition_expression(
+                    "(attribute_not_exists(Version) OR Version = :clientVersion) \
+                    AND (attribute_not_exists(LockedUntil) OR LockedUntil <= :now)"
+                )
                 .update_expression("SET Version = :newVersion")
                 .return_values_on_condition_check_failure(ReturnValuesOnConditionCheckFailure::AllOld)
                 .build())
@@ -212,6 +224,11 @@ pub async fn version_apply<P, C>(
                         let old_version = item["Version"].as_n().unwrap();
                         if old_version != &client_version {
                             return super::empty_response(StatusCode::CONFLICT);
+                        }
+
+                        let locked_until: u64 = super::as_number(&item["LockedUntil"]);
+                        if locked_until > now {
+                            return super::retry_later_response(locked_until - now);
                         }
                     }
                 }

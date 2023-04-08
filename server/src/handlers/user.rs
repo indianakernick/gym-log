@@ -1,6 +1,6 @@
 use std::{collections::HashMap, borrow::Cow};
 use aws_sdk_dynamodb::{types::{AttributeValue, Select}, Client};
-use lambda_http::{Request, Response, http::StatusCode, Error, RequestExt};
+use lambda_http::{Request, http::StatusCode, RequestExt};
 use tokio_stream::StreamExt;
 use crate::common;
 
@@ -10,51 +10,28 @@ pub async fn get(req: Request) -> common::Result {
     let query_map = req.query_string_parameters();
     let since_version = query_map.first("since");
 
-    let body = if let Some(version) = since_version {
+    let result = if let Some(version) = since_version {
         let version = match version.parse() {
             Ok(v) => v,
             Err(_) => return common::empty_response(StatusCode::BAD_REQUEST),
         };
-        if version == 0 {
-            get_all(db, user_id).await?
-        } else {
-            get_changed(db, user_id, version).await?
-        }
+        get_changed(db, user_id, version).await
     } else {
-        get_all(db, user_id).await?
+        get_snapshot(db, user_id).await
     };
 
-    Ok(Response::builder()
-        .status(StatusCode::OK)
-        .header("Content-Type", "application/json")
-        .body(body.into())
-        .map_err(Box::new)?)
+    result
 }
 
 const UUID_LEN: usize = 36;
 const DATE_LEN: usize = 10;
-const VERSION_LEN: usize = "VERSION".len();
-const MEASUREMENT_PREFIX_LEN: usize = "MEASUREMENT#".len();
+const MEASUREMENT_PREFIX_LEN: usize = common::COLLECTION_LEN + "#MEASUREMENT#".len();
 const MEASUREMENT_SET_LEN: usize = MEASUREMENT_PREFIX_LEN + DATE_LEN;
-const WORKOUT_PREFIX_LEN: usize = "WORKOUT#".len();
+const WORKOUT_PREFIX_LEN: usize = common::COLLECTION_LEN + "#WORKOUT#".len();
 const WORKOUT_LEN: usize = WORKOUT_PREFIX_LEN + UUID_LEN;
 const EXERCISE_LEN: usize = WORKOUT_PREFIX_LEN + 2 * UUID_LEN + 1;
 
-async fn get_all(db: &Client, user_id: String) -> Result<String, Error> {
-    let items = db.query()
-        .table_name(common::TABLE_USER)
-        .key_condition_expression("UserId = :userId")
-        .expression_attribute_values(":userId", AttributeValue::S(user_id))
-        .into_paginator()
-        .items()
-        .send()
-        .collect::<Result<Vec<_>, _>>()
-        .await?;
-
-    Ok(serde_json::to_string(&to_user(0, &items)).unwrap())
-}
-
-async fn get_changed(db: &Client, user_id: String, client_version: u32) -> Result<String, Error> {
+async fn get_changed(db: &Client, user_id: String, client_version: u64) -> common::Result {
     // Get the version first. The objects that we return may have a greater
     // modified version than this if they are modified while we're querying
     // them but that's OK. The client knows that it has at least this version
@@ -72,6 +49,7 @@ async fn get_changed(db: &Client, user_id: String, client_version: u32) -> Resul
 
     let version = get_version.item()
         .map_or(0, |i| common::as_number(&i["Version"]));
+    let collection = common::collection_from_version(version);
 
     // If the client is requesting changes after the current version, then we
     // know that there won't be anything so we can skip the extra queries and
@@ -85,7 +63,7 @@ async fn get_changed(db: &Client, user_id: String, client_version: u32) -> Resul
         // number. Reaching this branch would end up being a 304 response with
         // the version in the ETag header.
 
-        return Ok(serde_json::to_string(&common::User {
+        return common::json_response(StatusCode::OK, common::User {
             version,
             measurement_sets: Vec::new(),
             workouts: Vec::new(),
@@ -93,7 +71,7 @@ async fn get_changed(db: &Client, user_id: String, client_version: u32) -> Resul
             deleted_measurement_sets: Vec::new(),
             deleted_workouts: Vec::new(),
             deleted_exercises: Vec::new(),
-        }).unwrap());
+        });
     }
 
     // Query for items that were modified after the given version. There's an
@@ -104,8 +82,11 @@ async fn get_changed(db: &Client, user_id: String, client_version: u32) -> Resul
         .table_name(common::TABLE_USER)
         .index_name(common::INDEX_MODIFIED_VERSION)
         .key_condition_expression("UserId = :userId AND ModifiedVersion > :clientVersion")
-        .expression_attribute_values(":userId", AttributeValue::S(user_id))
-        .expression_attribute_values(":clientVersion", AttributeValue::N(client_version.to_string()))
+        .expression_attribute_values(":userId", AttributeValue::S(user_id.clone()))
+        .expression_attribute_values(
+            ":clientVersion",
+            AttributeValue::N(client_version.to_string()),
+        )
         .select(Select::AllAttributes)
         .into_paginator()
         .items()
@@ -113,10 +94,86 @@ async fn get_changed(db: &Client, user_id: String, client_version: u32) -> Resul
         .collect::<Result<Vec<_>, _>>()
         .await?;
 
-    Ok(serde_json::to_string(&to_user(version, &items)).unwrap())
+    // Now that we've queried for all of the items, the version is checked
+    // again.
+
+    let get_version = db.get_item()
+        .table_name(common::TABLE_USER)
+        .key("UserId", AttributeValue::S(user_id))
+        .key("Id", AttributeValue::S("VERSION".into()))
+        .send()
+        .await?;
+
+    let new_version = get_version.item()
+        .map_or(0, |i| common::as_number(&i["Version"]));
+    let new_collection = common::collection_from_version(new_version);
+
+    // If the collection changed, then an import completed while we were
+    // reading. So what we read was probably in the process of being deleted
+    // while we were reading it. This means what we've read is probably
+    // incomplete and shouldn't be trusted. We should tell the client to try
+    // again.
+
+    // If the version changed, then we have a mix of the state of the previous
+    // version and the state of the new version. This is fine when fetching the
+    // changes but not for exporting a full snapshot.
+
+    if new_collection != collection {
+        common::retry_later_response(0)
+    } else {
+        common::json_response(StatusCode::OK, to_user(version, false, &items))
+    }
 }
 
-fn to_user(mut version: u32, items: &Vec<HashMap<String, AttributeValue>>) -> common::User {
+async fn get_snapshot(db: &Client, user_id: String) -> common::Result {
+    let get_version = db.get_item()
+        .table_name(common::TABLE_USER)
+        .key("UserId", AttributeValue::S(user_id.clone()))
+        .key("Id", AttributeValue::S("VERSION".into()))
+        .send()
+        .await?;
+
+    let version = get_version.item()
+        .map_or(0, |i| common::as_number(&i["Version"]));
+    let collection = common::collection_from_version(version);
+
+    let items = db.query()
+        .table_name(common::TABLE_USER)
+        .key_condition_expression("UserId = :userId AND begins_with(Id, :collection)")
+        .expression_attribute_values(":userId", AttributeValue::S(user_id.clone()))
+        .expression_attribute_values(
+            ":collection",
+            AttributeValue::S(common::get_collection_prefix(collection)),
+        )
+        .select(Select::AllAttributes)
+        .into_paginator()
+        .items()
+        .send()
+        .collect::<Result<Vec<_>, _>>()
+        .await?;
+
+    let get_version = db.get_item()
+        .table_name(common::TABLE_USER)
+        .key("UserId", AttributeValue::S(user_id.clone()))
+        .key("Id", AttributeValue::S("VERSION".into()))
+        .send()
+        .await?;
+
+    let new_version = get_version.item()
+        .map_or(0, |i| common::as_number(&i["Version"]));
+
+    if new_version != version {
+        common::retry_later_response(0)
+    } else {
+        common::json_response(StatusCode::OK, to_user(version, true, &items))
+    }
+}
+
+fn to_user(
+    version: u64,
+    snapshot: bool,
+    items: &Vec<HashMap<String, AttributeValue>>,
+) -> common::User {
     let mut measurement_sets = Vec::new();
     let mut workouts = Vec::new();
     let mut exercises = Vec::new();
@@ -124,15 +181,24 @@ fn to_user(mut version: u32, items: &Vec<HashMap<String, AttributeValue>>) -> co
     let mut deleted_workouts = Vec::new();
     let mut deleted_exercises = Vec::new();
 
+    let collection = common::get_collection_prefix(
+        common::collection_from_version(version)
+    );
+
     for item in items.iter() {
         let sk = item["Id"].as_s().unwrap();
-        let deleted = item.contains_key("Deleted");
+        let deleted = !snapshot && item.contains_key("Deleted");
+
+        // If there is an import in-progress, then there could be two
+        // collections so we'll need to filter them. When fetching items for a
+        // snapshot, the primary index is used so we don't need to filter it
+        // here.
+
+        if !snapshot && !sk.starts_with(&collection) {
+            continue;
+        }
 
         match sk.len() {
-            VERSION_LEN => {
-                version = common::as_number(&item["Version"]);
-            }
-
             MEASUREMENT_SET_LEN => {
                 let measurement_id = &sk[MEASUREMENT_PREFIX_LEN..];
                 if deleted {

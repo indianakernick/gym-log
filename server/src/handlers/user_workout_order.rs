@@ -13,17 +13,30 @@ pub async fn put(req: Request) -> common::Result {
         return e;
     }
 
-    common::version_modify_checked(
+    let body = match common::parse_request_json::<common::VersionModifyReq<_>>(&req) {
+        Ok(b) => b,
+        Err(e) => return e,
+    };
+    let collection_prefix = common::get_collection_prefix(
+        common::collection_from_version(body.version)
+    );
+
+    common::version_apply(
         &req,
-        |mut builder, exercises: Exercises, user_id, new_version| {
-            builder = common::check_exists(builder, user_id.clone(), format!("WORKOUT#{workout_id}"));
+        body.version,
+        |mut builder, user_id, new_version| {
+            let workout_key = format!("{collection_prefix}WORKOUT#{workout_id}");
+
+            builder = common::check_exists(builder, user_id.clone(), workout_key.clone());
+
+            let exercises: Exercises = body.item;
 
             for (i, exercise) in exercises.0.iter().map(|e| e.0).enumerate() {
                 builder = builder.transact_items(TransactWriteItem::builder()
                     .update(Update::builder()
                         .table_name(common::TABLE_USER)
                         .key("UserId", AttributeValue::S(user_id.clone()))
-                        .key("Id", AttributeValue::S(format!("WORKOUT#{workout_id}#{exercise}")))
+                        .key("Id", AttributeValue::S(format!("{workout_key}#{exercise}")))
                         .expression_attribute_names("#order", "Order")
                         .expression_attribute_values(":order", AttributeValue::N(i.to_string()))
                         .expression_attribute_values(":newVersion", AttributeValue::N(new_version.clone()))
