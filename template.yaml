@@ -235,6 +235,8 @@ Resources:
     Type: AWS::ApiGatewayV2::Deployment
     DependsOn:
      - ApiRouteUserGet
+     - ApiRouteUserSnapshotGet
+     - ApiRouteUserSnapshotPut
      - ApiRouteUserMeasurementDelete
      - ApiRouteUserMeasurementPut
      - ApiRouteUserWorkoutDelete
@@ -283,6 +285,30 @@ Resources:
       AuthorizationType: JWT
       AuthorizerId: !Ref ApiAuthorizer
       RouteKey: GET /user
+      Target: !Join
+        - /
+        - - integrations
+          - !Ref ApiIntegrationProxy
+
+  ApiRouteUserSnapshotGet:
+    Type: AWS::ApiGatewayV2::Route
+    Properties:
+      ApiId: !Ref Api
+      AuthorizationType: JWT
+      AuthorizerId: !Ref ApiAuthorizer
+      RouteKey: GET /user/snapshot
+      Target: !Join
+        - /
+        - - integrations
+          - !Ref ApiIntegrationProxy
+
+  ApiRouteUserSnapshotPut:
+    Type: AWS::ApiGatewayV2::Route
+    Properties:
+      ApiId: !Ref Api
+      AuthorizationType: JWT
+      AuthorizerId: !Ref ApiAuthorizer
+      RouteKey: PUT /user/snapshot
       Target: !Join
         - /
         - - integrations

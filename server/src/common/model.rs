@@ -1,8 +1,6 @@
 use std::{collections::HashMap, borrow::Cow};
 use serde::{Serialize, Deserialize};
 
-pub const TABLE_USER: &str = "gym-log.User";
-pub const INDEX_MODIFIED_VERSION: &str = "LSI-ModifiedVersion";
 pub const MAX_EXERCISES: usize = 25;
 pub const MAX_SETS: usize = 25;
 pub const MAX_TYPE_LEN: usize = 100;

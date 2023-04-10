@@ -1,26 +1,8 @@
 use std::{collections::HashMap, borrow::Cow};
 use aws_sdk_dynamodb::types::AttributeValue;
-use once_cell::sync::OnceCell;
-use super::{MeasurementSet, MaxLenStr, Workout, Exercise, MaxLenVec, Uuid, Set};
 
-static CLIENT: OnceCell<aws_sdk_dynamodb::Client> = OnceCell::new();
-
-pub fn get_db_client() -> &'static aws_sdk_dynamodb::Client {
-    CLIENT.get().unwrap()
-}
-
-pub async fn init_db_client() {
-    let config = aws_config::load_from_env().await;
-    CLIENT.set(aws_sdk_dynamodb::Client::new(&config)).unwrap();
-}
-
-pub fn as_number<N>(attribute: &AttributeValue) -> N
-    where
-        N: std::str::FromStr,
-        <N as std::str::FromStr>::Err: std::fmt::Debug,
-{
-    attribute.as_n().unwrap().parse().unwrap()
-}
+pub const TABLE_USER: &str = "gym-log.User";
+pub const INDEX_MODIFIED_VERSION: &str = "LSI-ModifiedVersion";
 
 pub const COLLECTION_LEN: usize = u32::ilog10(u32::MAX) as usize;
 
@@ -42,7 +24,8 @@ const EXERCISE_LEN: usize = WORKOUT_PREFIX_LEN + 2 * UUID_LEN + 1;
 
 pub fn db_to_user(
     version: u64,
-    snapshot: bool,
+    include_deleted: bool,
+    filter_collection: bool,
     items: &Vec<HashMap<String, AttributeValue>>,
 ) -> super::User {
     let mut measurement_sets = Vec::new();
@@ -58,14 +41,14 @@ pub fn db_to_user(
 
     for item in items.iter() {
         let sk = item["Id"].as_s().unwrap();
-        let deleted = !snapshot && item.contains_key("Deleted");
+        let deleted = include_deleted && item.contains_key("Deleted");
 
         // If there is an import in-progress, then there could be two
         // collections so we'll need to filter them. When fetching items for a
         // snapshot, the primary index is used so we don't need to filter it
         // here.
 
-        if !snapshot && !sk.starts_with(&collection) {
+        if filter_collection && !sk.starts_with(&collection) {
             continue;
         }
 
@@ -115,12 +98,12 @@ pub fn db_to_user(
 fn to_measurement_set<'a>(
     date: &'a str,
     item: &'a HashMap<String, AttributeValue>,
-) -> MeasurementSet<'a> {
-    MeasurementSet {
+) -> super::MeasurementSet<'a> {
+    super::MeasurementSet {
         date,
-        notes: MaxLenStr(Cow::Borrowed(item["Notes"].as_s().unwrap())),
+        notes: super::MaxLenStr(Cow::Borrowed(item["Notes"].as_s().unwrap())),
         measurements: item["Measurements"].as_m().unwrap().iter()
-            .map(|(k, v)| (k.as_str(), as_number(v)))
+            .map(|(k, v)| (k.as_str(), super::as_number(v)))
             .collect()
     }
 }
@@ -128,39 +111,39 @@ fn to_measurement_set<'a>(
 fn to_workout<'a>(
     workout_id: &'a str,
     item: &'a HashMap<String, AttributeValue>,
-) -> Workout<'a> {
-    Workout {
+) -> super::Workout<'a> {
+    super::Workout {
         workout_id,
         start_time: item.get("StartTime").map(|a| a.as_s().unwrap().as_str()),
         finish_time: item.get("FinishTime").map(|a| a.as_s().unwrap().as_str()),
-        notes: MaxLenStr(Cow::Borrowed(item["Notes"].as_s().unwrap())),
+        notes: super::MaxLenStr(Cow::Borrowed(item["Notes"].as_s().unwrap())),
     }
 }
 
 fn to_exercise<'a>(
     workout_exercise_id: &'a str,
     item: &'a HashMap<String, AttributeValue>,
-) -> Exercise<'a> {
-    Exercise {
+) -> super::Exercise<'a> {
+    super::Exercise {
         workout_exercise_id,
-        order: as_number(&item["Order"]),
-        r#type: MaxLenStr(Cow::Borrowed(item["Type"].as_s().unwrap())),
-        notes: MaxLenStr(Cow::Borrowed(item["Notes"].as_s().unwrap())),
-        sets: MaxLenVec(to_sets(item["Sets"].as_l().unwrap())),
+        order: super::as_number(&item["Order"]),
+        r#type: super::MaxLenStr(Cow::Borrowed(item["Type"].as_s().unwrap())),
+        notes: super::MaxLenStr(Cow::Borrowed(item["Notes"].as_s().unwrap())),
+        sets: super::MaxLenVec(to_sets(item["Sets"].as_l().unwrap())),
     }
 }
 
-fn to_sets(sets: &Vec<AttributeValue>) -> Vec<Set> {
+fn to_sets(sets: &Vec<AttributeValue>) -> Vec<super::Set> {
     sets.iter()
         .map(|set| {
             let map = set.as_m().unwrap();
-            Set {
-                set_id: Uuid(map["SetId"].as_s().unwrap().as_str()),
-                repetitions: map.get("Repetitions").map(as_number),
-                resistance: map.get("Resistance").map(as_number),
-                speed: map.get("Speed").map(as_number),
-                distance: map.get("Distance").map(as_number),
-                duration: map.get("Duration").map(as_number),
+            super::Set {
+                set_id: super::Uuid(map["SetId"].as_s().unwrap().as_str()),
+                repetitions: map.get("Repetitions").map(super::as_number),
+                resistance: map.get("Resistance").map(super::as_number),
+                speed: map.get("Speed").map(super::as_number),
+                distance: map.get("Distance").map(super::as_number),
+                duration: map.get("Duration").map(super::as_number),
             }
         })
         .collect()

@@ -1,10 +1,6 @@
 use std::ops::ControlFlow;
 use aws_sdk_dynamodb::{
-    error::SdkError,
-    operation::transact_write_items::{
-        builders::TransactWriteItemsFluentBuilder,
-        TransactWriteItemsError,
-    },
+    operation::transact_write_items::builders::TransactWriteItemsFluentBuilder,
     types::{
         AttributeValue,
         builders::PutBuilder,
@@ -215,7 +211,7 @@ pub async fn version_apply<P, C>(
     match result {
         Ok(_) => super::empty_response(StatusCode::OK),
         Err(e) => {
-            if let Some(reasons) = cancellation_reasons(&e) {
+            if let Some(reasons) = super::transact_write_cancellation_reasons(&e) {
                 if reasons[0].code() == Some("ConditionalCheckFailed") {
                     if let Some(item) = reasons[0].item() {
                         let old_version = item["Version"].as_n().unwrap();
@@ -225,7 +221,9 @@ pub async fn version_apply<P, C>(
 
                         let locked_until: u64 = super::as_number(&item["LockedUntil"]);
                         if locked_until > now {
-                            return super::retry_later_response(locked_until - now);
+                            return super::retry_later_response(
+                                locked_until.saturating_sub(super::now())
+                            );
                         }
                     }
                 }
@@ -238,13 +236,4 @@ pub async fn version_apply<P, C>(
             Err(e.into())
         }
     }
-}
-
-fn cancellation_reasons(error: &SdkError<TransactWriteItemsError>) -> Option<&[CancellationReason]> {
-    if let SdkError::ServiceError(service_error) = error {
-        if let TransactWriteItemsError::TransactionCanceledException(cancel) = &service_error.err() {
-            return cancel.cancellation_reasons();
-        }
-    }
-    None
 }
