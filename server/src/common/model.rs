@@ -43,6 +43,8 @@ pub struct MeasurementSet<'a> {
     pub notes: MaxLenStr<'a, MAX_NOTES_LEN>,
     /// The measurements captured on this day as a map from type to value.
     pub measurements: HashMap<&'a str, f64>,
+    #[serde(skip)]
+    pub modified_version: u64,
 }
 
 #[derive(Serialize, Deserialize)]
@@ -59,6 +61,8 @@ pub struct Workout<'a> {
     /// Any user provided notes associated with the workout.
     #[serde(borrow)]
     pub notes: MaxLenStr<'a, MAX_NOTES_LEN>,
+    #[serde(skip)]
+    pub modified_version: u64,
 }
 
 #[derive(Serialize, Deserialize)]
@@ -79,6 +83,8 @@ pub struct Exercise<'a> {
     /// The sets within the exercise.
     #[serde(borrow)]
     pub sets: MaxLenVec<Set<'a>, MAX_SETS>,
+    #[serde(skip)]
+    pub modified_version: u64,
 }
 
 #[derive(Serialize, Deserialize)]

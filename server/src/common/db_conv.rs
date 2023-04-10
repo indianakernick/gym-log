@@ -14,6 +14,10 @@ pub fn collection_from_version(version: u64) -> u32 {
     (version >> 32) as u32
 }
 
+pub fn version_from_collection(collection: u32) -> u64 {
+    (collection as u64) << 32
+}
+
 const UUID_LEN: usize = 36;
 const DATE_LEN: usize = 10;
 const MEASUREMENT_PREFIX_LEN: usize = super::COLLECTION_LEN + "#MEASUREMENT#".len();
@@ -58,7 +62,7 @@ pub fn db_to_user(
                 if deleted {
                     deleted_measurement_sets.push(measurement_id);
                 } else {
-                    measurement_sets.push(to_measurement_set(measurement_id, item));
+                    measurement_sets.push(db_to_measurement_set(measurement_id, item));
                 }
             }
 
@@ -67,7 +71,7 @@ pub fn db_to_user(
                 if deleted {
                     deleted_workouts.push(workout_id);
                 } else {
-                    workouts.push(to_workout(workout_id, item));
+                    workouts.push(db_to_workout(workout_id, item));
                 }
             }
 
@@ -76,7 +80,7 @@ pub fn db_to_user(
                 if deleted {
                     deleted_exercises.push(workout_exercise_id);
                 } else {
-                    exercises.push(to_exercise(workout_exercise_id, item));
+                    exercises.push(db_to_exercise(workout_exercise_id, item));
                 }
             }
 
@@ -95,7 +99,7 @@ pub fn db_to_user(
     }
 }
 
-fn to_measurement_set<'a>(
+fn db_to_measurement_set<'a>(
     date: &'a str,
     item: &'a HashMap<String, AttributeValue>,
 ) -> super::MeasurementSet<'a> {
@@ -104,11 +108,12 @@ fn to_measurement_set<'a>(
         notes: super::MaxLenStr(Cow::Borrowed(item["Notes"].as_s().unwrap())),
         measurements: item["Measurements"].as_m().unwrap().iter()
             .map(|(k, v)| (k.as_str(), super::as_number(v)))
-            .collect()
+            .collect(),
+        modified_version: super::as_number(&item["ModifiedVersion"]),
     }
 }
 
-fn to_workout<'a>(
+fn db_to_workout<'a>(
     workout_id: &'a str,
     item: &'a HashMap<String, AttributeValue>,
 ) -> super::Workout<'a> {
@@ -117,10 +122,11 @@ fn to_workout<'a>(
         start_time: item.get("StartTime").map(|a| a.as_s().unwrap().as_str()),
         finish_time: item.get("FinishTime").map(|a| a.as_s().unwrap().as_str()),
         notes: super::MaxLenStr(Cow::Borrowed(item["Notes"].as_s().unwrap())),
+        modified_version: super::as_number(&item["ModifiedVersion"]),
     }
 }
 
-fn to_exercise<'a>(
+fn db_to_exercise<'a>(
     workout_exercise_id: &'a str,
     item: &'a HashMap<String, AttributeValue>,
 ) -> super::Exercise<'a> {
@@ -129,11 +135,12 @@ fn to_exercise<'a>(
         order: super::as_number(&item["Order"]),
         r#type: super::MaxLenStr(Cow::Borrowed(item["Type"].as_s().unwrap())),
         notes: super::MaxLenStr(Cow::Borrowed(item["Notes"].as_s().unwrap())),
-        sets: super::MaxLenVec(to_sets(item["Sets"].as_l().unwrap())),
+        sets: super::MaxLenVec(db_to_sets(item["Sets"].as_l().unwrap())),
+        modified_version: super::as_number(&item["ModifiedVersion"]),
     }
 }
 
-fn to_sets(sets: &Vec<AttributeValue>) -> Vec<super::Set> {
+fn db_to_sets(sets: &Vec<AttributeValue>) -> Vec<super::Set> {
     sets.iter()
         .map(|set| {
             let map = set.as_m().unwrap();
