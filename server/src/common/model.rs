@@ -8,9 +8,10 @@ pub const MAX_SETS: usize = 25;
 pub const MAX_TYPE_LEN: usize = 100;
 pub const MAX_NOTES_LEN: usize = 10000;
 
-#[derive(Serialize)]
+#[derive(Serialize, Deserialize)]
 pub struct User<'a> {
     /// The current version of the user's data.
+    #[serde(skip_deserializing)]
     pub version: u64,
     #[serde(borrow)]
     pub measurement_sets: Vec<MeasurementSet<'a>>,
@@ -20,12 +21,15 @@ pub struct User<'a> {
     pub exercises: Vec<Exercise<'a>>,
     /// A list of measurements that were deleted since the given version.
     #[serde(borrow)]
+    #[serde(skip_deserializing)]
     pub deleted_measurement_sets: Vec<&'a str>,
     /// A list of workouts that were deleted since the given version.
     #[serde(borrow)]
+    #[serde(skip_deserializing)]
     pub deleted_workouts: Vec<&'a str>,
     /// A list of exercises that were deleted since the given version.
     #[serde(borrow)]
+    #[serde(skip_deserializing)]
     pub deleted_exercises: Vec<&'a str>,
 }
 
@@ -175,14 +179,4 @@ impl<'de: 'a, 'a, const MAX_LEN: usize> Deserialize<'de> for MaxLenStr<'a, MAX_L
             Err(serde::de::Error::invalid_length(s.len(), &msg.as_str()))
         }
     }
-}
-
-pub const COLLECTION_LEN: usize = u32::ilog10(u32::MAX) as usize;
-
-pub fn get_collection_prefix(collection: u32) -> String {
-    format!("{collection:0COLLECTION_LEN$}#")
-}
-
-pub fn collection_from_version(version: u64) -> u32 {
-    (version >> 32) as u32
 }

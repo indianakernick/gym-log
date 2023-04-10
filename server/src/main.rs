@@ -10,6 +10,7 @@ async fn function_handler(req: Request) -> Result<Response<Body>, Error> {
 
     match req_ctx.route_key.as_deref() {
         Some("GET /user") => user::get(req).await,
+        Some("PUT /user") => user::put(req).await,
         Some("DELETE /user/measurement/{measurementId}") => user_measurement::delete(req).await,
         Some("PUT /user/measurement/{measurementId}") => user_measurement::put(req).await,
         Some("DELETE /user/workout/{workoutId}") => user_workout::delete(req).await,

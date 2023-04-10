@@ -191,10 +191,7 @@ pub async fn version_apply<P, C>(
     let user_id = super::get_user_id(req);
     let new_version = (client_version + 1).to_string();
     let client_version = client_version.to_string();
-    let now = std::time::SystemTime::now()
-        .duration_since(std::time::UNIX_EPOCH)
-        .unwrap()
-        .as_secs();
+    let now = super::now();
 
     let builder = db.transact_write_items()
         .transact_items(TransactWriteItem::builder()
