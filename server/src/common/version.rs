@@ -1,9 +1,8 @@
-use std::ops::ControlFlow;
+use std::{ops::ControlFlow, collections::HashMap};
 use aws_sdk_dynamodb::{
     operation::transact_write_items::builders::TransactWriteItemsFluentBuilder,
     types::{
         AttributeValue,
-        builders::PutBuilder,
         CancellationReason,
         ConditionCheck,
         Put,
@@ -54,9 +53,9 @@ pub struct VersionModifyReq<T> {
     pub item: T,
 }
 
-pub async fn version_delete(
+pub async fn version_delete<'a, T: super::ToDynamoDb<'a>>(
     req: &Request,
-    item_id_without_prefix: String,
+    id: &str,
 ) -> super::Result {
     let client_version = match super::parse_request_json::<VersionDeleteReq>(req) {
         Ok(b) => b.version,
@@ -65,13 +64,13 @@ pub async fn version_delete(
     let collection_prefix = super::get_collection_prefix(
         super::collection_from_version(client_version)
     );
-    let item_id = collection_prefix + &item_id_without_prefix;
+    let key = super::make_key_from_id::<T>(&collection_prefix, id);
 
     version_apply(
         req,
         client_version,
         |builder, user_id, new_version| {
-            version_delete_item(builder, user_id, item_id, new_version)
+            version_delete_item(builder, user_id, key, new_version.to_string())
         },
         |reasons| {
             if reasons[0].code() == Some("ConditionalCheckFailed") {
@@ -89,7 +88,7 @@ pub async fn version_modify<'r, T, P>(
 ) -> super::Result
     where
         T: Deserialize<'r>,
-        P: FnOnce(TransactWriteItemsFluentBuilder, T, String, String) -> TransactWriteItemsFluentBuilder,
+        P: FnOnce(TransactWriteItemsFluentBuilder, T, String, u64) -> TransactWriteItemsFluentBuilder,
 {
     version_modify_checked(req, patch, |_| ControlFlow::Continue(())).await
 }
@@ -101,7 +100,7 @@ pub async fn version_modify_checked<'r, T, P, C>(
 ) -> super::Result
     where
         T: Deserialize<'r>,
-        P: FnOnce(TransactWriteItemsFluentBuilder, T, String, String) -> TransactWriteItemsFluentBuilder,
+        P: FnOnce(TransactWriteItemsFluentBuilder, T, String, u64) -> TransactWriteItemsFluentBuilder,
         C: FnOnce(&[CancellationReason]) -> ControlFlow<super::Result, ()>,
 {
     let body = match super::parse_request_json::<VersionModifyReq<T>>(req) {
@@ -119,21 +118,29 @@ pub async fn version_modify_checked<'r, T, P, C>(
     ).await
 }
 
-pub fn version_put_item<T, P>(
-    item_id: String,
-    patch: P,
-) -> impl FnOnce(TransactWriteItemsFluentBuilder, T, String, String) -> TransactWriteItemsFluentBuilder
-    where P: FnOnce(PutBuilder, T) -> PutBuilder
-{
-    move |builder, item, user_id, new_version| {
-        let put = Put::builder()
-            .table_name(super::TABLE_USER)
-            .item("UserId", AttributeValue::S(user_id))
-            .item("Id", AttributeValue::S(item_id.clone()))
-            .item("ModifiedVersion", AttributeValue::N(new_version));
+pub fn version_put_item<'a, T: super::ToDynamoDb<'a>>(
+    id: String,
+) -> impl FnOnce(TransactWriteItemsFluentBuilder, T, String, u64) -> TransactWriteItemsFluentBuilder {
+    move |builder, entity, user_id, new_version| {
+        let mut item = HashMap::new();
+
+        let collection_prefix = super::get_collection_prefix(
+            super::collection_from_version(new_version)
+        );
+
+        item.insert("UserId".into(), AttributeValue::S(user_id));
+        item.insert("Id".into(), AttributeValue::S(
+            super::make_key_from_id::<T>(&collection_prefix, &id)
+        ));
+
+        entity.insert_dynamo_db(&mut item, Some(new_version));
+
         builder.transact_items(
             TransactWriteItem::builder()
-                .put(patch(put, item).build())
+                .put(Put::builder()
+                    .table_name(super::TABLE_USER)
+                    .set_item(Some(item))
+                    .build())
                 .build()
         )
     }
@@ -180,12 +187,12 @@ pub async fn version_apply<P, C>(
     check: C,
 ) -> super::Result
     where
-        P: FnOnce(TransactWriteItemsFluentBuilder, String, String) -> TransactWriteItemsFluentBuilder,
+        P: FnOnce(TransactWriteItemsFluentBuilder, String, u64) -> TransactWriteItemsFluentBuilder,
         C: FnOnce(&[CancellationReason]) -> ControlFlow<super::Result, ()>,
 {
     let db = super::get_db_client();
     let user_id = super::get_user_id(req);
-    let new_version = (client_version + 1).to_string();
+    let new_version = client_version + 1;
     let client_version = client_version.to_string();
     let now = super::now();
 
@@ -196,7 +203,7 @@ pub async fn version_apply<P, C>(
                 .key("UserId", AttributeValue::S(user_id.clone()))
                 .key("Id", AttributeValue::S("VERSION".into()))
                 .expression_attribute_values(":clientVersion", AttributeValue::N(client_version.clone()))
-                .expression_attribute_values(":newVersion", AttributeValue::N(new_version.clone()))
+                .expression_attribute_values(":newVersion", AttributeValue::N(new_version.to_string()))
                 .expression_attribute_values(":now", AttributeValue::N(now.to_string()))
                 .condition_expression(
                     "(attribute_not_exists(Version) OR Version = :clientVersion) \

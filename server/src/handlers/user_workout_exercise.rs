@@ -1,7 +1,7 @@
 use std::{ops::ControlFlow, collections::HashMap};
 use aws_sdk_dynamodb::types::{AttributeValue, TransactWriteItem, Put};
 use lambda_http::{Request, RequestExt, http::StatusCode};
-use crate::common;
+use crate::common::{self, ToDynamoDb};
 
 pub async fn delete(req: Request) -> common::Result {
     let params = req.path_parameters();
@@ -34,7 +34,7 @@ pub async fn delete(req: Request) -> common::Result {
                 builder,
                 user_id,
                 format!("{collection_prefix}WORKOUT#{workout_id}#{exercise_id}"),
-                new_version,
+                new_version.to_string(),
             )
         },
         |reasons| {
@@ -75,53 +75,26 @@ pub async fn put(req: Request) -> common::Result {
             builder = common::check_exists(
                 builder,
                 user_id.clone(),
-                format!("{collection_prefix}WORKOUT#{workout_id}"),
+                common::make_key_from_id::<common::Workout>(&collection_prefix, workout_id),
             );
 
             let exercise: common::Exercise = body.item;
 
-            let sets = exercise.sets.0.iter()
-                .map(|set| {
-                    let mut map = HashMap::new();
+            let mut item = HashMap::new();
 
-                    map.insert("SetId".into(), AttributeValue::S(set.set_id.0.into()));
-
-                    if let Some(a) = set.repetitions {
-                        map.insert("Repetitions".into(), AttributeValue::N(a.to_string()));
-                    }
-
-                    if let Some(a) = set.resistance {
-                        map.insert("Resistance".into(), AttributeValue::N(a.to_string()));
-                    }
-
-                    if let Some(a) = set.speed {
-                        map.insert("Speed".into(), AttributeValue::N(a.to_string()));
-                    }
-
-                    if let Some(a) = set.distance {
-                        map.insert("Distance".into(), AttributeValue::N(a.to_string()));
-                    }
-
-                    if let Some(a) = set.duration {
-                        map.insert("Duration".into(), AttributeValue::N(a.to_string()));
-                    }
-
-                    AttributeValue::M(map)
-                })
-                .collect();
-
-            let exercise_key = format!("{collection_prefix}WORKOUT#{workout_id}#{exercise_id}");
+            item.insert("UserId".into(), AttributeValue::S(user_id));
+            item.insert("Id".into(), AttributeValue::S(
+                common::make_key_from_id::<common::Exercise>(
+                    &collection_prefix,
+                    &format!("{workout_id}#{exercise_id}")
+                )
+            ));
+            exercise.insert_dynamo_db(&mut item, Some(new_version));
 
             builder.transact_items(TransactWriteItem::builder()
                 .put(Put::builder()
                     .table_name(common::TABLE_USER)
-                    .item("UserId", AttributeValue::S(user_id))
-                    .item("Id", AttributeValue::S(exercise_key))
-                    .item("ModifiedVersion", AttributeValue::N(new_version))
-                    .item("Order", AttributeValue::N(exercise.order.to_string()))
-                    .item("Type", AttributeValue::S(exercise.r#type.0.into()))
-                    .item("Notes", AttributeValue::S(exercise.notes.0.into()))
-                    .item("Sets", AttributeValue::L(sets))
+                    .set_item(Some(item))
                     .build())
                 .build())
         },

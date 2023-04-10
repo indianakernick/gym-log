@@ -184,3 +184,38 @@ impl<'de: 'a, 'a, const MAX_LEN: usize> Deserialize<'de> for MaxLenStr<'a, MAX_L
         }
     }
 }
+
+pub trait UserField<'a>: Sized {
+    fn extract_from_user<'b>(user: &'b User<'a>) -> &'b [Self];
+    fn extract_deleted_from_user<'b>(user: &'b User<'a>) -> &'b [&'a str];
+}
+
+impl<'a> UserField<'a> for MeasurementSet<'a> {
+    fn extract_from_user<'b>(user: &'b User<'a>) -> &'b [Self] {
+        &user.measurement_sets
+    }
+
+    fn extract_deleted_from_user<'b>(user: &'b User<'a>) -> &'b [&'a str] {
+        &user.deleted_measurement_sets
+    }
+}
+
+impl<'a> UserField<'a> for Workout<'a> {
+    fn extract_from_user<'b>(user: &'b User<'a>) -> &'b [Self] {
+        &user.workouts
+    }
+
+    fn extract_deleted_from_user<'b>(user: &'b User<'a>) -> &'b [&'a str] {
+        &user.deleted_workouts
+    }
+}
+
+impl<'a> UserField<'a> for Exercise<'a> {
+    fn extract_from_user<'b>(user: &'b User<'a>) -> &'b [Self] {
+        &user.exercises
+    }
+
+    fn extract_deleted_from_user<'b>(user: &'b User<'a>) -> &'b [&'a str] {
+        &user.deleted_exercises
+    }
+}

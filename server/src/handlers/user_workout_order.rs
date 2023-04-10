@@ -25,6 +25,7 @@ pub async fn put(req: Request) -> common::Result {
         &req,
         body.version,
         |mut builder, user_id, new_version| {
+            let new_version = new_version.to_string();
             let workout_key = format!("{collection_prefix}WORKOUT#{workout_id}");
 
             builder = common::check_exists(builder, user_id.clone(), workout_key.clone());

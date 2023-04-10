@@ -185,7 +185,7 @@ async fn put_snapshot(
     common::batch_write(
         db,
         common::TABLE_USER,
-        make_import_batch(user_id.clone(), new_version, &curr_user, import_user),
+        make_import_batch(user_id.clone(), new_version, &curr_user, &import_user),
     ).await?;
 
     // Release the lock and switch to the new collection. If this step fails,
@@ -221,201 +221,70 @@ fn make_import_batch<'a>(
     user_id: String,
     new_version: u64,
     curr: &common::User<'a>,
-    mut import: common::User<'a>,
+    import: &common::User<'a>,
 ) -> Vec<WriteRequest> {
     let mut requests = Vec::new();
-
-    let curr_measurement_sets = curr.measurement_sets.iter()
-        .map(|m| (m.date, m))
-        .collect::<HashMap<_, _>>();
-    let curr_deleted_measurement_sets: HashSet<&str> = HashSet::from_iter(
-        curr.deleted_measurement_sets.iter().copied()
-    );
-
-    let curr_workouts = curr.workouts.iter()
-        .map(|w| (w.workout_id, w))
-        .collect::<HashMap<_, _>>();
-    let curr_deleted_workouts: HashSet<&str> = HashSet::from_iter(
-        curr.deleted_workouts.iter().copied()
-    );
-
-    let curr_exercises = curr.exercises.iter()
-        .map(|e| (e.workout_exercise_id, e))
-        .collect::<HashMap<_, _>>();
-    let curr_deleted_exercises: HashSet<&str> = HashSet::from_iter(
-        curr.deleted_exercises.iter().copied()
-    );
 
     let new_collection_prefix = common::get_collection_prefix(
         common::collection_from_version(new_version)
     );
 
-    apply_changes(
+    apply_changes::<common::MeasurementSet>(
         &mut requests,
         user_id.clone(),
         &new_collection_prefix,
-        &mut import.measurement_sets,
-        curr_measurement_sets,
-        curr_deleted_measurement_sets,
-        |a, b| a.notes.0 == b.notes.0 && a.measurements == b.measurements,
-        |e| e.date,
-        |item, collection_prefix, id| {
-            item.insert("Id".into(), AttributeValue::S(
-                format!("{collection_prefix}MEASUREMENT#{id}")
-            ));
-        },
-        |item, entity| {
-            item.insert("Notes".into(), AttributeValue::S(
-                entity.notes.0.as_ref().to_owned()
-            ));
-            item.insert("Measurements".into(), AttributeValue::M(
-                entity.measurements.iter()
-                    .map(|(k, v)| (
-                        String::from(*k),
-                        AttributeValue::N(v.to_string()),
-                    ))
-                    .collect()
-            ));
-            item.insert("ModifiedVersion".into(), AttributeValue::N(
-                entity.modified_version.to_string()
-            ));
-        }
+        new_version,
+        import,
+        curr,
     );
 
-    apply_changes(
+    apply_changes::<common::Workout>(
         &mut requests,
         user_id.clone(),
         &new_collection_prefix,
-        &mut import.workouts,
-        curr_workouts,
-        curr_deleted_workouts,
-        |a, b| {
-            a.start_time == b.start_time
-                && a.finish_time == b.finish_time
-                && a.notes.0 == b.notes.0
-        },
-        |e| e.workout_id,
-        |item, collection_prefix, id| {
-            item.insert("Id".into(), AttributeValue::S(
-                format!("{collection_prefix}WORKOUT#{id}")
-            ));
-        },
-        |item, entity| {
-            if let Some(dt) = entity.start_time {
-                item.insert("StartTime".into(), AttributeValue::S(dt.to_owned()));
-            }
-            if let Some(dt) = entity.finish_time {
-                item.insert("FinishTime".into(), AttributeValue::S(dt.to_owned()));
-            }
-            item.insert("Notes".into(), AttributeValue::S(
-                entity.notes.0.as_ref().to_owned()
-            ));
-            item.insert("ModifiedVersion".into(), AttributeValue::N(
-                entity.modified_version.to_string()
-            ));
-        }
+        new_version,
+        import,
+        curr,
     );
 
-    apply_changes(
+    apply_changes::<common::Exercise>(
         &mut requests,
-        user_id.clone(),
+        user_id,
         &new_collection_prefix,
-        &mut import.exercises,
-        curr_exercises,
-        curr_deleted_exercises,
-        |a, b| {
-            a.order == b.order
-                && a.r#type.0 == b.r#type.0
-                && a.notes.0 == b.notes.0
-                && a.sets.0.len() == b.sets.0.len()
-                && a.sets.0.iter().zip(b.sets.0.iter())
-                    .all(|(a, b)| {
-                        a.set_id.0 == b.set_id.0
-                            && a.repetitions == b.repetitions
-                            && a.resistance == b.resistance
-                            && a.speed == b.speed
-                            && a.distance == b.distance
-                            && a.duration == b.duration
-                    })
-        },
-        |m| m.workout_exercise_id,
-        |item, collection_prefix, id| {
-            item.insert("Id".into(), AttributeValue::S(
-                format!("{collection_prefix}WORKOUT#{id}")
-            ));
-        },
-        |item, entity| {
-            item.insert("Order".into(), AttributeValue::N(entity.order.to_string()));
-            item.insert("Type".into(), AttributeValue::S(entity.r#type.0.as_ref().to_string()));
-            item.insert("Notes".into(), AttributeValue::S(
-                entity.notes.0.as_ref().to_owned()
-            ));
-            item.insert("Sets".into(), AttributeValue::L(
-                entity.sets.0.iter()
-                    .map(|set| {
-                        let mut map = HashMap::new();
-
-                        map.insert("SetId".into(), AttributeValue::S(set.set_id.0.into()));
-
-                        if let Some(a) = set.repetitions {
-                            map.insert("Repetitions".into(), AttributeValue::N(a.to_string()));
-                        }
-
-                        if let Some(a) = set.resistance {
-                            map.insert("Resistance".into(), AttributeValue::N(a.to_string()));
-                        }
-
-                        if let Some(a) = set.speed {
-                            map.insert("Speed".into(), AttributeValue::N(a.to_string()));
-                        }
-
-                        if let Some(a) = set.distance {
-                            map.insert("Distance".into(), AttributeValue::N(a.to_string()));
-                        }
-
-                        if let Some(a) = set.duration {
-                            map.insert("Duration".into(), AttributeValue::N(a.to_string()));
-                        }
-
-                        AttributeValue::M(map)
-                    })
-                    .collect()
-            ));
-            item.insert("ModifiedVersion".into(), AttributeValue::N(
-                entity.modified_version.to_string()
-            ));
-        }
+        new_version,
+        import,
+        curr,
     );
 
     requests
 }
 
-fn apply_changes<T, Equal, GetId, InsertKey, InsertValue>(
+fn apply_changes<'a, T: common::ToDynamoDb<'a> + common::Equivalent + common::UserField<'a>>(
     requests: &mut Vec<WriteRequest>,
     user_id: String,
     collection_prefix: &str,
-    import_entities: &mut [T],
-    mut curr_entities: HashMap<&str, &T>,
-    mut curr_deleted_entities: HashSet<&str>,
-    equal: Equal,
-    get_id: GetId,
-    insert_key: InsertKey,
-    insert_value: InsertValue,
-)
-    where
-        Equal: Fn(&T, &T) -> bool,
-        GetId: Fn(&T) -> &str,
-        InsertKey: Fn(&mut HashMap<String, AttributeValue>, &str, &str),
-        InsertValue: Fn(&mut HashMap<String, AttributeValue>, &T),
-{
-    for import_entity in import_entities.iter_mut() {
-        curr_deleted_entities.remove(get_id(import_entity));
+    version: u64,
+    import: &common::User<'a>,
+    curr: &common::User<'a>,
+) {
+    let mut curr_entities = T::extract_from_user(curr).iter()
+        .map(|e| (e.get_id(), e))
+        .collect::<HashMap<_, _>>();
+    let mut curr_deleted_entities: HashSet<&str> = HashSet::from_iter(
+        T::extract_deleted_from_user(curr).iter().copied()
+    );
 
-        let entity = if let Some(curr_entity) = curr_entities.remove(get_id(import_entity)) {
-            if equal(curr_entity, import_entity) {
+    for import_entity in T::extract_from_user(import).iter() {
+        curr_deleted_entities.remove(import_entity.get_id());
+
+        let mut modified_version = Some(version);
+
+        let entity = if let Some(curr_entity) = curr_entities.remove(import_entity.get_id()) {
+            if curr_entity.equiv(import_entity) {
+                modified_version = None;
                 curr_entity
             } else {
-                &*import_entity
+                import_entity
             }
         } else {
             import_entity
@@ -424,8 +293,10 @@ fn apply_changes<T, Equal, GetId, InsertKey, InsertValue>(
         let mut item = HashMap::new();
 
         item.insert("UserId".into(), AttributeValue::S(user_id.clone()));
-        insert_key(&mut item, collection_prefix, get_id(entity));
-        insert_value(&mut item, entity);
+        item.insert("Id".into(), AttributeValue::S(
+            common::make_key_from_entity(collection_prefix, entity)
+        ));
+        entity.insert_dynamo_db(&mut item, modified_version);
 
         requests.push(make_put_request(item));
     }
@@ -434,8 +305,10 @@ fn apply_changes<T, Equal, GetId, InsertKey, InsertValue>(
         let mut item = HashMap::new();
 
         item.insert("UserId".into(), AttributeValue::S(user_id.clone()));
-        insert_key(&mut item, collection_prefix, get_id(entity));
-        insert_value(&mut item, entity);
+        item.insert("Id".into(), AttributeValue::S(
+            common::make_key_from_entity(collection_prefix, *entity)
+        ));
+        entity.insert_dynamo_db(&mut item, None);
 
         requests.push(make_put_request(item));
     }
@@ -444,7 +317,9 @@ fn apply_changes<T, Equal, GetId, InsertKey, InsertValue>(
         let mut item = HashMap::new();
 
         item.insert("UserId".into(), AttributeValue::S(user_id.clone()));
-        insert_key(&mut item, collection_prefix, id);
+        item.insert("Id".into(), AttributeValue::S(
+            common::make_key_from_id::<T>(collection_prefix, id)
+        ));
         item.insert("Deleted".into(), AttributeValue::Bool(true));
 
         requests.push(make_put_request(item));

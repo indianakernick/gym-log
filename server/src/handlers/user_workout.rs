@@ -1,5 +1,3 @@
-use std::ops::ControlFlow;
-use aws_sdk_dynamodb::types::AttributeValue;
 use lambda_http::{Request, RequestExt, http::StatusCode};
 use crate::common;
 
@@ -11,7 +9,7 @@ pub async fn delete(req: Request) -> common::Result {
         return common::empty_response(StatusCode::NOT_FOUND);
     }
 
-    common::version_delete(&req, format!("WORKOUT#{workout_id}")).await
+    common::version_delete::<common::Workout>(&req, workout_id).await
 }
 
 pub async fn put(req: Request) -> common::Result {
@@ -22,35 +20,8 @@ pub async fn put(req: Request) -> common::Result {
         return e;
     }
 
-    let body = match common::parse_request_json::<common::VersionModifyReq<_>>(&req) {
-        Ok(b) => b,
-        Err(e) => return e,
-    };
-    let collection_prefix = common::get_collection_prefix(
-        common::collection_from_version(body.version)
-    );
-
-    common::version_apply(
+    common::version_modify(
         &req,
-        body.version,
-        |builder, user_id, new_version| {
-            common::version_put_item(
-                format!("{collection_prefix}WORKOUT#{workout_id}"),
-                |mut builder, workout: common::Workout| {
-                    builder = builder.item("Notes", AttributeValue::S(workout.notes.0.into()));
-
-                    if let Some(dt) = workout.start_time {
-                        builder = builder.item("StartTime", AttributeValue::S(dt.into()));
-                    }
-
-                    if let Some(dt) = workout.finish_time {
-                        builder = builder.item("FinishTime", AttributeValue::S(dt.into()));
-                    }
-
-                    builder
-                }
-            )(builder, body.item, user_id, new_version)
-        },
-        |_| ControlFlow::Continue(()),
+        common::version_put_item::<common::Workout>(workout_id.to_owned())
     ).await
 }
