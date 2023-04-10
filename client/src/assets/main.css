@@ -56,6 +56,10 @@
   ion-alert.md .alert-wrapper {
     @apply bg-white dark:bg-neutral-800;
   }
+
+  ion-back-button.md::part(text) {
+    display: none;
+  }
 }
 
 @layer components {
