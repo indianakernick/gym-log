@@ -73,7 +73,7 @@ interface Schema extends DBSchema {
     value: Exercise;
     indexes: {
       type: Exercise['type'];
-    }
+    };
   },
   stagedMeasurement: {
     key: MeasurementSet['date'];
@@ -88,7 +88,7 @@ interface Schema extends DBSchema {
     value: Exercise | Deleted;
     indexes: {
       type: Exercise['type'];
-    }
+    };
   },
 }
 

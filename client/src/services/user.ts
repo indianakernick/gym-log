@@ -28,7 +28,7 @@ export default new class {
 
     if (!res.ok) throw new BadResponseError();
 
-    return await res.json();
+    return res.json();
   }
 
   async deleteMeasurement(version: number, measurementId: string): Promise<void> {
