@@ -18,6 +18,8 @@ pub fn version_from_collection(collection: u32) -> u64 {
     (collection as u64) << 32
 }
 
+type DynamoDbItem = HashMap<String, AttributeValue>;
+
 pub fn db_to_user(
     version: u64,
     include_deleted: bool,
@@ -112,8 +114,6 @@ pub trait Equivalent {
     /// or the modified version.
     fn equiv(&self, other: &Self) -> bool;
 }
-
-type DynamoDbItem = HashMap<String, AttributeValue>;
 
 pub trait ToDynamoDb<'a>: Identifiable<'a> {
     const KEY_PREFIX: &'static str;

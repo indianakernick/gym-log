@@ -22,6 +22,6 @@ pub async fn put(req: Request) -> common::Result {
 
     common::version_modify(
         &req,
-        common::version_put_item::<common::MeasurementSet>(measurement_id.to_owned())
+        common::version_put_item::<common::MeasurementSet>(measurement_id)
     ).await
 }

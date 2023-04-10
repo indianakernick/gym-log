@@ -1,7 +1,6 @@
-use std::{ops::ControlFlow, collections::HashMap};
-use aws_sdk_dynamodb::types::{AttributeValue, TransactWriteItem, Put};
+use std::ops::ControlFlow;
 use lambda_http::{Request, RequestExt, http::StatusCode};
-use crate::common::{self, ToDynamoDb};
+use crate::common;
 
 pub async fn delete(req: Request) -> common::Result {
     let params = req.path_parameters();
@@ -34,7 +33,7 @@ pub async fn delete(req: Request) -> common::Result {
                 builder,
                 user_id,
                 format!("{collection_prefix}WORKOUT#{workout_id}#{exercise_id}"),
-                new_version.to_string(),
+                new_version,
             )
         },
         |reasons| {
@@ -78,25 +77,9 @@ pub async fn put(req: Request) -> common::Result {
                 common::make_key_from_id::<common::Workout>(&collection_prefix, workout_id),
             );
 
-            let exercise: common::Exercise = body.item;
-
-            let mut item = HashMap::new();
-
-            item.insert("UserId".into(), AttributeValue::S(user_id));
-            item.insert("Id".into(), AttributeValue::S(
-                common::make_key_from_id::<common::Exercise>(
-                    &collection_prefix,
-                    &format!("{workout_id}#{exercise_id}")
-                )
-            ));
-            exercise.insert_dynamo_db(&mut item, Some(new_version));
-
-            builder.transact_items(TransactWriteItem::builder()
-                .put(Put::builder()
-                    .table_name(common::TABLE_USER)
-                    .set_item(Some(item))
-                    .build())
-                .build())
+            common::version_put_item::<common::Exercise>(
+                &format!("{workout_id}#{exercise_id}")
+            )(builder, body.item, user_id, new_version)
         },
         |reasons| {
             if reasons[0].code() == Some("ConditionalCheckFailed") {

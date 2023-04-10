@@ -70,7 +70,7 @@ pub async fn version_delete<'a, T: super::ToDynamoDb<'a>>(
         req,
         client_version,
         |builder, user_id, new_version| {
-            version_delete_item(builder, user_id, key, new_version.to_string())
+            version_delete_item(builder, user_id, key, new_version)
         },
         |reasons| {
             if reasons[0].code() == Some("ConditionalCheckFailed") {
@@ -118,9 +118,9 @@ pub async fn version_modify_checked<'r, T, P, C>(
     ).await
 }
 
-pub fn version_put_item<'a, T: super::ToDynamoDb<'a>>(
-    id: String,
-) -> impl FnOnce(TransactWriteItemsFluentBuilder, T, String, u64) -> TransactWriteItemsFluentBuilder {
+pub fn version_put_item<'a, 'b, T: super::ToDynamoDb<'a>>(
+    id: &'b str,
+) -> impl FnOnce(TransactWriteItemsFluentBuilder, T, String, u64) -> TransactWriteItemsFluentBuilder + 'b {
     move |builder, entity, user_id, new_version| {
         let mut item = HashMap::new();
 
@@ -130,7 +130,7 @@ pub fn version_put_item<'a, T: super::ToDynamoDb<'a>>(
 
         item.insert("UserId".into(), AttributeValue::S(user_id));
         item.insert("Id".into(), AttributeValue::S(
-            super::make_key_from_id::<T>(&collection_prefix, &id)
+            super::make_key_from_id::<T>(&collection_prefix, id)
         ));
 
         entity.insert_dynamo_db(&mut item, Some(new_version));
@@ -149,15 +149,15 @@ pub fn version_put_item<'a, T: super::ToDynamoDb<'a>>(
 pub fn version_delete_item(
     builder: TransactWriteItemsFluentBuilder,
     user_id: String,
-    item_id: String,
-    new_version: String,
+    key: String,
+    new_version: u64,
 ) -> TransactWriteItemsFluentBuilder {
     builder.transact_items(TransactWriteItem::builder()
         .update(Update::builder()
             .table_name(super::TABLE_USER)
             .key("UserId", AttributeValue::S(user_id))
-            .key("Id", AttributeValue::S(item_id))
-            .expression_attribute_values(":newVersion", AttributeValue::N(new_version))
+            .key("Id", AttributeValue::S(key))
+            .expression_attribute_values(":newVersion", AttributeValue::N(new_version.to_string()))
             .expression_attribute_values(":deleted", AttributeValue::Bool(true))
             .condition_expression("attribute_exists(UserId) AND attribute_not_exists(Deleted)")
             .update_expression("SET ModifiedVersion = :newVersion, Deleted = :deleted")
@@ -168,13 +168,13 @@ pub fn version_delete_item(
 pub fn check_exists(
     builder: TransactWriteItemsFluentBuilder,
     user_id: String,
-    item_id: String,
+    key: String,
 ) -> TransactWriteItemsFluentBuilder {
     builder.transact_items(TransactWriteItem::builder()
         .condition_check(ConditionCheck::builder()
             .table_name(super::TABLE_USER)
             .key("UserId", AttributeValue::S(user_id))
-            .key("Id", AttributeValue::S(item_id))
+            .key("Id", AttributeValue::S(key))
             .condition_expression("attribute_exists(UserId) AND attribute_not_exists(Deleted)")
             .build())
         .build())
