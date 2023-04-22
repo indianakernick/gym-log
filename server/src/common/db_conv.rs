@@ -4,7 +4,7 @@ use aws_sdk_dynamodb::types::AttributeValue;
 pub const TABLE_USER: &str = "gym-log.User";
 pub const INDEX_MODIFIED_VERSION: &str = "LSI-ModifiedVersion";
 
-pub const COLLECTION_LEN: usize = u32::ilog10(u32::MAX) as usize;
+pub const COLLECTION_LEN: usize = 1 + u32::ilog10(u32::MAX) as usize;
 
 pub fn get_collection_prefix(collection: u32) -> String {
     format!("{collection:0COLLECTION_LEN$}#")
