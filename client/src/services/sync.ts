@@ -1,7 +1,7 @@
 import MergeConflictModal from '@/modals/MergeConflictModal.vue';
 import type { MergeConflictResolutions, StagedChange } from '@/model/db';
 import db from '@/services/db';
-import user, { CacheOutdatedError } from '@/services/user';
+import user, { CacheOutdatedError, WriteLockError } from '@/services/user';
 import { modalController } from '@ionic/vue';
 import { shallowRef, type DeepReadonly, type ShallowRef } from 'vue';
 import { useRouter, type Router } from 'vue-router';
@@ -92,6 +92,10 @@ export default new class {
               console.error('Pulling changes', e);
             }
           }
+        } else if (e instanceof WriteLockError) {
+          const delay = e.retryAfterSeconds * 1000;
+          await new Promise(resolve => setTimeout(resolve, delay));
+          continue;
         } else if (!this.handleAuthRedirect(e)) {
           console.error('Pushing changes', e);
         }

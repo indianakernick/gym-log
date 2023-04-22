@@ -11,6 +11,14 @@ const BASE_URL = import.meta.env.CFN_ApiBaseUrl + '/';
 
 export class CacheOutdatedError extends Error {}
 
+export class WriteLockError extends Error {
+  constructor(
+    public readonly retryAfterSeconds: number,
+  ) {
+    super();
+  }
+}
+
 export class BadResponseError extends Error {}
 
 export default new class {
@@ -18,6 +26,20 @@ export default new class {
     const headers: HeadersInit = { Authorization: await auth.getAccessToken() };
     if (json) headers['Content-Type'] = 'application/json';
     return headers;
+  }
+
+  private checkErrors(res: Response) {
+    // Conflict. The request version doesn't equal the database version.
+    if (res.status === 409) throw new CacheOutdatedError();
+
+    // Service unavailable. The write lock is enabled.
+    if (res.status === 503) {
+      const str = res.headers.get('Retry-After');
+      const seconds = str ? parseInt(str, 10) : 0;
+      throw new WriteLockError(Number.isNaN(seconds) || seconds < 0 ? 0 : seconds);
+    }
+
+    if (!res.ok) throw new BadResponseError();
   }
 
   async getChanges(sinceVersion: number): Promise<UserChanges> {
@@ -38,8 +60,7 @@ export default new class {
       body: JSON.stringify({ version })
     });
 
-    if (res.status === 409) throw new CacheOutdatedError();
-    if (!res.ok) throw new BadResponseError();
+    this.checkErrors(res);
   }
 
   async updateMeasurement(
@@ -58,8 +79,7 @@ export default new class {
       })
     });
 
-    if (res.status === 409) throw new CacheOutdatedError();
-    if (!res.ok) throw new BadResponseError();
+    this.checkErrors(res);
   }
 
   async deleteWorkout(version: number, workoutId: string): Promise<void> {
@@ -69,8 +89,7 @@ export default new class {
       body: JSON.stringify({ version })
     });
 
-    if (res.status === 409) throw new CacheOutdatedError();
-    if (!res.ok) throw new BadResponseError();
+    this.checkErrors(res);
   }
 
   async updateWorkout(
@@ -90,8 +109,7 @@ export default new class {
       })
     });
 
-    if (res.status === 409) throw new CacheOutdatedError();
-    if (!res.ok) throw new BadResponseError();
+    this.checkErrors(res);
   }
 
   async deleteExercise(
@@ -105,8 +123,7 @@ export default new class {
       body: JSON.stringify({ version })
     });
 
-    if (res.status === 409) throw new CacheOutdatedError();
-    if (!res.ok) throw new BadResponseError();
+    this.checkErrors(res);
   }
 
   async updateExercise(
@@ -128,8 +145,7 @@ export default new class {
       })
     });
 
-    if (res.status === 409) throw new CacheOutdatedError();
-    if (!res.ok) throw new BadResponseError();
+    this.checkErrors(res);
   }
 
   async updateExerciseOrder(
@@ -146,7 +162,6 @@ export default new class {
       })
     });
 
-    if (res.status === 409) throw new CacheOutdatedError();
-    if (!res.ok) throw new BadResponseError();
+    this.checkErrors(res);
   }
 }
