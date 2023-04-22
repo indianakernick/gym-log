@@ -22,7 +22,6 @@ type DynamoDbItem = HashMap<String, AttributeValue>;
 
 pub fn db_to_user(
     version: u64,
-    include_deleted: bool,
     filter_collection: bool,
     items: &Vec<DynamoDbItem>,
 ) -> super::User {
@@ -39,7 +38,7 @@ pub fn db_to_user(
 
     for item in items.iter() {
         let sk = item["Id"].as_s().unwrap();
-        let deleted = include_deleted && item.contains_key("Deleted");
+        let deleted = item.contains_key("Deleted");
 
         // If there is an import in-progress, then there could be two
         // collections so we'll need to filter them. When fetching items for a
@@ -54,7 +53,10 @@ pub fn db_to_user(
             super::MeasurementSet::KEY_LEN => {
                 let measurement_id = &sk[super::MeasurementSet::FULL_PREFIX_LEN..];
                 if deleted {
-                    deleted_measurement_sets.push(measurement_id);
+                    deleted_measurement_sets.push(super::Deleted {
+                        id: measurement_id,
+                        modified_version: super::as_number(&item["ModifiedVersion"]),
+                    });
                 } else {
                     measurement_sets.push(super::MeasurementSet::from_dynamo_db(
                         measurement_id,
@@ -66,7 +68,10 @@ pub fn db_to_user(
             super::Workout::KEY_LEN => {
                 let workout_id = &sk[super::Workout::FULL_PREFIX_LEN..];
                 if deleted {
-                    deleted_workouts.push(workout_id);
+                    deleted_workouts.push(super::Deleted {
+                        id: workout_id,
+                        modified_version: super::as_number(&item["ModifiedVersion"]),
+                    });
                 } else {
                     workouts.push(super::Workout::from_dynamo_db(
                         workout_id,
@@ -78,7 +83,10 @@ pub fn db_to_user(
             super::Exercise::KEY_LEN => {
                 let workout_exercise_id = &sk[super::Exercise::FULL_PREFIX_LEN..];
                 if deleted {
-                    deleted_exercises.push(workout_exercise_id);
+                    deleted_exercises.push(super::Deleted {
+                        id: workout_exercise_id,
+                        modified_version: super::as_number(&item["ModifiedVersion"]),
+                    });
                 } else {
                     exercises.push(super::Exercise::from_dynamo_db(
                         workout_exercise_id,

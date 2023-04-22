@@ -129,7 +129,7 @@ export default new class {
       }
     ).then(db => this.db.set(db));
 
-    // Should call this at some point.
+    // TODO: should call this at some point.
     // navigator.storage.persist()
   }
 
@@ -310,7 +310,7 @@ export default new class {
     canonStore: IDBPObjectStore<Schema, T[], S, 'readwrite'>,
     stagedStore: IDBPObjectStore<Schema, T[], StagedStores[S], 'readwrite'>,
     remoteUpdates: Schema[S]['value'][],
-    remoteDeletes: Schema[S]['key'][],
+    remoteDeletes: Schema[S]['key'][] | undefined,
     equal: (a: Schema[S]['value'], b: Schema[S]['value']) => boolean,
     getId: (item: Schema[S]['value']) => Schema[S]['key'],
     makeConflict: (
@@ -336,7 +336,7 @@ export default new class {
       );
     }
 
-    for (const r of remoteDeletes) {
+    for (const r of remoteDeletes ?? []) {
       const original = (await canonStore.get(r)) ?? DELETED;
 
       await canonStore.delete(r);

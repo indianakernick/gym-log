@@ -1,4 +1,4 @@
-use std::collections::{HashMap, HashSet};
+use std::collections::HashMap;
 use aws_sdk_dynamodb::{
     Client,
     error::SdkError,
@@ -47,6 +47,7 @@ async fn get_snapshot(db: &Client, user_id: String) -> common::Result {
     let items = db.query()
         .table_name(common::TABLE_USER)
         .key_condition_expression("UserId = :userId AND begins_with(Id, :collection)")
+        .filter_expression("attribute_not_exists(Deleted)")
         .expression_attribute_values(":userId", AttributeValue::S(user_id.clone()))
         .expression_attribute_values(
             ":collection",
@@ -74,7 +75,7 @@ async fn get_snapshot(db: &Client, user_id: String) -> common::Result {
     } else {
         common::json_response(
             StatusCode::OK,
-            common::db_to_user(version, false, false, &items),
+            common::db_to_user(version, false, &items),
         )
     }
 }
@@ -177,7 +178,7 @@ async fn put_snapshot(
         .collect::<Result<Vec<_>, _>>()
         .await?;
 
-    let curr_user = common::db_to_user(curr_version, true, false, &curr_items);
+    let curr_user = common::db_to_user(curr_version, false, &curr_items);
 
     // Combine the imported collection with the current collection to determine
     // the new collection and then write it out in batches.
@@ -196,7 +197,7 @@ async fn put_snapshot(
         .table_name(common::TABLE_USER)
         .key("UserId", AttributeValue::S(user_id.clone()))
         .key("Id", AttributeValue::S("VERSION".into()))
-        .update_expression("REMOVE LockedUntil, SET Version = :version")
+        .update_expression("REMOVE LockedUntil SET Version = :version")
         .expression_attribute_values(":version", AttributeValue::N(new_version.to_string()))
         .send()
         .await?;
@@ -270,8 +271,8 @@ fn apply_changes<'a, T: common::ToDynamoDb<'a> + common::Equivalent + common::Us
     let mut curr_entities = T::extract_from_user(curr).iter()
         .map(|e| (e.get_id(), e))
         .collect::<HashMap<_, _>>();
-    let mut curr_deleted_entities: HashSet<&str> = HashSet::from_iter(
-        T::extract_deleted_from_user(curr).iter().copied()
+    let mut curr_deleted_entities: HashMap<&str, u64> = HashMap::from_iter(
+        T::extract_deleted_from_user(curr).iter().map(|d| (d.id, d.modified_version))
     );
 
     for import_entity in T::extract_from_user(import).iter() {
@@ -313,7 +314,7 @@ fn apply_changes<'a, T: common::ToDynamoDb<'a> + common::Equivalent + common::Us
         requests.push(make_put_request(item));
     }
 
-    for id in curr_deleted_entities.iter() {
+    for (id, modified_version) in curr_deleted_entities.iter() {
         let mut item = HashMap::new();
 
         item.insert("UserId".into(), AttributeValue::S(user_id.clone()));
@@ -321,6 +322,9 @@ fn apply_changes<'a, T: common::ToDynamoDb<'a> + common::Equivalent + common::Us
             common::make_key_from_id::<T>(collection_prefix, id)
         ));
         item.insert("Deleted".into(), AttributeValue::Bool(true));
+        item.insert("ModifiedVersion".into(), AttributeValue::N(
+            modified_version.to_string()
+        ));
 
         requests.push(make_put_request(item));
     }
@@ -342,46 +346,49 @@ fn make_delete_batch(
 ) -> Vec<WriteRequest> {
     let mut requests = Vec::new();
 
-    for m in user.measurement_sets.iter() {
-        requests.push(make_delete_request(
-            user_id.clone(),
-            format!("{collection_prefix}MEASUREMENT#{}", m.date),
-        ));
-    }
-    for m in user.deleted_measurement_sets.iter() {
-        requests.push(make_delete_request(
-            user_id.clone(),
-            format!("{collection_prefix}MEASUREMENT#{m}"),
-        ));
-    }
+    apply_delete::<common::MeasurementSet>(
+        &mut requests,
+        user_id.clone(),
+        collection_prefix,
+        user,
+    );
 
-    for w in user.workouts.iter() {
-        requests.push(make_delete_request(
-            user_id.clone(),
-            format!("{collection_prefix}WORKOUT#{}", w.workout_id),
-        ));
-    }
-    for w in user.deleted_workouts.iter() {
-        requests.push(make_delete_request(
-            user_id.clone(),
-            format!("{collection_prefix}WORKOUT#{w}"),
-        ));
-    }
+    apply_delete::<common::Workout>(
+        &mut requests,
+        user_id.clone(),
+        collection_prefix,
+        user,
+    );
 
-    for e in user.exercises.iter() {
-        requests.push(make_delete_request(
-            user_id.clone(),
-            format!("{collection_prefix}WORKOUT#{}", e.workout_exercise_id),
-        ));
-    }
-    for e in user.deleted_exercises.iter() {
-        requests.push(make_delete_request(
-            user_id.clone(),
-            format!("{collection_prefix}WORKOUT#{e}"),
-        ));
-    }
+    apply_delete::<common::Exercise>(
+        &mut requests,
+        user_id.clone(),
+        collection_prefix,
+        user,
+    );
 
     requests
+}
+
+fn apply_delete<'a, T: common::ToDynamoDb<'a> + common::UserField<'a>>(
+    requests: &mut Vec<WriteRequest>,
+    user_id: String,
+    collection_prefix: &str,
+    user: &common::User<'a>,
+) {
+    for entity in T::extract_from_user(user) {
+        requests.push(make_delete_request(
+            user_id.clone(),
+            common::make_key_from_entity(collection_prefix, entity),
+        ));
+    }
+
+    for deleted in T::extract_deleted_from_user(user) {
+        requests.push(make_delete_request(
+            user_id.clone(),
+            common::make_key_from_id::<T>(collection_prefix, deleted.id),
+        ));
+    }
 }
 
 fn make_delete_request(user_id: String, key: String) -> WriteRequest {

@@ -3,7 +3,9 @@ import {
   type Exercise,
   type MeasurementSet,
   type UserChanges,
-  type Workout
+  type Workout,
+  type UserImport,
+  type UserExport
 } from '@/model/api';
 import auth from './auth';
 
@@ -45,7 +47,7 @@ export default new class {
   async getChanges(sinceVersion: number): Promise<UserChanges> {
     const res = await fetch(`${BASE_URL}user?since=${sinceVersion}`, {
       method: 'GET',
-      headers: await this.getHeaders()
+      headers: await this.getHeaders(),
     });
 
     if (!res.ok) throw new BadResponseError();
@@ -57,7 +59,7 @@ export default new class {
     const res = await fetch(`${BASE_URL}user/measurement/${measurementId}`, {
       method: 'DELETE',
       headers: await this.getHeaders(true),
-      body: JSON.stringify({ version })
+      body: JSON.stringify({ version }),
     });
 
     this.checkErrors(res);
@@ -74,9 +76,9 @@ export default new class {
         version,
         item: {
           notes: m.notes,
-          measurements: m.measurements
+          measurements: m.measurements,
         }
-      })
+      }),
     });
 
     this.checkErrors(res);
@@ -86,7 +88,7 @@ export default new class {
     const res = await fetch(`${BASE_URL}user/workout/${workoutId}`, {
       method: 'DELETE',
       headers: await this.getHeaders(true),
-      body: JSON.stringify({ version })
+      body: JSON.stringify({ version }),
     });
 
     this.checkErrors(res);
@@ -104,9 +106,9 @@ export default new class {
         item: {
           start_time: w.start_time,
           finish_time: w.finish_time,
-          notes: w.notes
+          notes: w.notes,
         }
-      })
+      }),
     });
 
     this.checkErrors(res);
@@ -120,7 +122,7 @@ export default new class {
     const res = await fetch(`${BASE_URL}user/workout/${workoutId}/exercise/${exerciseId}`, {
       method: 'DELETE',
       headers: await this.getHeaders(true),
-      body: JSON.stringify({ version })
+      body: JSON.stringify({ version }),
     });
 
     this.checkErrors(res);
@@ -140,9 +142,9 @@ export default new class {
           order: exercise.order,
           type: exercise.type,
           notes: exercise.notes,
-          sets: exercise.sets
+          sets: exercise.sets,
         }
-      })
+      }),
     });
 
     this.checkErrors(res);
@@ -158,8 +160,29 @@ export default new class {
       headers: await this.getHeaders(true),
       body: JSON.stringify({
         version,
-        item: exercises
-      })
+        item: exercises,
+      }),
+    });
+
+    this.checkErrors(res);
+  }
+
+  async snapshotExport(): Promise<UserExport> {
+    const res = await fetch(`${BASE_URL}user/snapshot`, {
+      method: 'GET',
+      headers: await this.getHeaders(),
+    });
+
+    this.checkErrors(res);
+
+    return res.json();
+  }
+
+  async snapshotImport(user: UserImport): Promise<void> {
+    const res = await fetch(`${BASE_URL}user/snapshot`, {
+      method: 'PUT',
+      headers: await this.getHeaders(true),
+      body: JSON.stringify(user),
     });
 
     this.checkErrors(res);

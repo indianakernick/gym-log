@@ -3,10 +3,13 @@ export interface UserChanges {
   measurement_sets: MeasurementSet[];
   workouts: Workout[];
   exercises: Exercise[];
-  deleted_measurement_sets: MeasurementSet['date'][];
-  deleted_workouts: Workout['workout_id'][];
-  deleted_exercises: Exercise['workout_exercise_id'][];
+  deleted_measurement_sets?: MeasurementSet['date'][];
+  deleted_workouts?: Workout['workout_id'][];
+  deleted_exercises?: Exercise['workout_exercise_id'][];
 }
+
+export type UserExport = Pick<UserChanges, 'version' | 'measurement_sets' | 'workouts' | 'exercises'>;
+export type UserImport = Omit<UserExport, 'version'>;
 
 export interface MeasurementSet {
   date: string;

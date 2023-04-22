@@ -114,7 +114,7 @@ async fn get_changed(db: &Client, user_id: String, client_version: u64) -> commo
     } else {
         common::json_response(
             StatusCode::OK,
-            common::db_to_user(version, true, true, &items),
+            common::db_to_user(version, true, &items),
         )
     }
 }

@@ -19,16 +19,32 @@ pub struct User<'a> {
     pub exercises: Vec<Exercise<'a>>,
     /// A list of measurements that were deleted since the given version.
     #[serde(borrow)]
+    #[serde(skip_serializing_if="Vec::is_empty")]
     #[serde(skip_deserializing)]
-    pub deleted_measurement_sets: Vec<&'a str>,
+    pub deleted_measurement_sets: Vec<Deleted<'a>>,
     /// A list of workouts that were deleted since the given version.
     #[serde(borrow)]
+    #[serde(skip_serializing_if="Vec::is_empty")]
     #[serde(skip_deserializing)]
-    pub deleted_workouts: Vec<&'a str>,
+    pub deleted_workouts: Vec<Deleted<'a>>,
     /// A list of exercises that were deleted since the given version.
     #[serde(borrow)]
+    #[serde(skip_serializing_if="Vec::is_empty")]
     #[serde(skip_deserializing)]
-    pub deleted_exercises: Vec<&'a str>,
+    pub deleted_exercises: Vec<Deleted<'a>>,
+}
+
+pub struct Deleted<'a> {
+    pub id: &'a str,
+    pub modified_version: u64,
+}
+
+impl<'a> serde::Serialize for Deleted<'a> {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+        where S: serde::Serializer
+    {
+        serializer.serialize_str(self.id)
+    }
 }
 
 // I'm really struggling to find a good word for this.
@@ -36,7 +52,7 @@ pub struct User<'a> {
 pub struct MeasurementSet<'a> {
     /// The date that the measurements were captured in ISO 8601 precise to the
     /// day.
-    #[serde(skip_deserializing)]
+    #[serde(default)]
     pub date: &'a str,
     /// Any user provided notes associated with the measurements on this day.
     #[serde(borrow)]
@@ -50,7 +66,7 @@ pub struct MeasurementSet<'a> {
 #[derive(Serialize, Deserialize)]
 pub struct Workout<'a> {
     /// UUID of the workout.
-    #[serde(skip_deserializing)]
+    #[serde(default)]
     pub workout_id: &'a str,
     /// The time that the workout started in ISO 8601 precise to the second.
     #[serde(deserialize_with = "deserialize_time")]
@@ -69,7 +85,7 @@ pub struct Workout<'a> {
 pub struct Exercise<'a> {
     /// UUID of the workout concatenated with the UUID of the exercise separated
     /// by a `#`.
-    #[serde(skip_deserializing)]
+    #[serde(default)]
     pub workout_exercise_id: &'a str,
     /// Index of the exercise within the workout.
     pub order: u32,
@@ -187,7 +203,7 @@ impl<'de: 'a, 'a, const MAX_LEN: usize> Deserialize<'de> for MaxLenStr<'a, MAX_L
 
 pub trait UserField<'a>: Sized {
     fn extract_from_user<'b>(user: &'b User<'a>) -> &'b [Self];
-    fn extract_deleted_from_user<'b>(user: &'b User<'a>) -> &'b [&'a str];
+    fn extract_deleted_from_user<'b>(user: &'b User<'a>) -> &'b [Deleted<'a>];
 }
 
 impl<'a> UserField<'a> for MeasurementSet<'a> {
@@ -195,7 +211,7 @@ impl<'a> UserField<'a> for MeasurementSet<'a> {
         &user.measurement_sets
     }
 
-    fn extract_deleted_from_user<'b>(user: &'b User<'a>) -> &'b [&'a str] {
+    fn extract_deleted_from_user<'b>(user: &'b User<'a>) -> &'b [Deleted<'a>] {
         &user.deleted_measurement_sets
     }
 }
@@ -205,7 +221,7 @@ impl<'a> UserField<'a> for Workout<'a> {
         &user.workouts
     }
 
-    fn extract_deleted_from_user<'b>(user: &'b User<'a>) -> &'b [&'a str] {
+    fn extract_deleted_from_user<'b>(user: &'b User<'a>) -> &'b [Deleted<'a>] {
         &user.deleted_workouts
     }
 }
@@ -215,7 +231,7 @@ impl<'a> UserField<'a> for Exercise<'a> {
         &user.exercises
     }
 
-    fn extract_deleted_from_user<'b>(user: &'b User<'a>) -> &'b [&'a str] {
+    fn extract_deleted_from_user<'b>(user: &'b User<'a>) -> &'b [Deleted<'a>] {
         &user.deleted_exercises
     }
 }
