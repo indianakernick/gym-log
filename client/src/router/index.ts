@@ -76,7 +76,8 @@ const router = createRouter({
 router.afterEach(to => {
   nextTick(() => {
     const app = 'Gym Log';
-    document.title = to.meta.title ? `${to.meta.title} - ${app}` : app;
+    // An em dash separates the page title from the app name.
+    document.title = to.meta.title ? `${to.meta.title} — ${app}` : app;
   });
 });
 
