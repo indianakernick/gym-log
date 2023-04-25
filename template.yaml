@@ -207,6 +207,7 @@ Resources:
         AllowHeaders:
           - Authorization
           - Content-Type
+          - Retry-After
         AllowMethods:
           - DELETE
           - GET
