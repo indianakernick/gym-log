@@ -20,6 +20,28 @@ pub fn version_from_collection(collection: u32) -> u64 {
 
 type DynamoDbItem = HashMap<String, AttributeValue>;
 
+macro_rules! item_match {
+    ($item:ident, $sk:ident, $deleted:ident, [$({ $type:ty, $entities:ident, $deleted_entities:ident }),*$(,)?]) => {
+        match $sk.len() {
+            $(<$type>::KEY_LEN => {
+                let id = &$sk[<$type>::FULL_PREFIX_LEN..];
+                if $deleted {
+                    $deleted_entities.push(super::Deleted {
+                        id,
+                        modified_version: super::as_number(&$item["ModifiedVersion"]),
+                    });
+                } else {
+                    $entities.push(<$type>::from_dynamo_db(
+                        id,
+                        $item,
+                    ));
+                }
+            })*
+            _ => unreachable!()
+        }
+    }
+}
+
 pub fn db_to_user(
     version: u64,
     filter_collection: bool,
@@ -49,54 +71,11 @@ pub fn db_to_user(
             continue;
         }
 
-        match sk.len() {
-            super::MeasurementSet::KEY_LEN => {
-                let measurement_id = &sk[super::MeasurementSet::FULL_PREFIX_LEN..];
-                if deleted {
-                    deleted_measurement_sets.push(super::Deleted {
-                        id: measurement_id,
-                        modified_version: super::as_number(&item["ModifiedVersion"]),
-                    });
-                } else {
-                    measurement_sets.push(super::MeasurementSet::from_dynamo_db(
-                        measurement_id,
-                        item,
-                    ));
-                }
-            }
-
-            super::Workout::KEY_LEN => {
-                let workout_id = &sk[super::Workout::FULL_PREFIX_LEN..];
-                if deleted {
-                    deleted_workouts.push(super::Deleted {
-                        id: workout_id,
-                        modified_version: super::as_number(&item["ModifiedVersion"]),
-                    });
-                } else {
-                    workouts.push(super::Workout::from_dynamo_db(
-                        workout_id,
-                        item,
-                    ));
-                }
-            }
-
-            super::Exercise::KEY_LEN => {
-                let workout_exercise_id = &sk[super::Exercise::FULL_PREFIX_LEN..];
-                if deleted {
-                    deleted_exercises.push(super::Deleted {
-                        id: workout_exercise_id,
-                        modified_version: super::as_number(&item["ModifiedVersion"]),
-                    });
-                } else {
-                    exercises.push(super::Exercise::from_dynamo_db(
-                        workout_exercise_id,
-                        item,
-                    ));
-                }
-            }
-
-            _ => unreachable!()
-        }
+        item_match!(item, sk, deleted, [
+            { super::MeasurementSet, measurement_sets, deleted_measurement_sets },
+            { super::Workout, workouts, deleted_workouts },
+            { super::Exercise, exercises, deleted_exercises },
+        ]);
     }
 
     super::User {

@@ -230,7 +230,7 @@ fn make_import_batch<'a>(
         common::collection_from_version(new_version)
     );
 
-    apply_changes::<common::MeasurementSet>(
+    make_import_batch_for::<common::MeasurementSet>(
         &mut requests,
         user_id.clone(),
         &new_collection_prefix,
@@ -239,7 +239,7 @@ fn make_import_batch<'a>(
         curr,
     );
 
-    apply_changes::<common::Workout>(
+    make_import_batch_for::<common::Workout>(
         &mut requests,
         user_id.clone(),
         &new_collection_prefix,
@@ -248,7 +248,7 @@ fn make_import_batch<'a>(
         curr,
     );
 
-    apply_changes::<common::Exercise>(
+    make_import_batch_for::<common::Exercise>(
         &mut requests,
         user_id,
         &new_collection_prefix,
@@ -260,14 +260,16 @@ fn make_import_batch<'a>(
     requests
 }
 
-fn apply_changes<'a, T: common::ToDynamoDb<'a> + common::Equivalent + common::UserField<'a>>(
+fn make_import_batch_for<'a, T>(
     requests: &mut Vec<WriteRequest>,
     user_id: String,
     collection_prefix: &str,
     version: u64,
     import: &common::User<'a>,
     curr: &common::User<'a>,
-) {
+)
+    where T: common::ToDynamoDb<'a> + common::Equivalent + common::UserField<'a>
+{
     let mut curr_entities = T::extract_from_user(curr).iter()
         .map(|e| (e.get_id(), e))
         .collect::<HashMap<_, _>>();
@@ -346,21 +348,21 @@ fn make_delete_batch(
 ) -> Vec<WriteRequest> {
     let mut requests = Vec::new();
 
-    apply_delete::<common::MeasurementSet>(
+    make_delete_batch_for::<common::MeasurementSet>(
         &mut requests,
         user_id.clone(),
         collection_prefix,
         user,
     );
 
-    apply_delete::<common::Workout>(
+    make_delete_batch_for::<common::Workout>(
         &mut requests,
         user_id.clone(),
         collection_prefix,
         user,
     );
 
-    apply_delete::<common::Exercise>(
+    make_delete_batch_for::<common::Exercise>(
         &mut requests,
         user_id.clone(),
         collection_prefix,
@@ -370,12 +372,14 @@ fn make_delete_batch(
     requests
 }
 
-fn apply_delete<'a, T: common::ToDynamoDb<'a> + common::UserField<'a>>(
+fn make_delete_batch_for<'a, T>(
     requests: &mut Vec<WriteRequest>,
     user_id: String,
     collection_prefix: &str,
     user: &common::User<'a>,
-) {
+)
+    where T: common::ToDynamoDb<'a> + common::UserField<'a>
+{
     for entity in T::extract_from_user(user) {
         requests.push(make_delete_request(
             user_id.clone(),
