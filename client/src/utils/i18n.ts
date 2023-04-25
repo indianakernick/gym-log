@@ -3,14 +3,14 @@ import type { ExerciseType, ExerciseTypeGroup, MeasurementType } from '@/model/a
 export const MEASUREMENT_TYPE: { [key in MeasurementType]: string } = {
   'weight': 'Weight',
   'height': 'Height',
-  'arm-right-upper': 'Right Upper Arm',
-  'arm-right-lower': 'Right Lower Arm',
-  'arm-left-upper': 'Left Upper Arm',
-  'arm-left-lower': 'Left Lower Arm',
-  'leg-right-upper': 'Right Upper Leg',
-  'leg-right-lower': 'Right Lower Leg',
-  'leg-left-upper': 'Left Upper Leg',
-  'leg-left-lower': 'Left Lower Leg',
+  'arm-right-upper': 'Right Bicep',
+  'arm-right-lower': 'Right Forearm',
+  'arm-left-upper': 'Left Bicep',
+  'arm-left-lower': 'Left Forearm',
+  'leg-right-upper': 'Right Thigh',
+  'leg-right-lower': 'Right Calf',
+  'leg-left-upper': 'Left Thigh',
+  'leg-left-lower': 'Left Calf',
 };
 
 export const MEASUREMENT_TYPE_UNIT: { [key in MeasurementType]: string } = {
@@ -24,6 +24,19 @@ export const MEASUREMENT_TYPE_UNIT: { [key in MeasurementType]: string } = {
   'leg-right-lower': '(cm)',
   'leg-left-upper': '(cm)',
   'leg-left-lower': '(cm)',
+};
+
+export const MEASUREMENT_TYPE_ABBR: { [key in MeasurementType]: string } = {
+  'weight': 'W',
+  'height': 'H',
+  'arm-right-upper': 'RB',
+  'arm-right-lower': 'RF',
+  'arm-left-upper': 'LB',
+  'arm-left-lower': 'LF',
+  'leg-right-upper': 'RT',
+  'leg-right-lower': 'RC',
+  'leg-left-upper': 'LT',
+  'leg-left-lower': 'LC',
 };
 
 export const EXERCISE_TYPE_GROUP: { [key in ExerciseTypeGroup]: string } = {

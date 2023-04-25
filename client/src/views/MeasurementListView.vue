@@ -1,7 +1,9 @@
 <script setup lang="ts">
+import type { MeasurementSet, MeasurementType } from '@/model/api';
 import db from '@/services/db';
 import { groupBy } from '@/utils/array';
 import { displayDate, toDateString } from '@/utils/date';
+import { MEASUREMENT_TYPE_ABBR } from '@/utils/i18n';
 import { refresh } from '@/utils/refresh';
 import { itemLines } from '@/utils/style';
 import {
@@ -27,7 +29,7 @@ import { useRouter } from 'vue-router';
 
 const router = useRouter();
 
-const years = shallowRef<string[][]>([]);
+const years = shallowRef<MeasurementSet[][]>([]);
 const page = shallowRef();
 const presentingElement = shallowRef();
 const dateModal = shallowRef();
@@ -38,7 +40,7 @@ onMounted(() => {
 });
 
 async function load() {
-  years.value = groupBy(await db.getMeasurementDates(), date => date.substring(0, 4));
+  years.value = groupBy(await db.getMeasurements(), m => m.date.substring(0, 4));
 }
 
 refresh(load);
@@ -85,17 +87,27 @@ function openDateModal() {
       <IonList class="p-0">
         <IonItemGroup v-for="year, y in years">
           <IonItemDivider class="sticky top-0">
-            <IonLabel>{{ year[0].substring(0, 4) }}</IonLabel>
+            <IonLabel>{{ year[0].date.substring(0, 4) }}</IonLabel>
           </IonItemDivider>
 
           <IonItem
-            v-for="date, d in year"
+            v-for="measurement, m in year"
             button
             :detail="true"
-            :lines="itemLines(years, y, d)"
-            @click="router.push(`/measurements/${date}`)"
+            :lines="itemLines(years, y, m)"
+            @click="router.push(`/measurements/${measurement.date}`)"
           >
-            <IonLabel>{{ displayDate(date) }}</IonLabel>
+            <IonLabel>
+              <h3>{{ displayDate(measurement.date) }}</h3>
+              <p v-if="measurement.notes">{{ measurement.notes }}</p>
+              <div class="flex flex-wrap gap-1 mt-1 text-sm">
+                <div
+                  v-for="ty in Object.keys(measurement.measurements)"
+                  class="rounded px-1 bg-neutral-200 text-black
+                    dark:bg-neutral-700 dark:text-white"
+                >{{ MEASUREMENT_TYPE_ABBR[ty as MeasurementType] }}</div>
+              </div>
+            </IonLabel>
           </IonItem>
         </IonItemGroup>
       </IonList>

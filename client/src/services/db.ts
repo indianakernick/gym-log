@@ -684,6 +684,8 @@ export default new class {
     return canon[0];
   }
 
+  // TODO: do we still need getMeasurementDates?
+
   /**
    * Get all measurement dates, ordered by descending `date`.
    */
@@ -730,6 +732,29 @@ export default new class {
     if (newDates.length) canonKeys.sort();
 
     return canonKeys.reverse();
+  }
+
+  /**
+   * Get all measurements, ordered by descending `date`.
+   */
+  async getMeasurements(): Promise<MeasurementSet[]> {
+    const db = await this.db.get();
+    const tx = db.transaction(['measurement', 'stagedMeasurement']);
+    const stagedStore = tx.objectStore('stagedMeasurement');
+
+    const [canon, staged, stagedKeys] = await Promise.all([
+      tx.objectStore('measurement').getAll(),
+      stagedStore.getAll(),
+      stagedStore.getAllKeys()
+    ]);
+
+    this.applyStaged(canon, staged, stagedKeys, (measurement, date) => {
+      return stringCompare(measurement.date, date);
+    });
+
+    canon.sort((a, b) => stringCompare(b.date, a.date));
+
+    return canon;
   }
 
   /**
